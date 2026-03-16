@@ -1,0 +1,197 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+const Hero = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const dragX = useMotionValue(0);
+
+  const slides = [
+    {
+      type: 'image',
+      src: '/images/banner.png',
+      alt: 'Summer Banner'
+    },
+    {
+      type: 'fashion',
+      content: (
+        <section className="relative h-[80vh] flex items-center justify-center bg-[#f7f3f0] overflow-hidden">
+          <div className="absolute inset-0 w-full h-full pointer-events-none">
+            <div className="absolute top-[10%] left-[15%] w-[300px] h-[450px] overflow-hidden shadow-2xl transition-transform duration-500 -rotate-3 hover:rotate-0 z-10">
+              <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800" alt="Fashion 1" className="w-full h-full object-cover shadow-2xl" />
+            </div>
+            <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[300px] h-[450px] overflow-hidden shadow-2xl transition-transform duration-500 rotate-1 hover:rotate-0 z-30">
+              <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800" alt="Fashion 2" className="w-full h-full object-cover shadow-2xl" />
+            </div>
+            <div className="absolute top-[15%] right-[15%] w-[300px] h-[450px] overflow-hidden shadow-2xl transition-transform duration-500 rotate-3 hover:rotate-0 z-10">
+              <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=800" alt="Fashion 3" className="w-full h-full object-cover shadow-2xl" />
+            </div>
+          </div>
+          <div className="relative z-20 text-center select-none flex flex-col items-center">
+            <h1 className="text-[10rem] md:text-[15rem] font-black text-[#111] tracking-tighter leading-[0.8] uppercase opacity-90">
+              FASHION
+            </h1>
+            <button
+              onClick={() => document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' })}
+              className="mt-10 px-12 py-5 bg-black text-white text-[0.7rem] font-black uppercase tracking-[4px] hover:bg-zinc-800 transition-all active:scale-95 shadow-2xl shadow-black/20 pointer-events-auto"
+            >
+              Explore Collection
+            </button>
+          </div>
+        </section>
+      )
+    },
+    {
+      type: 'exclusive',
+      content: (
+        <div className="container mx-auto px-10 h-full flex items-center relative z-10 text-left">
+          <div className="max-w-2xl">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[0.8rem] font-black uppercase tracking-[0.3em] text-gray-500 mb-4"
+            >
+              Exclusive Collection 2024
+            </motion.h2>
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-7xl md:text-8xl font-black uppercase leading-[0.9] tracking-tighter mb-8"
+            >
+              Elegance <br /> In Every <br /> <span className="text-gray-400">Stitch</span>
+            </motion.h1>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Link to="/collections/all" className="inline-flex items-center gap-4 bg-black text-white px-10 py-5 rounded-full text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-all active:scale-95">
+                Explore Shop <ArrowRight size={18} />
+              </Link>
+            </motion.div>
+          </div>
+          <div className="absolute top-0 right-0 w-1/2 h-full hidden lg:block">
+            <div className="relative w-full h-full p-20">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1 }}
+                className="w-full h-full rounded-[40px] overflow-hidden shadow-2xl"
+              >
+                <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop" className="w-full h-full object-cover" alt="" />
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  const onDragEnd = () => {
+    const x = dragX.get();
+    if (x <= -100) {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    } else if (x >= 100) {
+      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    }
+  };
+
+  const MarqueeItem = ({ text }) => (
+    <div className="flex items-center mx-10">
+       <svg xmlns="http://www.w3.org/2000/svg" className="fill-white" width="15" height="20" viewBox="0 0 15 20">
+         <path d="M14.5833 8H8.61742L9.94318 0L0 12H5.96591L4.64015 20L14.5833 8"></path>
+       </svg>
+       <span className="text-[0.65rem] font-black uppercase tracking-[5px] text-white ml-4 font-['Albert_Sans']">{text}</span>
+    </div>
+  );
+
+  return (
+    <div className="relative font-['Albert_Sans']">
+      <section className="relative h-[85vh] overflow-hidden bg-[#f7f3f0] cursor-grab active:cursor-grabbing">
+        <motion.div
+          className="h-full w-full"
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          style={{ x: dragX }}
+          onDragEnd={onDragEnd}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, x: 200 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -200 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none"
+            >
+              <div className="w-full h-full pointer-events-auto">
+                {slides[currentSlide].type === 'image' ? (
+                  <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-cover" />
+                ) : (
+                  slides[currentSlide].content
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Controls */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-6 z-30 pointer-events-none">
+          <button 
+            onClick={() => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)} 
+            className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-black hover:bg-white/30 transition-all active:scale-95 shadow-lg ring-1 ring-black/5 pointer-events-auto"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <button 
+            onClick={() => setCurrentSlide((prev) => (prev + 1) % slides.length)} 
+            className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-black hover:bg-white/30 transition-all active:scale-95 shadow-lg ring-1 ring-black/5 pointer-events-auto"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
+
+        {/* Indicators */}
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3 z-30">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentSlide(i)}
+              className={`w-2 h-2 rounded-full transition-all ${currentSlide === i ? 'bg-black w-8' : 'bg-black/20'}`}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Marquee Section */}
+      <div className="bg-black py-4 overflow-hidden whitespace-nowrap border-y border-white/5">
+        <motion.div
+          animate={{ x: [0, -2000] }}
+          transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+          className="inline-block"
+        >
+          <div className="flex">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <React.Fragment key={i}>
+                <MarqueeItem text="your new favorites fit" />
+                <MarqueeItem text="limited period offer" />
+              </React.Fragment>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default Hero;
+
