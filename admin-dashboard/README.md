@@ -1,16 +1,51 @@
-# React + Vite
+# Admin Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A sophisticated management interface for administrators to oversee the backend ecosystem. 
 
-Currently, two official plugins are available:
+## ✨ Key Features
+- **Dashboard Analytics**: Visualize sales, orders, and review metrics.
+- **Product Management**: Create and update products with detailed descriptions and pricing.
+- **Advanced Variants**: Dedicated interface for managing color and size variants.
+- **Categorization**: Manage categories and collections to keep the store organized.
+- **Review Moderation**: View and manage customer feedback.
+- **Theme Support**: Integrated ThemeContext for a consistent aesthetic experience.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🛠 Tech Stack
+- **Framework**: React 19 + Vite
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **Animations**: Framer Motion
+- **Networking**: Axios (Base URL configured for the backend API)
 
-## React Compiler
+## 📂 Project Structure
+- `src/pages/`: Main views (Products, Sales, Orders, etc.).
+- `src/forms/`: Reusable forms like `ProductForm`.
+- `src/context/`: Global state like `ThemeContext`.
+- `src/utils/`: API service layer.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🚀 Getting Started
 
-## Expanding the ESLint configuration
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2. **Run Development Server**:
+   ```bash
+   npm run dev
+   ```
+
+3. **Build for Production**:
+   ```bash
+   npm run build
+   ```
+
+---
+
+## 🎨 Design Principles
+- **Aesthetic Excellence**: Clean, high-contrast UI with premium spacing.
+- **Component-Driven**: Modular structure for rapid scaling and easy maintenance.
+- **Responsive**: Fully functional across desktop and tablet interfaces.
+
+## 🔗 Connection
+Ensure the `src/utils/api.js` is pointing to the correct backend API URL. By default, it uses values compatible with the `backend-api` module.
