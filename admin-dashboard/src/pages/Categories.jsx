@@ -50,14 +50,15 @@ const Categories = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
-      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center justify-between px-10">
+      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center justify-between px-6 md:px-10">
         <h1 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Categories</h1>
       </header>
 
-      <main className="p-10 max-w-[95%] mx-auto space-y-8">
+      <main className="p-6 md:p-10 max-w-[95%] mx-auto space-y-8">
+
         {/* Add Category Form */}
         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm ring-1 ring-black/5 animate-in slide-in-from-top-4 duration-500">
-          <form onSubmit={handleAddCategory} className="flex gap-4">
+          <form onSubmit={handleAddCategory} className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 space-y-2">
               <label className="text-[0.65rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1 leading-none">New Category Name</label>
               <input 
@@ -70,12 +71,13 @@ const Categories = () => {
             </div>
             <button 
               type="submit" 
-              className="mt-6 px-6 py-3 bg-black dark:bg-white dark:text-black text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95 self-end"
+              className="px-6 py-4 md:py-3 bg-black dark:bg-white dark:text-black text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg active:scale-95 md:self-end"
             >
-              <Plus size={16} strokeWidth={3} /> Add
+              <Plus size={16} strokeWidth={3} /> Add Category
             </button>
           </form>
         </div>
+
 
         {/* Categories List */}
         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden ring-1 ring-black/5 animate-in slide-in-from-bottom-10 duration-700">

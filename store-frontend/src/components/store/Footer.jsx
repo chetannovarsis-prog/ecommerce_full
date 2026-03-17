@@ -1,4 +1,5 @@
-import { Instagram, Twitter, Facebook } from 'lucide-react';
+import { Instagram, Facebook, MessageCircle, Pin } from 'lucide-react';
+
 import { Link } from 'react-router-dom';
 
 const Footer = () => {
@@ -12,10 +13,12 @@ const Footer = () => {
               Premium fashion for the modern individual. Quality craftsmanship and timeless style, delivered to your doorstep.
             </p>
             <div className="flex gap-6 mt-10">
-              <a href="#" className="hover:text-gray-400 transition-colors"><Instagram size={22} /></a>
-              <a href="#" className="hover:text-gray-400 transition-colors"><Twitter size={22} /></a>
-              <a href="#" className="hover:text-gray-400 transition-colors"><Facebook size={22} /></a>
+              <a href="https://www.instagram.com/knittingknot_official/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors"><Instagram size={22} /></a>
+              <a href="https://www.facebook.com/knittingknot" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors"><Facebook size={22} /></a>
+              <a href="https://in.pinterest.com/knitting_knot/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors"><Pin size={22} /></a>
+              <a href="https://alvo.chat/67KT" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors"><MessageCircle size={22} /></a>
             </div>
+
           </div>
           
           <div>

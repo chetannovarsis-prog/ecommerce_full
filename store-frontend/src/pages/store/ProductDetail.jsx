@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../utils/api';
 import { 
   ShoppingBag, 
   Heart, 
@@ -92,16 +92,18 @@ const ProductDetail = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/products/${id}`);
+        const response = await api.get(`/products/${id}`);
         setProduct(response.data);
+
         if (response.data.variants && response.data.variants.length > 0) {
           setSelectedVariant(response.data.variants[0]);
         }
         setActiveImage(response.data.thumbnailUrl || response.data.images?.[0]);
         
         // Fetch Related Products (Same category + Featured)
-        const allProductsRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/products`);
+        const allProductsRes = await api.get('/products');
         const categoryIds = response.data.categoryIds || [];
+
         const related = allProductsRes.data
           .filter(p => (p.id !== response.data.id && (p.stock > 0 || p.quantity > 0)))
           .sort((a, b) => {
@@ -115,8 +117,9 @@ const ProductDetail = () => {
         setRelatedProducts(related);
 
         // Fetch Reviews
-        const reviewsRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/reviews/product/${id}`);
+        const reviewsRes = await api.get(`/reviews/product/${id}`);
         setReviews(reviewsRes.data);
+
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -131,13 +134,14 @@ const ProductDetail = () => {
     e.preventDefault();
     setSubmittingReview(true);
     try {
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/reviews`, {
+      await api.post('/reviews', {
         productId: id,
         ...reviewForm
       });
       // Refresh reviews
-      const reviewsRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/reviews/product/${id}`);
+      const reviewsRes = await api.get(`/reviews/product/${id}`);
       setReviews(reviewsRes.data);
+
       setReviewForm({ rating: 5, comment: '', name: '' });
       setIsReviewing(false);
     } catch (error) {
@@ -217,17 +221,52 @@ const ProductDetail = () => {
     setActiveImage(allImages[prevIdx]);
   };
 
-  // Group variants
+  // Group variants by multiple attributes
   const variantOptions = {};
   product.variants?.forEach(v => {
-    if (!v.title || !v.title.includes(':')) return;
-    const parts = v.title.split(': ');
-    if (parts.length < 2) return;
-    const name = parts[0].trim().toLowerCase();
-    const value = parts[1].trim();
-    if (!variantOptions[name]) variantOptions[name] = new Set();
-    variantOptions[name].add(value);
+    if (!v.title) return;
+    // Split by comma for multiple attributes (e.g., "Color: Red, Size: XL")
+    const attributes = v.title.split(', ');
+    attributes.forEach(attr => {
+      if (!attr.includes(':')) return;
+      const parts = attr.split(': ');
+      if (parts.length < 2) return;
+      const name = parts[0].trim().toLowerCase();
+      const value = parts[1].trim();
+      if (!variantOptions[name]) variantOptions[name] = new Set();
+      variantOptions[name].add(value);
+    });
   });
+
+  // Helper to find variant matching partial selections
+  const findMatchingVariant = (newVal, type) => {
+    const currentTitle = selectedVariant?.title || '';
+    const attributes = currentTitle.split(', ');
+    
+    // Create map of current selections
+    const selections = {};
+    attributes.forEach(attr => {
+      if (attr.includes(':')) {
+        const [k, v] = attr.split(': ');
+        selections[k.trim().toLowerCase()] = v.trim();
+      }
+    });
+
+    // Update with new choice
+    selections[type.toLowerCase()] = newVal;
+
+    // Build target parts
+    const targetParts = Object.entries(selections).map(([k, v]) => {
+      // Capitalize key for matching
+      const key = k.charAt(0).toUpperCase() + k.slice(1);
+      return `${key}: ${v}`;
+    });
+
+    // Find best match (variant that contains all target parts)
+    return product.variants.find(v => {
+      return targetParts.every(part => v.title.includes(part));
+    }) || product.variants.find(v => v.title.includes(`${type.charAt(0).toUpperCase() + type.slice(1)}: ${newVal}`));
+  };
 
   return (
     <div className="bg-white min-h-screen pb-40 italic-none">
@@ -281,13 +320,13 @@ const ProductDetail = () => {
                 {/* Arrow Controls */}
                 <button 
                   onClick={handlePrevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all opacity-0 group-hover:opacity-100 z-10"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100 z-10"
                 >
                   <LeftIcon size={20} />
                 </button>
                 <button 
                   onClick={handleNextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all opacity-0 group-hover:opacity-100 z-10"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100 z-10"
                 >
                   <RightIcon size={20} />
                 </button>
@@ -376,12 +415,12 @@ const ProductDetail = () => {
                     </label>
                     <div className="flex flex-wrap gap-3">
                        {[...variantOptions['size']].map(val => {
-                          const isSelected = selectedVariant?.title?.toLowerCase().includes(`size: ${val.toLowerCase()}`);
+                          const isSelected = selectedVariant?.title?.includes(`Size: ${val}`);
                           return (
                             <button
                               key={val}
                               onClick={() => {
-                                const variant = product.variants.find(v => v.title.toLowerCase().includes(`size: ${val.toLowerCase()}`));
+                                const variant = findMatchingVariant(val, 'size');
                                 if (variant) setSelectedVariant(variant);
                               }}
                               className={`w-12 h-12 flex items-center justify-center text-xs font-black border transition-all rounded-[4px] ${isSelected ? 'border-black bg-white' : 'border-gray-200 text-gray-400 hover:border-gray-400'}`}
@@ -410,10 +449,10 @@ const ProductDetail = () => {
                     </div>
                     <div className="flex flex-wrap gap-4">
                        {[...variantOptions['color']].map(color => {
-                          const isSelected = selectedVariant?.title?.toLowerCase().includes(`color: ${color.toLowerCase()}`);
+                          const isSelected = selectedVariant?.title?.includes(`Color: ${color}`);
                           // Find a variant that has this color to show its thumbnail
                           const representativeVariant = product.variants.find(v => 
-                            v.title.toLowerCase().includes(`color: ${color.toLowerCase()}`)
+                            v.title.includes(`Color: ${color}`)
                           );
                           const imgUrl = representativeVariant?.thumbnailUrl || representativeVariant?.images?.find(isValidUrl) || product.thumbnailUrl;
                           
@@ -421,7 +460,8 @@ const ProductDetail = () => {
                             <button
                               key={color}
                               onClick={() => {
-                                if (representativeVariant) setSelectedVariant(representativeVariant);
+                                const variant = findMatchingVariant(color, 'color');
+                                if (variant) setSelectedVariant(variant);
                               }}
                               className={`group relative flex flex-col items-center gap-2 transition-all`}
                             >
@@ -430,7 +470,6 @@ const ProductDetail = () => {
                                    <img src={imgUrl} className="w-full h-full object-cover" alt={color} />
                                  </div>
                                </div>
-                               {/* Optional: Add a small dot if desired, but image + label is usually enough as per reference */}
                             </button>
                           );
                        })}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import ProductCard from '../../components/store/ProductCard';
+
 import FilterSidebar from '../../components/store/FilterSidebar';
 import { 
   Filter, 
@@ -24,6 +25,18 @@ const Products = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewCols, setViewCols] = useState(4); // Default 4 cols
   const [sortBy, setSortBy] = useState('newest');
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const sortRef = React.useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sortRef.current && !sortRef.current.contains(event.target)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,9 +44,10 @@ const Products = () => {
       try {
         // Fetch products and optionally collection info
         const [prodRes, collRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_API_BASE_URL}/products`),
-          collectionId ? axios.get(`${import.meta.env.VITE_API_BASE_URL}/collections/${collectionId}`) : Promise.resolve({ data: null })
+          api.get('/products'),
+          collectionId ? api.get(`/collections/${collectionId}`) : Promise.resolve({ data: null })
         ]);
+
 
         let allProducts = prodRes.data;
         if (collectionId) {
@@ -140,21 +154,49 @@ const Products = () => {
                  <ViewIcon cols={6} active={viewCols === 6} onClick={() => setViewCols(6)} />
               </div>
 
-               <div className="relative group min-w-[200px]">
-                  <select 
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full appearance-none bg-white border border-gray-200 px-6 py-3.5 pr-12 rounded-xl text-[0.7rem] font-black uppercase tracking-[1px] focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5 cursor-pointer transition-all shadow-sm hover:border-gray-300"
+               <div ref={sortRef} className="relative group min-w-[240px] z-50">
+                  <button 
+                    onClick={() => setIsSortOpen(!isSortOpen)}
+                    className="w-full flex items-center justify-between bg-white border border-gray-100 px-6 py-3.5 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] transition-all hover:border-black shadow-sm"
                   >
-                    <option value="newest">Newest First</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                   <option value="name-az">A - Z</option>
-                   <option value="name-za">Z - A</option>
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 group-hover:text-black transition-colors">
-                    <ChevronDown size={16} />
-                  </div>
+                    <span className="flex items-center gap-2">
+                       {sortBy === 'newest' && 'Newest First'}
+                       {sortBy === 'price-low' && 'Price: Low to High'}
+                       {sortBy === 'price-high' && 'Price: High to Low'}
+                       {sortBy === 'name-az' && 'Alphabetically, A-Z'}
+                       {sortBy === 'name-za' && 'Alphabetically, Z-A'}
+                    </span>
+                    <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${isSortOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {isSortOpen && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-sm shadow-2xl py-2 overflow-hidden"
+                      >
+                        {[
+                          { val: 'newest', label: 'Newest First' },
+                          { val: 'price-low', label: 'Price, low to high' },
+                          { val: 'price-high', label: 'Price, high to low' },
+                          { val: 'name-az', label: 'Alphabetically, A-Z' },
+                          { val: 'name-za', label: 'Alphabetically, Z-A' }
+                        ].map((opt) => (
+                          <button
+                            key={opt.val}
+                            onClick={() => { setSortBy(opt.val); setIsSortOpen(false); }}
+                            className={`w-full text-left px-6 py-3 text-[0.7rem] font-bold transition-all relative group/item flex items-center ${sortBy === opt.val ? 'bg-gray-50 text-black' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
+                          >
+                            {/* Hover/Active indicator bar */}
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-black transition-opacity ${sortBy === opt.val ? 'opacity-100' : 'opacity-0 group-hover/item:opacity-100'}`} />
+                            {opt.label}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                </div>
            </div>
 

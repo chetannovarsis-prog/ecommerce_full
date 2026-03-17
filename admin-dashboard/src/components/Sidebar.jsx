@@ -7,6 +7,7 @@ import {
   Layers, 
   Users, 
   Star,
+  Mail,
   Settings, 
   ChevronLeft,
   ChevronRight,
@@ -17,8 +18,10 @@ import {
   ShieldCheck,
   LogOut,
   MoreVertical,
-  TrendingUp
+  TrendingUp,
+  Image as ImageIcon
 } from 'lucide-react';
+
 import { useTheme } from '../context/ThemeContext';
 import api from '../utils/api';
 
@@ -26,12 +29,14 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   const { theme, toggleTheme } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = React.useState(false);
   const profileMenuRef = React.useRef(null);
+  const triggerRef = React.useRef(null);
   const email = localStorage.getItem('adminEmail') || 'admin@ansupal.com';
   const [is2FAEnabled, setIs2FAEnabled] = React.useState(localStorage.getItem('2fa_enabled') === 'true');
 
   React.useEffect(() => {
     const handleClickOutside = (event) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target) && 
+          triggerRef.current && !triggerRef.current.contains(event.target)) {
         setShowProfileMenu(false);
       }
     };
@@ -53,8 +58,9 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   };
 
   return (
-    <aside className={`fixed top-0 bottom-0 bg-white dark:bg-[#111111] border-r border-gray-200 dark:border-white/5 flex flex-col transition-all duration-300 z-50 ${isCollapsed ? 'w-16' : 'w-60'}`}>
-      <div className={`flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5 h-16 ${isCollapsed ? 'justify-center' : ''}`}>
+    <aside className={`fixed top-0 bottom-0 bg-white dark:bg-[#111111] border-r border-gray-200 dark:border-white/5 flex flex-col transition-all duration-300 z-50 ${isCollapsed ? '-translate-x-full md:translate-x-0 md:w-16' : 'translate-x-0 w-60'}`}>
+      <div className={`flex items-center justify-between p-4 border-b border-gray-200 dark:border-white/5 h-16 ${isCollapsed ? 'md:justify-center' : ''}`}>
+
         {!isCollapsed && (
           <div className="flex items-center gap-2 group cursor-pointer">
             <div className="w-7 h-7 bg-black dark:bg-white dark:text-black text-white flex items-center justify-center rounded-lg text-[0.7rem] font-black shadow-lg shadow-black/10">C</div>
@@ -93,11 +99,23 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
           <Layers size={18} /> 
           {!isCollapsed && <span className="text-[0.8rem] font-bold">Collections</span>}
         </NavLink>
+
+        <NavLink to="/banners" className={({isActive}) => `flex items-center p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl shadow-black/10 active:scale-95' : ''} ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+          <ImageIcon size={18} /> 
+          {!isCollapsed && <span className="text-[0.8rem] font-bold">Banners</span>}
+        </NavLink>
+
         
         <NavLink to="/customers" className={({isActive}) => `flex items-center p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl shadow-black/10 active:scale-95' : ''} ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           <Users size={18} /> 
           {!isCollapsed && <span className="text-[0.8rem] font-bold">Customers</span>}
         </NavLink>
+
+        <NavLink to="/messages" className={({isActive}) => `flex items-center p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl shadow-black/10 active:scale-95' : ''} ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+          <Mail size={18} /> 
+          {!isCollapsed && <span className="text-[0.8rem] font-bold">Messages</span>}
+        </NavLink>
+
 
         <NavLink to="/reviews" className={({isActive}) => `flex items-center p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl shadow-black/10 active:scale-95' : ''} ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           <Star size={18} /> 
@@ -114,7 +132,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
       
       <div className={`p-4 border-t border-gray-200 dark:border-white/5 relative bg-white dark:bg-[#111111]`}>
         {showProfileMenu && !isCollapsed && (
-          <div className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 animate-in slide-in-from-bottom-2 duration-300">
+          <div 
+            ref={profileMenuRef}
+            onClick={(e) => e.stopPropagation()}
+            className="absolute bottom-full left-4 right-4 mb-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 animate-in slide-in-from-bottom-2 duration-300"
+          >
             <div className="px-3 py-2 border-b border-gray-100 dark:border-white/5 mb-2">
                <p className="text-[0.6rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest leading-none mb-1">Appearance</p>
                <div className="flex items-center gap-2 mt-2 bg-gray-50 dark:bg-white/5 p-1 rounded-lg">
@@ -150,7 +172,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         )}
 
         <div 
-          ref={profileMenuRef}
+          ref={triggerRef}
           onClick={() => !isCollapsed && setShowProfileMenu(!showProfileMenu)}
           className={`flex items-center transition-all ${isCollapsed ? 'justify-center' : 'gap-3 p-2 rounded-xl border border-transparent hover:border-gray-100 dark:hover:border-white/5 cursor-pointer group'}`}
         >

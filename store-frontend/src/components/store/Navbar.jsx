@@ -3,7 +3,8 @@ import { Search, ShoppingBag, User, Menu, Heart, X } from 'lucide-react';
 import { useStore } from '../../services/useStore';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import api from '../../utils/api';
+
 
 const Navbar = () => {
   const { cart, wishlist, setCartOpen } = useStore();
@@ -55,7 +56,7 @@ const Navbar = () => {
       }
       setIsSearching(true);
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/products?search=${searchQuery}`);
+        const response = await api.get(`/products?search=${searchQuery}`);
         const data = response.data;
         const rankedData = data.map(product => {
           let score = 0;
@@ -107,7 +108,7 @@ const Navbar = () => {
     <nav className={navClasses}>
       <div className="container mx-auto px-6 md:px-10 flex justify-between items-center relative gap-8">
         <div className="flex gap-4 md:gap-8 items-center flex-shrink-0 text-black">
-          <Link to="/" className="py-2"> <img className="w-[70px] md:w-[85px] transition-all duration-300" src="images/logo3.png" alt="" /> </Link>
+          <Link to="/" className=""> <img className="w-[70px] md:w-[85px] transition-all duration-300" src="images/logo3.png" alt="" /> </Link>
           <div className="hidden md:flex gap-8 text-[0.7rem] font-bold uppercase tracking-[0.2em] ml-4">
             <Link to="/" className="hover:opacity-60 transition-opacity whitespace-nowrap">Home</Link>
             <Link to="/collections/all" className="hover:opacity-60 transition-opacity whitespace-nowrap">Catalog</Link>
@@ -162,7 +163,7 @@ const Navbar = () => {
           
           <Link to="/wishlist" className="relative group cursor-pointer transition-transform active:scale-95">
             <Heart size={20} className="group-hover:text-red-500 transition-colors" />
-            {wishlist.length > 0 && (
+            {wishlist.length > 0 && localStorage.getItem('customer') && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[0.6rem] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                 {wishlist.length}
               </span>
@@ -171,7 +172,7 @@ const Navbar = () => {
 
           <Link to="/cart" className="relative group cursor-pointer transition-transform active:scale-95">
             <ShoppingBag size={20} className="group-hover:opacity-50 transition-opacity" />
-            {cart.length > 0 && (
+            {cart.length > 0 && localStorage.getItem('customer') && (
               <span className="absolute -top-2 -right-2 bg-black text-white text-[0.6rem] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                 {cart.length}
               </span>

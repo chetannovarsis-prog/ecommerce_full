@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import axios from 'axios';
+import api from './utils/api';
 import { useStore } from './services/useStore';
+
 import Products from './pages/store/Products';
 import Home from './pages/store/Home';
 import ProductDetail from './pages/store/ProductDetail';
@@ -11,12 +12,13 @@ import Wishlist from './pages/store/Wishlist';
 import CollectionsPage from './pages/store/CollectionsPage';
 import { 
   About, 
-  Contact, 
   Shipping, 
   Returns, 
   Privacy, 
   Terms 
 } from './pages/store/InfoPages';
+import Contact from './pages/store/Contact';
+
 import Shop from './pages/store/Shop';
 import NewArrivals from './pages/store/NewArrivals';
 import Login from './pages/store/Login';
@@ -37,8 +39,9 @@ function App() {
   useEffect(() => {
     const fetchProductsAndSync = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/products`);
+        const response = await api.get('/products');
         syncStore(response.data);
+
       } catch (error) {
         console.error('Error syncing store:', error);
       }

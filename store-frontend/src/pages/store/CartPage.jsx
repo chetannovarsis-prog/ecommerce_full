@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ChevronLeft } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ChevronLeft, Heart } from 'lucide-react';
 import { useStore } from '../../services/useStore';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';

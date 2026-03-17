@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import ProductCard from '../../components/store/ProductCard';
+
 import { motion, AnimatePresence } from 'framer-motion';
 
 const NewArrivals = () => {
@@ -10,8 +11,9 @@ const NewArrivals = () => {
   useEffect(() => {
     const fetchNewArrivals = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/products');
+        const response = await api.get('/products');
         // Sort by id descending (assuming newer IDs are higher) or createdAt if available
+
         const sorted = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setProducts(sorted.slice(0, 12)); // Show first 12
       } catch (error) {

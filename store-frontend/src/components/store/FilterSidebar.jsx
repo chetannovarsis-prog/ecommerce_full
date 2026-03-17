@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import api from '../../utils/api';
+
 
 const FilterSidebar = ({ isOpen, onClose, onFilterChange }) => {
   const [categories, setCategories] = useState([]);
@@ -17,8 +18,9 @@ const FilterSidebar = ({ isOpen, onClose, onFilterChange }) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/categories`);
+        const response = await api.get('/categories');
         setCategories(response.data);
+
       } catch (error) {
         console.error('Error fetching categories:', error);
       }

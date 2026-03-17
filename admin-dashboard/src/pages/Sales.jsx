@@ -58,19 +58,21 @@ const Sales = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
-      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center justify-between px-10">
-        <h1 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Sales Management</h1>
+      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center justify-between px-6 md:px-10">
+        <h1 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Sales</h1>
         <button 
           onClick={() => setShowSaleModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-[0.7rem] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-black/10"
+          className="flex items-center gap-2 px-3 md:px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-xl text-[0.6rem] md:text-[0.7rem] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-black/10"
         >
-          <Plus size={16} /> Register Store Sale
+          <Plus size={16} /> <span className="hidden xs:inline">Register Sale</span><span className="xs:hidden">New</span>
         </button>
       </header>
 
-      <main className="p-10 max-w-[95%] mx-auto space-y-10">
+      <main className="p-6 md:p-10 max-w-[95%] mx-auto space-y-10">
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+
           {[
             { label: 'Total Sales', value: '₹54,230', trend: '+12.5%', icon: TrendingUp, color: 'emerald' },
             { label: 'Website Sales', value: '₹32,100', trend: '+8.2%', icon: Globe, color: 'blue' },
@@ -99,14 +101,14 @@ const Sales = () => {
         </div>
 
         {/* Transactions Table */}
-        <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden">
-           <div className="px-8 py-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
-              <h3 className="text-[0.7rem] font-black text-gray-900 dark:text-white uppercase tracking-widest">Recent Sales</h3>
-              <div className="flex gap-2">
-                 <button className="p-2 bg-gray-50 dark:bg-white/5 rounded-xl text-gray-400"><Filter size={16} /></button>
-                 <button className="p-2 bg-gray-50 dark:bg-white/5 rounded-xl text-gray-400"><Search size={16} /></button>
-              </div>
-           </div>
+         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden">
+            <div className="px-6 md:px-8 py-4 md:py-6 border-b border-gray-100 dark:border-white/5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+               <h3 className="text-[0.7rem] font-black text-gray-900 dark:text-white uppercase tracking-widest">Recent Sales</h3>
+               <div className="flex gap-2">
+                  <button className="flex-1 md:flex-none flex items-center justify-center p-2 bg-gray-50 dark:bg-white/5 rounded-xl text-gray-400"><Filter size={16} /></button>
+                  <button className="flex-1 md:flex-none flex items-center justify-center p-2 bg-gray-50 dark:bg-white/5 rounded-xl text-gray-400"><Search size={16} /></button>
+               </div>
+            </div>
            
            <div className="p-0 overflow-x-auto">
               <table className="w-full text-left">

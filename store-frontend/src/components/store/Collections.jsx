@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 
 const Collections = () => {
@@ -10,10 +10,10 @@ const Collections = () => {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/collections');
-        // Filter collections that have products
-        const filtered = response.data.filter(c => c.products && c.products.length > 0);
-        setCollections(filtered);
+        const response = await api.get('/collections');
+        setCollections(response.data);
+
+
       } catch (error) {
         console.error('Error fetching collections:', error);
       } finally {

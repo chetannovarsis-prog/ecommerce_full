@@ -40,10 +40,8 @@ const CollectionDetail = () => {
     }
   };
 
-  const handleImageUpdate = async (e) => {
-    const file = e.target.files[0];
+  const processImagePaste = async (file) => {
     if (!file) return;
-
     if (file.size > 2 * 1024 * 1024) {
       alert('Image size must be less than 2MB');
       return;
@@ -70,6 +68,22 @@ const CollectionDetail = () => {
       setIsUpdatingImage(false);
     }
   };
+
+  const handleImageUpdate = (e) => {
+    processImagePaste(e.target.files[0]);
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.indexOf('image') !== -1) {
+        processImagePaste(item.getAsFile());
+        break;
+      }
+    }
+  };
+
 
   const fetchAvailableProducts = async () => {
     try {
@@ -211,7 +225,12 @@ const CollectionDetail = () => {
 
           {/* Details Card */}
           <div className="md:col-span-1 space-y-6">
-            <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm ring-1 ring-black/5">
+            <div 
+              onPaste={handlePaste}
+              className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-6 shadow-sm ring-1 ring-black/5 focus-within:ring-2 focus-within:ring-black dark:focus-within:ring-white transition-all outline-none"
+              tabIndex="0"
+            >
+
                <h2 className="text-[0.65rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4 leading-none">Collection Info</h2>
                
                <div className="mb-6 relative group">

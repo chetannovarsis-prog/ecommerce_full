@@ -73,8 +73,7 @@ export const Shop = () => <ComingSoon title="Shop" />;
 export const CollectionsPage = () => <ComingSoon title="Collections" />;
 export const NewArrivals = () => <ComingSoon title="New Arrivals" />;
 export const About = () => <ComingSoon title="About Us" />;
-export const Contact = () => <ComingSoon title="Contact" />;
 export const Privacy = () => <ComingSoon title="Privacy" />;
 export const Terms = () => <ComingSoon title="Terms" />;
 
-export default { Shipping, Returns, Shop, CollectionsPage, NewArrivals, About, Contact, Privacy, Terms };
+export default { Shipping, Returns, Shop, CollectionsPage, NewArrivals, About, Privacy, Terms };

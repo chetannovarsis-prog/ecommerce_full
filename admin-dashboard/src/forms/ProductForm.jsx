@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { X, Upload, Package, FileText, Tag as TagIcon, Plus, Trash2, ChevronRight, Image as ImageIcon, LayoutGrid, Layers, Settings, Search } from 'lucide-react';
+import { X, Upload, Package, FileText, Tag as TagIcon, Plus, Trash2, ChevronRight, Image as ImageIcon, LayoutGrid, Layers, Settings, Search, Zap } from 'lucide-react';
+import BulkVariantModal from '../components/BulkVariantModal';
 
 const ProductForm = ({ onClose, onSave, product }) => {
   const [formData, setFormData] = useState(product ? {
@@ -8,8 +9,12 @@ const ProductForm = ({ onClose, onSave, product }) => {
     categoryIds: product.categories?.map(c => c.id) || [],
     collectionIds: product.collections?.map(c => c.id) || [],
     variants: product.variants?.map(v => {
-      const [name, val] = v.title.includes(': ') ? v.title.split(': ') : ['', v.title];
-      return { ...v, optionName: name, optionValue: val, useDefaultPrice: v.price === null };
+      const parts = v.title.split(', ');
+      const attributes = parts.map(p => {
+        const [n, val] = p.includes(': ') ? p.split(': ') : ['Option', p];
+        return { name: n, value: val };
+      });
+      return { ...v, attributes, useDefaultPrice: v.price === null };
     }) || []
   } : {
     name: '',
@@ -37,6 +42,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
   const [newName, setNewName] = useState('');
   const [activeDropdown, setActiveDropdown] = useState(null); // 'categories' or 'collections'
   const [openVariantMenuIndex, setOpenVariantMenuIndex] = useState(null);
+  const [showBulkVariantModal, setShowBulkVariantModal] = useState(false);
   const categoryRef = React.useRef(null);
   const collectionRef = React.useRef(null);
 
@@ -97,27 +103,41 @@ const ProductForm = ({ onClose, onSave, product }) => {
       setShowAddCollection(false);
       setNewName('');
     } catch (error) {
-      alert('Error adding collection');
+      console.error('Error adding collection:', error);
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error adding collection';
+      alert(errorMsg);
     }
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
+  const processImages = (files) => {
     const newStaged = [];
     for (const file of files) {
-      // Check 2MB limit
-      if (file.size > 2 * 1024 * 1024) {
-        alert(`Image "${file.name}" is larger than 2MB and will be skipped.`);
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`Image "${file.name}" is larger than 5MB and will be skipped.`);
         continue;
       }
       const previewUrl = URL.createObjectURL(file);
       newStaged.push({ file, previewUrl });
     }
-    
     setStagedImages(prev => [...prev, ...newStaged]);
   };
+
+  const handleImageUpload = (e) => {
+    processImages(Array.from(e.target.files));
+  };
+
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const files = [];
+    for (const item of items) {
+      if (item.type.indexOf('image') !== -1) {
+        files.push(item.getAsFile());
+      }
+    }
+    if (files.length > 0) processImages(files);
+  };
+
 
   const removeImage = (index, isStaged = false) => {
     if (isStaged) {
@@ -138,8 +158,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
     setFormData(prev => ({
       ...prev,
       variants: [...prev.variants, {
-        optionName: '',
-        optionValue: '',
+        attributes: [{ name: '', value: '' }],
         price: prev.price || 0,
         useDefaultPrice: true,
         stock: 0,
@@ -150,14 +169,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
 
   const updateVariant = (index, field, value) => {
     const newVariants = [...formData.variants];
-    
-    // Specifically handle deduplication for images field
-    if (field === 'images' && Array.isArray(value)) {
-      newVariants[index][field] = Array.from(new Set(value));
-    } else {
-      newVariants[index][field] = value;
-    }
-    
+    newVariants[index][field] = value;
     setFormData(prev => ({ ...prev, variants: newVariants }));
   };
 
@@ -185,14 +197,20 @@ const ProductForm = ({ onClose, onSave, product }) => {
       }
 
       // 2. Prepare payload
+      const basePrice = parseFloat(formData.price) || 0;
+      const discountPercentage = formData.isDiscountable ? (parseFloat(formData.discountPercentage) || 0) : 0;
+      const sellingPrice = Math.round(basePrice - (basePrice * discountPercentage / 100));
+      const discountAmount = basePrice - sellingPrice;
+
       const payload = {
         ...formData,
+        price: sellingPrice,
+        discountPrice: discountAmount,
         images: [...formData.images, ...uploadedUrls],
         handle: formData.handle || null,
         categoryIds: formData.categoryIds || [],
         collectionIds: formData.collectionIds || [],
         isDiscountable: !!formData.isDiscountable,
-        discountPrice: formData.isDiscountable ? parseFloat(formData.discountPrice) || 0 : 0,
         thumbnailUrl: formData.thumbnailUrl || (formData.images[0] || uploadedUrls[0]),
         hoverThumbnailUrl: formData.hoverThumbnailUrl || (formData.images[1] || uploadedUrls[1]),
         variants: formData.variants.map(v => {
@@ -200,15 +218,21 @@ const ProductForm = ({ onClose, onSave, product }) => {
           const realImageUrls = (v.images || [])
             .map(img => blobToRealUrl[img] || img)
             .filter(img => img && !img.startsWith('blob:')); // Final guard against unmapped blobs
+          
+          const title = v.attributes
+            .filter(attr => attr.name && attr.value)
+            .map(attr => `${attr.name}: ${attr.value}`)
+            .join(', ');
             
           return {
-            title: `${v.optionName || ''}: ${v.optionValue || ''}`,
+            title: title || 'Default Variant',
             price: v.useDefaultPrice ? null : parseFloat(v.price) || 0,
             stock: parseInt(v.stock) || 0,
             images: Array.from(new Set(realImageUrls))
           };
         })
       };
+
 
       delete payload.categories;
       delete payload.collections;
@@ -232,7 +256,11 @@ const ProductForm = ({ onClose, onSave, product }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 sm:p-10 transition-all duration-500">
+    <div 
+      onPaste={handlePaste}
+      className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 sm:p-10 transition-all duration-500 outline-none"
+      tabIndex="0"
+    >
       <div className="bg-white w-full max-w-5xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-10 duration-500 ring-1 ring-black/5">
 
         {/* Header - Not Sticky Inside to avoid overlap, controlled by flex layout */}
@@ -506,7 +534,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Base Valuation (₹)</label>
+                <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Original Price (₹)</label>
                 <div className="relative">
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-black font-black">₹</span>
                   <input
@@ -514,10 +542,11 @@ const ProductForm = ({ onClose, onSave, product }) => {
                     placeholder="0"
                     className="w-full pl-10 pr-5 py-4 bg-white border border-gray-200 rounded-2xl text-lg font-black focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
                     value={formData.price}
-                    onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                    onChange={e => setFormData({ ...formData, price: e.target.value })}
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Global Stock Count</label>
                 <input
@@ -549,22 +578,25 @@ const ProductForm = ({ onClose, onSave, product }) => {
 
               {formData.isDiscountable && (
                 <div className="pt-4 border-t border-gray-50 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Discount Amount (₹)</label>
+                  <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Discount (%)</label>
                   <div className="relative mt-2">
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-black">₹</span>
+                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-black">%</span>
                     <input
                       type="number"
                       placeholder="e.g. 20"
                       className="w-full pl-10 pr-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-lg font-black focus:bg-white focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
-                      value={formData.discountPrice}
-                      onChange={e => setFormData({ ...formData, discountPrice: e.target.value })}
+                      value={formData.discountPercentage}
+                      onChange={e => setFormData({ ...formData, discountPercentage: e.target.value })}
                     />
                   </div>
-                  <p className="mt-4 text-[0.65rem] font-bold text-gray-400 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    Display: <span className="line-through">₹{parseFloat(formData.price || 0) + parseFloat(formData.discountPrice || 0)}</span> <span className="text-black font-black ml-1">₹{formData.price || 0}</span>
-                  </p>
+                  {formData.price > 0 && formData.discountPercentage > 0 && (
+                    <p className="mt-4 text-[0.65rem] font-bold text-gray-400 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      Selling Price: <span className="line-through">₹{parseFloat(formData.price)}</span> <span className="text-black font-black ml-1">₹{Math.round(formData.price - (formData.price * formData.discountPercentage / 100))}</span>
+                    </p>
+                  )}
                 </div>
               )}
+
             </div>
           </section>
 
@@ -577,13 +609,22 @@ const ProductForm = ({ onClose, onSave, product }) => {
                 </div>
                 <h3 className="text-sm font-black text-zinc-900 uppercase tracking-widest">Product Variations</h3>
               </div>
-              <button
-                type="button"
-                onClick={addVariant}
-                className="group flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10"
-              >
-                <Plus size={14} strokeWidth={3} /> Add Variation
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkVariantModal(true)}
+                  className="group flex items-center gap-2 bg-gray-50 border border-gray-200 text-gray-600 px-5 py-2.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-gray-100 active:scale-95 transition-all"
+                >
+                  <Zap size={14} className="text-amber-500" /> Bulk Create
+                </button>
+                <button
+                  type="button"
+                  onClick={addVariant}
+                  className="group flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10"
+                >
+                  <Plus size={14} strokeWidth={3} /> Add Variation
+                </button>
+              </div>
             </div>
 
             <div className="space-y-6">
@@ -598,26 +639,57 @@ const ProductForm = ({ onClose, onSave, product }) => {
                   </button>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pr-10 items-end">
                     <div className="space-y-4 col-span-1">
-                      <div className="space-y-1">
-                        <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Option Name (e.g. Size)</label>
-                        <input
-                          type="text"
-                          placeholder="Size, Color, etc."
-                          className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all"
-                          value={variant.optionName}
-                          onChange={e => updateVariant(index, 'optionName', e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Option Value (e.g. XL)</label>
-                        <input
-                          type="text"
-                          placeholder="XL, Blue, 42"
-                          className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all"
-                          value={variant.optionValue}
-                          onChange={e => updateVariant(index, 'optionValue', e.target.value)}
-                        />
-                      </div>
+                      {variant.attributes.map((attr, aIdx) => (
+                        <div key={aIdx} className="space-y-2 p-3 bg-gray-50/50 rounded-2xl border border-gray-100 relative group/attr">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newAttrs = variant.attributes.filter((_, i) => i !== aIdx);
+                              updateVariant(index, 'attributes', newAttrs);
+                            }}
+                            className="absolute -top-1 -right-1 p-1 bg-white border border-gray-100 text-red-400 hover:text-red-500 rounded-lg opacity-0 group-hover/attr:opacity-100 transition-all shadow-sm"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest leading-none block">Attribute</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Size"
+                              className="w-full px-3 py-2 bg-transparent border-b border-gray-200 text-[0.7rem] font-black uppercase tracking-widest focus:border-black transition-all outline-none"
+                              value={attr.name}
+                              onChange={e => {
+                                const newAttrs = [...variant.attributes];
+                                newAttrs[aIdx].name = e.target.value;
+                                updateVariant(index, 'attributes', newAttrs);
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest leading-none block">Value</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. XL"
+                              className="w-full px-3 py-2 bg-transparent text-[0.7rem] font-bold focus:bg-white rounded-lg transition-all outline-none"
+                              value={attr.value}
+                              onChange={e => {
+                                const newAttrs = [...variant.attributes];
+                                newAttrs[aIdx].value = e.target.value;
+                                updateVariant(index, 'attributes', newAttrs);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateVariant(index, 'attributes', [...variant.attributes, { name: '', value: '' }]);
+                        }}
+                        className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-[0.6rem] font-black text-gray-400 uppercase tracking-widest hover:border-black hover:text-black transition-all flex items-center justify-center gap-1"
+                      >
+                        <Plus size={10} /> Add Attribute
+                      </button>
                     </div>
 
                     <div className="space-y-2 col-span-1">
@@ -765,6 +837,29 @@ const ProductForm = ({ onClose, onSave, product }) => {
           </button>
         </div>
       </div>
+
+      {showBulkVariantModal && (
+        <BulkVariantModal 
+          product={formData}
+          onClose={() => setShowBulkVariantModal(false)}
+          onGenerate={(newBulkVariants) => {
+            const parsedVariants = newBulkVariants.map(v => {
+              const parts = v.title.split(', ');
+              const attributes = parts.map(p => {
+                const [n, val] = p.includes(': ') ? p.split(': ') : ['Option', p];
+                return { name: n, value: val };
+              });
+              return { ...v, attributes, useDefaultPrice: v.price === null };
+            });
+            
+            setFormData(prev => ({
+              ...prev,
+              variants: [...prev.variants, ...parsedVariants]
+            }));
+            setShowBulkVariantModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

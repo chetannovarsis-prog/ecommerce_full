@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
+
 import { ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,8 +13,9 @@ const CollectionsPage = () => {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/collections`);
+        const response = await api.get('/collections');
         setCollections(response.data);
+
       } catch (error) {
         console.error('Error fetching collections:', error);
       } finally {

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, User as UserIcon, LogIn, Chrome } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { motion } from 'framer-motion';
+
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -16,8 +17,9 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/customer/login', { email, password });
+      const res = await api.post('/auth/customer/login', { email, password });
       localStorage.setItem('customerToken', res.data.token);
+
       localStorage.setItem('customer', JSON.stringify(res.data.customer));
       navigate('/profile');
     } catch (err) {

@@ -20,6 +20,7 @@ import {
   Settings
 } from 'lucide-react';
 import ProductForm from '../forms/ProductForm';
+import BulkVariantModal from '../components/BulkVariantModal';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -30,12 +31,14 @@ const ProductDetail = () => {
   const [showInfoEditModal, setShowInfoEditModal] = useState(false);
   const [showMediaManageModal, setShowMediaManageModal] = useState(false);
   const [showVariantModal, setShowVariantModal] = useState(false);
+  const [showBulkVariantModal, setShowBulkVariantModal] = useState(false);
   const [showOrganizeModal, setShowOrganizeModal] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [variantImages, setVariantImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [collections, setCollections] = useState([]);
+  const [editVariantAttributes, setEditVariantAttributes] = useState([]); // [{ name, value }]
   const [activeDropdown, setActiveDropdown] = useState(null); // 'categories' or 'collections'
   const categoryRef = React.useRef(null);
   const collectionRef = React.useRef(null);
@@ -213,16 +216,24 @@ const ProductDetail = () => {
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden ring-1 ring-black/5">
             <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
               <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">Variants</h3>
-              <button 
-                onClick={() => {
-                  setSelectedVariant(null);
-                  setVariantImages([]);
-                  setShowVariantModal(true);
-                }} 
-                className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-100 transition-all font-bold"
-              >
-                Create
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowBulkVariantModal(true)} 
+                  className="px-4 py-2 bg-black text-white border border-black rounded-lg text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-800 transition-all font-bold"
+                >
+                   Create
+                </button>
+                {/* <button 
+                  onClick={() => {
+                    setSelectedVariant(null);
+                    setVariantImages([]);
+                    setShowVariantModal(true);
+                  }} 
+                  className=z"px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-100 transition-all font-bold"
+                >
+                  Create
+                </button> */}
+              </div>
             </div>
             <div className="overflow-x-auto text-[0.7rem]">
               <table className="w-full text-left">
@@ -237,20 +248,33 @@ const ProductDetail = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {product.variants?.map((variant) => {
-                    const [optName, optVal] = variant.title.includes(': ') 
-                      ? variant.title.split(': ') 
-                      : ['Option', variant.title];
+                    const titleParts = variant.title.split(', ');
+                    const optNames = [];
+                    const optVals = [];
+                    
+                    titleParts.forEach(part => {
+                      if (part.includes(': ')) {
+                        const [k, v] = part.split(': ');
+                        optNames.push(k);
+                        optVals.push(v);
+                      } else {
+                        optVals.push(part);
+                      }
+                    });
+
+                    const displayOptName = optNames.length > 0 ? optNames.join(' / ') : 'Option';
+                    const displayOptVal = optVals.join(' / ');
                     
                     return (
                       <tr key={variant.id} className="hover:bg-gray-50/30 transition-colors group">
                         <td className="px-8 py-4">
-                          <span className="font-bold text-gray-900 uppercase tracking-tight">{optName}</span>
+                          <span className="font-bold text-gray-900 uppercase tracking-tight">{displayOptName}</span>
                         </td>
                         <td className="px-8 py-4 flex items-center gap-3">
                           <div className="w-8 h-10 bg-gray-50 rounded border border-gray-100 overflow-hidden flex-shrink-0">
                             {variant.images?.[0] ? <img src={variant.images[0]} className="w-full h-full object-cover" /> : <ImageIcon size={14} className="mx-auto mt-3 text-gray-200" />}
                           </div>
-                          <span className="font-bold text-gray-900 uppercase tracking-tight">{optVal}</span>
+                          <span className="font-bold text-gray-900 uppercase tracking-tight">{displayOptVal}</span>
                         </td>
                         <td className="px-8 py-4 text-gray-600 font-bold">
                           {variant.price ? `₹${variant.price}` : <span className="text-gray-400">Same as product</span>}
@@ -263,6 +287,13 @@ const ProductDetail = () => {
                             onClick={() => {
                               setSelectedVariant(variant);
                               setVariantImages(variant.images || []);
+                              // Initialize editable attributes
+                              const parts = variant.title.split(', ');
+                              const initialAttrs = parts.map(p => {
+                                const [n, v] = p.includes(': ') ? p.split(': ') : ['Option', p];
+                                return { name: n, value: v };
+                              });
+                              setEditVariantAttributes(initialAttrs);
                               setShowVariantModal(true);
                             }}
                             className="p-1.5 text-gray-300 hover:text-gray-900 transition-colors"
@@ -388,6 +419,26 @@ const ProductDetail = () => {
         </div>
 
       </main>
+
+      {showBulkVariantModal && (
+        <BulkVariantModal 
+          product={product} 
+          onClose={() => setShowBulkVariantModal(false)}
+          onGenerate={async (newVariants) => {
+            try {
+              const currentVariants = [...(product.variants || [])];
+              await api.patch(`/products/${id}`, { 
+                variants: [...currentVariants, ...newVariants] 
+              });
+              fetchProduct();
+              setShowBulkVariantModal(false);
+            } catch (error) {
+              console.error("Error saving bulk variants:", error);
+              alert("Error saving variants");
+            }
+          }}
+        />
+      )}
 
       {showEditModal && (
         <ProductForm 
@@ -583,9 +634,20 @@ const ProductDetail = () => {
                 e.preventDefault();
                 const data = new FormData(e.target);
                 const payload = Object.fromEntries(data.entries());
-                const [optName, optVal] = [payload.optionName, payload.optionValue];
+                
+                // Collect all attribute inputs from state + form
+                const attributeParts = editVariantAttributes.map(attr => {
+                  const val = data.get(`attr_val_${attr.name}`);
+                  return `${attr.name}: ${val}`;
+                });
+
+                // Fallback for custom entries if any (though new UI uses fixed labels)
+                if (attributeParts.length === 0 && payload.optionName && payload.optionValue) {
+                  attributeParts.push(`${payload.optionName}: ${payload.optionValue}`);
+                }
+
                 const variantData = {
-                  title: `${optName}: ${optVal}`,
+                  title: attributeParts.join(', '),
                   price: payload.useDefaultPrice === 'on' ? null : parseFloat(payload.price) || 0,
                   stock: parseInt(payload.stock) || 0,
                   images: variantImages
@@ -609,15 +671,54 @@ const ProductDetail = () => {
               }}
               className="p-8 space-y-6"
              >
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Option Name</label>
-                    <input name="optionName" defaultValue={selectedVariant?.title?.split(': ')[0] || ''} required placeholder='size , color' className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Value</label>
-                    <input name="optionValue" defaultValue={selectedVariant?.title?.split(': ')[1] || ''} required placeholder='m,xl,blue,green' className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" />
-                  </div>
+                <div className="space-y-4">
+                  {(() => {
+                    if (!selectedVariant) {
+                      return (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Option Name</label>
+                            <input name="optionName" required placeholder='size, color' className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Value</label>
+                            <input name="optionValue" required placeholder='m, xl, blue, green' className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return editVariantAttributes.map((attr, pIdx) => {
+                      return (
+                        <div key={pIdx} className="grid grid-cols-[1fr_1fr_40px] gap-4 items-end">
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Attribute</label>
+                            <div className="px-4 py-3 bg-gray-100/50 border border-transparent rounded-xl text-xs font-black text-gray-400 uppercase tracking-widest cursor-not-allowed">
+                              {attr.name}
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Value</label>
+                            <input 
+                              name={`attr_val_${attr.name}`} 
+                              defaultValue={attr.value} 
+                              required 
+                              className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" 
+                            />
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setEditVariantAttributes(prev => prev.filter((_, i) => i !== pIdx));
+                            }}
+                            className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
 
                 <div className="space-y-4">

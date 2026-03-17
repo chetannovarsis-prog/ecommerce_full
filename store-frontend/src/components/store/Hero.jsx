@@ -1,18 +1,45 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
+
+
+
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { HeroSkeleton } from './Skeleton';
+
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [banners, setBanners] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const dragX = useMotionValue(0);
 
-  const slides = [
-    {
-      type: 'image',
-      src: '/images/banner.png',
-      alt: 'Summer Banner'
-    },
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const response = await api.get('/banners');
+        setBanners(response.data);
+
+      } catch (error) {
+        console.error('Error fetching banners:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBanners();
+  }, []);
+
+
+
+  const defaultSlides = [
     {
       type: 'fashion',
       content: (
@@ -41,60 +68,30 @@ const Hero = () => {
           </div>
         </section>
       )
-    },
-    {
-      type: 'exclusive',
-      content: (
-        <div className="container mx-auto px-10 h-full flex items-center relative z-10 text-left">
-          <div className="max-w-2xl">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-[0.8rem] font-black uppercase tracking-[0.3em] text-gray-500 mb-4"
-            >
-              Exclusive Collection 2024
-            </motion.h2>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-7xl md:text-8xl font-black uppercase leading-[0.9] tracking-tighter mb-8"
-            >
-              Elegance <br /> In Every <br /> <span className="text-gray-400">Stitch</span>
-            </motion.h1>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Link to="/collections/all" className="inline-flex items-center gap-4 bg-black text-white px-10 py-5 rounded-full text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-all active:scale-95">
-                Explore Shop <ArrowRight size={18} />
-              </Link>
-            </motion.div>
-          </div>
-          <div className="absolute top-0 right-0 w-1/2 h-full hidden lg:block">
-            <div className="relative w-full h-full p-20">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 1 }}
-                className="w-full h-full rounded-[40px] overflow-hidden shadow-2xl"
-              >
-                <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop" className="w-full h-full object-cover" alt="" />
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      )
     }
   ];
 
+  const activeBanners = banners
+    .filter(b => b.type === (isMobile ? 'MOBILE' : 'DESKTOP'))
+    .map(b => ({
+      type: 'image',
+      src: b.imageUrl,
+      link: b.linkUrl,
+      alt: b.altText || 'Banner'
+    }));
+
+  const slides = activeBanners.length > 0 ? activeBanners : defaultSlides;
+
+
   useEffect(() => {
+    if (slides.length === 0) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 5000);
     return () => clearInterval(timer);
   }, [slides.length]);
+
+  if (loading) return <HeroSkeleton />;
 
   const onDragEnd = () => {
     const x = dragX.get();
@@ -116,7 +113,7 @@ const Hero = () => {
 
   return (
     <div className="relative font-['Albert_Sans']">
-      <section className="relative h-[85vh] overflow-hidden bg-[#f7f3f0] cursor-grab active:cursor-grabbing">
+      <section className="relative h-[95vh] overflow-hidden bg-[#f7f3f0] cursor-grab active:cursor-grabbing">
         <motion.div
           className="h-full w-full"
           drag="x"
@@ -135,7 +132,19 @@ const Hero = () => {
             >
               <div className="w-full h-full pointer-events-auto">
                 {slides[currentSlide].type === 'image' ? (
-                  <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-cover" />
+                  slides[currentSlide].link ? (
+                    slides[currentSlide].link.startsWith('http') ? (
+                      <a href={slides[currentSlide].link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                        <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-cover" />
+                      </a>
+                    ) : (
+                      <Link to={slides[currentSlide].link} className="block w-full h-full">
+                        <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-cover" />
+                      </Link>
+                    )
+                  ) : (
+                    <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-cover" />
+                  )
                 ) : (
                   slides[currentSlide].content
                 )}

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, User as UserIcon, Chrome } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { motion } from 'framer-motion';
+
 
 const Signup = () => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '' });
@@ -15,8 +16,9 @@ const Signup = () => {
     setLoading(true);
     setError('');
     try {
-      await axios.post('http://localhost:5000/api/auth/customer/signup', formData);
+      await api.post('/auth/customer/signup', formData);
       navigate('/login');
+
     } catch (err) {
       setError(err.response?.data?.message || 'Signup failed');
     } finally {

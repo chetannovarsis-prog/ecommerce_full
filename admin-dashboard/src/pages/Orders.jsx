@@ -24,22 +24,28 @@ const Orders = () => {
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
+      case 'paid':
       case 'completed': return 'text-emerald-500 bg-emerald-500/10';
+      case 'pending':
       case 'processing': return 'text-amber-500 bg-amber-500/10';
-      case 'cancelled': return 'text-red-500 bg-red-500/10';
+      case 'cancelled':
+      case 'failed': return 'text-red-500 bg-red-500/10';
       default: return 'text-gray-500 bg-gray-500/10';
     }
   };
 
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
-      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center px-10">
+      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center px-6 md:px-10">
         <h1 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Orders</h1>
       </header>
 
-      <main className="p-10 max-w-[95%] mx-auto space-y-10">
+      <main className="p-6 md:p-10 max-w-[95%] mx-auto space-y-10">
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+
           {[
             { label: 'Profit', value: '₹12,628', trend: '+72.8%', icon: TrendingUp, color: 'emerald' },
             { label: 'Sales', value: '₹4,679', trend: '+28.4%', icon: DollarSign, color: 'blue' },
@@ -64,9 +70,9 @@ const Orders = () => {
         </div>
 
         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden ring-1 ring-black/5">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-white/5">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-gray-50/50 dark:bg-white/5">
              <div className="flex items-center gap-3">
-               <button className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[0.7rem] font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shadow-sm">
+               <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3 py-1.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[0.7rem] font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shadow-sm">
                  <Filter size={14} /> Filter
                </button>
              </div>
@@ -75,10 +81,11 @@ const Orders = () => {
                <input 
                  type="text" 
                  placeholder="Search orders..." 
-                 className="pl-9 pr-4 py-1.5 w-64 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all" 
+                 className="pl-9 pr-4 py-1.5 w-full md:w-64 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm dark:text-white focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all" 
                />
              </div>
           </div>
+
 
           <div className="divide-y divide-gray-100 dark:divide-white/5">
             {loading ? (

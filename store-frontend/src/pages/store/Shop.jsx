@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import ProductCard from '../../components/store/ProductCard';
+
 import FilterSidebar from '../../components/store/FilterSidebar';
 import { Filter, ChevronDown, List } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,8 +16,9 @@ const Shop = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/products');
+        const response = await api.get('/products');
         setProducts(response.data);
+
         setFilteredProducts(response.data);
       } catch (error) {
         console.error('Error fetching products:', error);

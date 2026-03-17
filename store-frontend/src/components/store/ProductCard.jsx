@@ -115,33 +115,34 @@ const ProductCard = ({ product, isListView = false }) => {
       
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm ring-1 ring-black/5">
         <div className="w-full h-full relative">
-          <motion.img 
-            initial={false}
-            animate={{ 
-              scale: 1,
-              opacity: 1
-            }}
-            whileHover={{ 
-              scale: 1.15,
-              transition: { duration: 3, ease: "linear" }
-            }}
-            src={activeImage} 
-            alt={name} 
-            className="w-full h-full object-cover absolute inset-0 z-10" 
-          />
-          {hoverThumbnailUrl && (
             <motion.img 
-              initial={{ opacity: 0 }}
-              whileHover={{ 
-                opacity: 1,
-                scale: 1.15,
-                transition: { duration: 3, ease: "linear" }
+              initial={false}
+              animate={{ 
+                scale: 1,
+                opacity: 1
               }}
-              src={hoverThumbnailUrl} 
-              alt={`${name} hover`} 
-              className="w-full h-full object-cover absolute inset-0 z-20" 
+              whileHover={{ 
+                scale: 1.15,
+                transition: { scale: { duration: 3, ease: "linear" }, opacity: { duration: 0 } }
+              }}
+              src={activeImage} 
+              alt={name} 
+              className="w-full h-full object-cover absolute inset-0 z-10" 
             />
-          )}
+            {hoverThumbnailUrl && (
+              <motion.img 
+                initial={{ opacity: 0 }}
+                whileHover={{ 
+                  opacity: 1,
+                  scale: 1.15,
+                  transition: { scale: { duration: 3, ease: "linear" }, opacity: { duration: 0 } }
+                }}
+                src={hoverThumbnailUrl} 
+                alt={`${name} hover`} 
+                className="w-full h-full object-cover absolute inset-0 z-20" 
+              />
+            )}
+
         </div>
         
         {/* Quick Add Button */}

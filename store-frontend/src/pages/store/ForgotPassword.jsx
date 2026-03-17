@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowRight, CheckCircle2 } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { motion } from 'framer-motion';
+
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -16,8 +17,9 @@ const ForgotPassword = () => {
     setError('');
     setMessage('');
     try {
-      await axios.post('http://localhost:5000/api/auth/customer/forgot-password', { email });
+      await api.post('/auth/customer/forgot-password', { email });
       setMessage('OTP sent to your email. Check your inbox.');
+
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send OTP');
     } finally {

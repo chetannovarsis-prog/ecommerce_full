@@ -15,7 +15,20 @@ const Products = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isSortFocused, setIsSortFocused] = useState(false);
   const [isPageSizeFocused, setIsPageSizeFocused] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isPageSizeOpen, setIsPageSizeOpen] = useState(false);
+  const sortRef = React.useRef(null);
+  const pageSizeRef = React.useRef(null);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sortRef.current && !sortRef.current.contains(event.target)) setIsSortOpen(false);
+      if (pageSizeRef.current && !pageSizeRef.current.contains(event.target)) setIsPageSizeOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -65,68 +78,112 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
-      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center px-10">
+      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center px-6 md:px-10">
         <h1 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Products</h1>
       </header>
 
-      <main className="p-10 max-w-[95%] mx-auto space-y-6">
+      <main className="p-6 md:p-10 max-w-[95%] mx-auto space-y-6">
+
         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl shadow-sm overflow-hidden ring-1 ring-black/5">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-white/5">
-             <div className="flex items-center gap-3">
-               <div className="relative flex items-center gap-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 shadow-sm group">
-                  <Filter size={14} className="text-gray-400 ml-1" />
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    onFocus={() => setIsSortFocused(true)}
-                    onBlur={() => setIsSortFocused(false)}
-                    className="appearance-none bg-transparent border-none outline-none text-[0.7rem] font-bold focus:ring-0 dark:text-white py-0.5 pr-8 cursor-pointer relative z-10"
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex flex-col xl:flex-row gap-4 items-stretch xl:items-center justify-between bg-gray-50/50 dark:bg-white/5">
+             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+               <div ref={sortRef} className="relative min-w-[180px]">
+                  <button 
+                    onClick={() => setIsSortOpen(!isSortOpen)}
+                    className="w-full flex items-center justify-between gap-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 shadow-sm transition-all hover:border-black dark:hover:border-white"
                   >
-                    <option value="newest">Newest</option>
-                    <option value="oldest">Oldest</option>
-                    <option value="asc">Ascending (A-Z)</option>
-                    <option value="desc">Descending (Z-A)</option>
-                    <option value="high-price">Higher Price</option>
-                    <option value="low-price">Lower Price</option>
-                    <option value="max-unit">Max Unit</option>
-                    <option value="min-unit">Min Unit</option>
-                  </select>
-                  <ChevronDown size={14} className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-transform duration-300 pointer-events-none ${isSortFocused ? 'rotate-180' : ''}`} />
+                    <div className="flex items-center gap-2">
+                       <Filter size={14} className="text-gray-400" />
+                       <span className="text-[0.7rem] font-black uppercase tracking-widest dark:text-white">
+                         {sortBy === 'newest' && 'Newest First'}
+                         {sortBy === 'oldest' && 'Oldest First'}
+                         {sortBy === 'asc' && 'Name: A-Z'}
+                         {sortBy === 'desc' && 'Name: Z-A'}
+                         {sortBy === 'high-price' && 'Price: High to Low'}
+                         {sortBy === 'low-price' && 'Price: Low to High'}
+                         {sortBy === 'max-unit' && 'Stock: High to Low'}
+                         {sortBy === 'min-unit' && 'Stock: Low to High'}
+                       </span>
+                    </div>
+                    <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${isSortOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isSortOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl py-2 z-[60] animate-in slide-in-from-top-2 duration-200">
+                      {[
+                        { val: 'newest', label: 'Newest First' },
+                        { val: 'oldest', label: 'Oldest First' },
+                        { val: 'asc', label: 'Name: A-Z' },
+                        { val: 'desc', label: 'Name: Z-A' },
+                        { val: 'high-price', label: 'Price: High to Low' },
+                        { val: 'low-price', label: 'Price: Low to High' },
+                        { val: 'max-unit', label: 'Stock: High to Low' },
+                        { val: 'min-unit', label: 'Stock: Low to High' }
+                      ].map((opt) => (
+                        <button
+                          key={opt.val}
+                          onClick={() => { setSortBy(opt.val); setIsSortOpen(false); }}
+                          className={`w-full text-left px-5 py-2.5 text-[0.7rem] font-bold transition-all relative group flex items-center ${sortBy === opt.val ? 'bg-gray-50 dark:bg-white/5 text-black dark:text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-black dark:hover:text-white'}`}
+                        >
+                          {sortBy === opt.val && <div className="absolute left-0 top-0 bottom-0 w-1 bg-black dark:bg-white" />}
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-black dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+               </div>
+
+               <div ref={pageSizeRef} className="relative min-w-[120px]">
+                  <button 
+                    onClick={() => setIsPageSizeOpen(!isPageSizeOpen)}
+                    className="w-full flex items-center justify-between gap-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 shadow-sm transition-all hover:border-black dark:hover:border-white"
+                  >
+                    <div className="flex items-center gap-2">
+                       <span className="text-[0.6rem] font-black text-gray-400 uppercase">Show:</span>
+                       <span className="text-[0.75rem] font-black dark:text-white">{pageSize}</span>
+                    </div>
+                    <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${isPageSizeOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isPageSizeOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl py-2 z-[60] animate-in slide-in-from-top-2 duration-200">
+                      {[10, 20, 30].map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => { setPageSize(size); setCurrentPage(1); setIsPageSizeOpen(false); }}
+                          className={`w-full text-left px-5 py-2.5 text-[0.75rem] font-bold transition-all relative group flex items-center ${pageSize === size ? 'bg-gray-50 dark:bg-white/5 text-black dark:text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-black dark:hover:text-white'}`}
+                        >
+                          {pageSize === size && <div className="absolute left-0 top-0 bottom-0 w-1 bg-black dark:bg-white" />}
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-black dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                </div>
             </div>
-             <div className="flex items-center gap-3">
-               <div className="relative flex items-center gap-2 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 shadow-sm group">
-                  <select
-                    value={pageSize}
-                    onChange={(e) => { setPageSize(parseInt(e.target.value)); setCurrentPage(1); }}
-                    onFocus={() => setIsPageSizeFocused(true)}
-                    onBlur={() => setIsPageSizeFocused(false)}
-                    className="appearance-none bg-transparent outline-none border-none text-[0.7rem] font-bold focus:ring-0 dark:text-white py-0.5 pr-6 cursor-pointer relative z-10"
-                  >
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="30">30</option>
-                  </select>
-                  <ChevronDown size={14} className={`absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition-transform duration-300 pointer-events-none ${isPageSizeFocused ? 'rotate-180' : ''}`} />
-               </div>
-               <div className="relative">
+
+             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+               <div className="relative flex-1">
                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                  <input
                    type="text"
                    placeholder="Find products..."
                    value={searchTerm}
                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                   className="pl-9 pr-4 py-1.5 w-64 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[0.8rem] font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
+                   className="pl-9 pr-4 py-1.5 w-full md:w-64 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[0.8rem] font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
                  />
                </div>
                <button
                   onClick={handleCreate}
-                  className="px-4 py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-[0.65rem] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg flex items-center gap-2"
+                  className="px-4 py-2 md:py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-[0.65rem] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                 <Plus size={14} strokeWidth={3} /> New Product
               </button>
              </div>
           </div>
+
 
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
