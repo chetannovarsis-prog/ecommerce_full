@@ -11,6 +11,7 @@ import Collections from './pages/Collections';
 import CollectionDetail from './pages/CollectionDetail';
 import Reviews from './pages/Reviews';
 import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import Sales from './pages/Sales';
 import ColorVariants from './pages/ColorVariants';
 import Login from './pages/Login';
@@ -241,6 +242,7 @@ function App() {
         } />
         
         <Route path="/orders" element={<ProtectedRoute><Layout><Orders /></Layout></ProtectedRoute>} />
+        <Route path="/orders/:id" element={<ProtectedRoute><Layout><OrderDetail /></Layout></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute><Layout><Sales /></Layout></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><Layout><Customers /></Layout></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />

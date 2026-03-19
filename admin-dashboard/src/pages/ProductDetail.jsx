@@ -32,6 +32,7 @@ const ProductDetail = () => {
   const [showMediaManageModal, setShowMediaManageModal] = useState(false);
   const [showVariantModal, setShowVariantModal] = useState(false);
   const [showBulkVariantModal, setShowBulkVariantModal] = useState(false);
+  const [bulkEditMode, setBulkEditMode] = useState(false);
   const [showOrganizeModal, setShowOrganizeModal] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [variantImages, setVariantImages] = useState([]);
@@ -40,8 +41,11 @@ const ProductDetail = () => {
   const [collections, setCollections] = useState([]);
   const [editVariantAttributes, setEditVariantAttributes] = useState([]); // [{ name, value }]
   const [activeDropdown, setActiveDropdown] = useState(null); // 'categories' or 'collections'
+  const [showVariantImagePicker, setShowVariantImagePicker] = useState(false);
+  const [useDefaultVariantPrice, setUseDefaultVariantPrice] = useState(true);
   const categoryRef = React.useRef(null);
   const collectionRef = React.useRef(null);
+  const variantImagePickerRef = React.useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -50,6 +54,9 @@ const ProductDetail = () => {
       }
       if (collectionRef.current && !collectionRef.current.contains(event.target)) {
         if (activeDropdown === 'collections') setActiveDropdown(null);
+      }
+      if (variantImagePickerRef.current && !variantImagePickerRef.current.contains(event.target)) {
+        setShowVariantImagePicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -114,13 +121,6 @@ const ProductDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500"><MoreHorizontal size={20} /></button>
-          <button 
-            onClick={() => navigate(`/products/${id}/variants`)}
-            className="px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[0.7rem] font-bold uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-white/10 transition-all font-bold text-gray-600 dark:text-gray-400"
-          >
-            Manage Colors
-          </button>
           <button 
             onClick={() => setShowEditModal(true)}
             className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg text-[0.7rem] font-bold uppercase tracking-widest shadow-lg shadow-black/10 dark:shadow-none active:scale-95 transition-all"
@@ -190,16 +190,8 @@ const ProductDetail = () => {
             <div className="p-8">
               <div className="flex flex-wrap gap-4">
                 {product.images?.map((img, i) => (
-                  <div key={i} className="relative group">
-                    <div className={`w-36 h-48 bg-gray-50 rounded-xl overflow-hidden ring-1 ring-black/5 shadow-sm group-hover:shadow-md transition-all ${img === product.thumbnailUrl ? 'ring-2 ring-emerald-500' : ''} ${img === product.hoverThumbnailUrl ? 'ring-2 ring-blue-500' : ''}`}>
-                      <img src={img} className="w-full h-full object-cover" alt="" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        {img === product.thumbnailUrl && <span className="bg-emerald-500 text-white p-1 rounded-full"><CheckCircle2 size={12} /></span>}
-                        {img === product.hoverThumbnailUrl && <span className="bg-blue-500 text-white p-1 rounded-full"><CheckCircle2 size={12} /></span>}
-                      </div>
-                    </div>
-                    {img === product.thumbnailUrl && <span className="absolute -top-2 -left-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm">Thumbnail</span>}
-                    {img === product.hoverThumbnailUrl && <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm">Hover</span>}
+                  <div key={i} className="relative group h-48 w-36 bg-gray-50 rounded-xl overflow-hidden ring-1 ring-black/5">
+                    <img src={img} className="w-full h-full object-cover" alt="" />
                   </div>
                 ))}
                 {(!product.images || product.images.length === 0) && (
@@ -218,7 +210,19 @@ const ProductDetail = () => {
               <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">Variants</h3>
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setShowBulkVariantModal(true)} 
+                  onClick={() => {
+                    setBulkEditMode(true);
+                    setShowBulkVariantModal(true);
+                  }} 
+                  className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-100 transition-all font-bold"
+                >
+                   Bulk Edit
+                </button>
+                <button 
+                  onClick={() => {
+                    setBulkEditMode(false);
+                    setShowBulkVariantModal(true);
+                  }} 
                   className="px-4 py-2 bg-black text-white border border-black rounded-lg text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-800 transition-all font-bold"
                 >
                    Create
@@ -287,6 +291,7 @@ const ProductDetail = () => {
                             onClick={() => {
                               setSelectedVariant(variant);
                               setVariantImages(variant.images || []);
+                              setUseDefaultVariantPrice(variant.price === null);
                               // Initialize editable attributes
                               const parts = variant.title.split(', ');
                               const initialAttrs = parts.map(p => {
@@ -314,33 +319,6 @@ const ProductDetail = () => {
             </div>
           </div>
 
-          {/* Reviews Section */}
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden ring-1 ring-black/5">
-            <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">Customer Reviews</h3>
-            </div>
-            <div className="divide-y divide-gray-50">
-              {product.reviews?.map((review) => (
-                <div key={review.id} className="p-8 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                       <div className="flex text-amber-400">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} size={12} fill={i < review.rating ? "currentColor" : "none"} strokeWidth={i < review.rating ? 0 : 2} />
-                        ))}
-                      </div>
-                      <span className="text-sm font-bold text-gray-900">{review.userName}</span>
-                    </div>
-                    <span className="text-[0.6rem] text-gray-400 font-medium">{new Date(review.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 leading-relaxed italic">"{review.comment}"</p>
-                </div>
-              ))}
-              {(!product.reviews || product.reviews.length === 0) && (
-                <p className="p-12 text-center text-gray-400 uppercase font-black text-[0.6rem] tracking-widest">No reviews for this product yet</p>
-              )}
-            </div>
-          </div>
 
         </div>
 
@@ -416,6 +394,34 @@ const ProductDetail = () => {
              </div>
           </div>
 
+          {/* Customer Reviews Section */}
+          <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden ring-1 ring-black/5">
+            <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between">
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">Customer Reviews</h3>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {product.reviews?.map((review) => (
+                <div key={review.id} className="p-8 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                       <div className="flex text-amber-400">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} size={12} fill={i < review.rating ? "currentColor" : "none"} strokeWidth={i < review.rating ? 0 : 2} />
+                        ))}
+                      </div>
+                      <span className="text-sm font-bold text-gray-900">{review.userName}</span>
+                    </div>
+                    <span className="text-[0.6rem] text-gray-400 font-medium">{new Date(review.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed italic">"{review.comment}"</p>
+                </div>
+              ))}
+              {(!product.reviews || product.reviews.length === 0) && (
+                <p className="p-12 text-center text-gray-400 uppercase font-black text-[0.6rem] tracking-widest">No reviews for this product yet</p>
+              )}
+            </div>
+          </div>
+
         </div>
 
       </main>
@@ -423,12 +429,16 @@ const ProductDetail = () => {
       {showBulkVariantModal && (
         <BulkVariantModal 
           product={product} 
+          mode={bulkEditMode ? 'edit' : 'create'}
           onClose={() => setShowBulkVariantModal(false)}
           onGenerate={async (newVariants) => {
             try {
-              const currentVariants = [...(product.variants || [])];
+              // If bulk edit, we replace matching categories of variants or just replace all?
+              // User usually expects bulk edit to "reset" the variant set to what's in the modal.
+              const payload = bulkEditMode ? newVariants : [...(product.variants || []), ...newVariants];
+              
               await api.patch(`/products/${id}`, { 
-                variants: [...currentVariants, ...newVariants] 
+                variants: payload 
               });
               fetchProduct();
               setShowBulkVariantModal(false);
@@ -488,11 +498,11 @@ const ProductDetail = () => {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-1">
                   <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Price (₹)</label>
-                  <input name="price" type="number" step="0.01" defaultValue={product.price} className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" />
+                  <input name="price" type="number" min="0" step="0.01" defaultValue={product.price} className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Discount Price (₹)</label>
-                  <input name="discountPrice" type="number" step="0.01" defaultValue={product.discountPrice} className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" />
+                  <input name="discountPrice" type="number" min="0" step="0.01" defaultValue={product.discountPrice} className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-bold focus:bg-white focus:border-black transition-all" />
                 </div>
               </div>
               <div className="space-y-1">
@@ -566,38 +576,15 @@ const ProductDetail = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                 {product.images?.map((url, i) => (
                   <div key={i} className="relative aspect-[3/4] group">
-                    <img src={url} className={`w-full h-full object-cover rounded-2xl border-2 transition-all ${url === product.thumbnailUrl ? 'border-emerald-500 shadow-lg shadow-emerald-500/20' : url === product.hoverThumbnailUrl ? 'border-blue-500 shadow-lg shadow-blue-500/20' : 'border-white ring-1 ring-black/5'}`} alt="" />
+                    <img src={url} className="w-full h-full object-cover rounded-2xl border-2 border-white ring-1 ring-black/5 transition-all" alt="" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex flex-col items-center justify-center gap-2">
-                       <button 
-                         onClick={async () => {
-                           await api.patch(`/products/${id}`, { thumbnailUrl: url });
-                           fetchProduct();
-                         }}
-                         className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase rounded shadow-lg hover:scale-105 transition-all"
-                       >
-                         Set Main
-                       </button>
-                       <button 
-                         onClick={async () => {
-                           await api.patch(`/products/${id}`, { hoverThumbnailUrl: url });
-                           fetchProduct();
-                         }}
-                         className="px-3 py-1 bg-blue-500 text-white text-[10px] font-black uppercase rounded shadow-lg hover:scale-105 transition-all"
-                       >
-                         Set Hover
-                       </button>
                        <button 
                          onClick={async () => {
                            if (!window.confirm("Permanently delete this image from server?")) return;
                            try {
-                             // 1. Delete from Supabase
                              await api.delete('/upload', { data: { url } });
-                             // 2. Remove from Product
                              const newImages = product.images.filter(img => img !== url);
-                             const patchData = { images: newImages };
-                             if (product.thumbnailUrl === url) patchData.thumbnailUrl = null;
-                             if (product.hoverThumbnailUrl === url) patchData.hoverThumbnailUrl = null;
-                             await api.patch(`/products/${id}`, patchData);
+                             await api.patch(`/products/${id}`, { images: newImages });
                              fetchProduct();
                            } catch (err) {
                              alert("Error deleting image");
@@ -608,8 +595,6 @@ const ProductDetail = () => {
                          <Trash2 size={14} />
                        </button>
                     </div>
-                    {url === product.thumbnailUrl && <span className="absolute -top-2 -left-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm z-10">Main</span>}
-                    {url === product.hoverThumbnailUrl && <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm z-10">Hover</span>}
                   </div>
                 ))}
               </div>
@@ -721,20 +706,29 @@ const ProductDetail = () => {
                   })()}
                 </div>
 
-                <div className="space-y-4">
-                   <div className="flex items-center justify-between">
-                     <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Price (₹)</label>
-                     <div className="flex items-center gap-2">
-                        <input type="checkbox" name="useDefaultPrice" id="useDefaultPrice" defaultChecked={selectedVariant ? selectedVariant.price === null : true} className="w-3 h-3 rounded" />
-                        <label htmlFor="useDefaultPrice" className="text-[0.55rem] font-black text-gray-400 uppercase">Use Default</label>
-                     </div>
-                   </div>
-                   <input name="price" type="number" defaultValue={selectedVariant?.price || product.price} className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-black focus:bg-white focus:border-black transition-all" />
-                </div>
+                    <div className="space-y-4">
+                       <div className="flex items-center justify-between">
+                         <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Price (₹)</label>
+                         <div className="flex items-center gap-2">
+                            <input 
+                              type="checkbox" 
+                              name="useDefaultPrice" 
+                              id="useDefaultPrice" 
+                              checked={useDefaultVariantPrice}
+                              onChange={(e) => setUseDefaultVariantPrice(e.target.checked)}
+                              className="w-3 h-3 rounded" 
+                            />
+                            <label htmlFor="useDefaultPrice" className="text-[0.55rem] font-black text-gray-400 uppercase">Use Default</label>
+                         </div>
+                       </div>
+                       {!useDefaultVariantPrice && (
+                         <input name="price" type="number" min="0" defaultValue={selectedVariant?.price || product.price} className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-black focus:bg-white focus:border-black transition-all animate-in slide-in-from-top-2 duration-200" />
+                       )}
+                    </div>
 
                 <div className="space-y-1">
                   <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Inventory Status</label>
-                  <input name="stock" type="number" defaultValue={selectedVariant?.stock || 0} className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-black focus:bg-white focus:border-black transition-all" />
+                  <input name="stock" type="number" min="0" defaultValue={selectedVariant?.stock || 0} className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-black focus:bg-white focus:border-black transition-all" />
                 </div>
 
                 <div className="space-y-4">
@@ -755,38 +749,37 @@ const ProductDetail = () => {
                       </div>
                     ))}
                     
-                    <div className="relative group/add">
+                    <div className="relative group/add" ref={variantImagePickerRef}>
                       <button
                         type="button"
                         className="w-10 h-14 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-gray-300 hover:border-black hover:text-black transition-all"
-                        onClick={() => {
-                          const menu = document.getElementById('variant-media-menu');
-                          menu.classList.toggle('hidden');
-                        }}
+                        onClick={() => setShowVariantImagePicker(!showVariantImagePicker)}
                       >
                         <Plus size={16} />
                       </button>
 
-                      <div id="variant-media-menu" className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 hidden p-3">
-                        <p className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest p-2 border-b mb-2">Select Product Media</p>
-                        <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
-                          {product.images?.map((img, imgIdx) => (
-                            <button
-                              key={imgIdx}
-                              type="button"
-                              onClick={() => {
-                                if (!variantImages.includes(img)) {
-                                  setVariantImages(prev => [...prev, img]);
-                                }
-                                document.getElementById('variant-media-menu').classList.add('hidden');
-                              }}
-                              className={`aspect-[3/4] rounded-lg border transition-all overflow-hidden ${variantImages.includes(img) ? 'ring-2 ring-black border-black' : 'hover:border-black'}`}
-                            >
-                              <img src={img} className="w-full h-full object-cover" />
-                            </button>
-                          ))}
+                      {showVariantImagePicker && (
+                        <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 p-3 animate-in fade-in zoom-in-95 duration-200">
+                          <p className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest p-2 border-b mb-2">Select Product Media</p>
+                          <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                            {product.images?.map((img, imgIdx) => (
+                              <button
+                                key={imgIdx}
+                                type="button"
+                                onClick={() => {
+                                  if (!variantImages.includes(img)) {
+                                    setVariantImages(prev => [...prev, img]);
+                                  }
+                                  setShowVariantImagePicker(false);
+                                }}
+                                className={`aspect-[3/4] rounded-lg border transition-all overflow-hidden ${variantImages.includes(img) ? 'ring-2 ring-black border-black' : 'hover:border-black'}`}
+                              >
+                                <img src={img} className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>

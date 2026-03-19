@@ -6,7 +6,7 @@ import { useStore } from '../../services/useStore';
 import { ChevronLeft, Info, Truck, CreditCard, CheckCircle2 } from 'lucide-react';
 
 const Checkout = () => {
-  const { cart } = useStore();
+  const { cart, clearCart } = useStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(null);
@@ -100,9 +100,8 @@ const Checkout = () => {
 
       // If COD, we are done
       if (formData.paymentMethod === 'cod') {
-        localStorage.removeItem('cart');
-        alert('Order placed successfully (Cash on Delivery)!');
-        navigate('/');
+        clearCart();
+        navigate(`/order-success/${order.orderId}`);
         return;
       }
 
@@ -132,10 +131,8 @@ const Checkout = () => {
 
             if (verifyRes.data.message === "Payment verified successfully") {
               // Clear cart and redirect
-              localStorage.removeItem('cart');
-              // Trigger a store update if needed, or redirect to a success page
-              alert('Order placed successfully!');
-              navigate('/');
+              clearCart();
+              navigate(`/order-success/${order.orderId}`);
             }
           } catch (error) {
             console.error('Verification error:', error);
@@ -337,8 +334,8 @@ const Checkout = () => {
            <section className="space-y-6">
               <h2 className="text-lg font-black tracking-tight">Payment</h2>
               <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest">All transactions are secure and encrypted.</p>
-              <div className="border border-gray-200 rounded-sm overflow-hidden">
-                     {formData.shippingMethod === 'standard' ? (
+              {formData.shippingMethod !== 'cod' && (
+                <div className="border border-gray-200 rounded-sm overflow-hidden">
                        <div 
                          onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'razorpay' }))}
                          className="p-6 space-y-4 cursor-pointer"
@@ -358,28 +355,11 @@ const Checkout = () => {
                          </div>
                          <div className="bg-gray-50 p-6 rounded-sm text-center space-y-4">
                            <div className="inline-block p-4 bg-white rounded-full"><CreditCard size={32} strokeWidth={1} className="text-gray-300" /></div>
-                           <p className="text-[0.65rem] text-gray-500 leading-relaxed font-medium">After clicking “Complete order”, you will be redirected to Razorpay to complete your purchase securely.</p>
+                           <p className="text-[0.65rem] text-gray-500 leading-relaxed font-medium">After clicking “Pay ₹{total}”, you will be redirected to Razorpay to complete your purchase securely.</p>
                          </div>
                        </div>
-                     ) : (
-                       <div 
-                         onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod' }))}
-                         className={`p-6 bg-blue-50/10 cursor-pointer`}
-                       >
-                         <div className="flex items-center gap-3">
-                            <input 
-                             type="radio" 
-                             name="paymentMethod" 
-                             id="cod_pay" 
-                             checked={formData.paymentMethod === 'cod'}
-                             readOnly
-                             className="w-4 h-4 text-black focus:ring-black" 
-                            />
-                            <label htmlFor="cod_pay" className="text-[0.7rem] font-bold uppercase">Cash on Delivery (COD)</label>
-                         </div>
-                       </div>
-                     )}
-              </div>
+                </div>
+              )}
            </section>
 
            <button 
@@ -387,7 +367,7 @@ const Checkout = () => {
              disabled={loading}
              className="w-full bg-blue-600 text-white py-5 rounded-md text-[0.75rem] font-black uppercase tracking-[2px] transition-all hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50"
            >
-             {loading ? 'Processing...' : 'Complete order'}
+             {loading ? 'Processing...' : formData.paymentMethod === 'razorpay' ? `Pay ₹${total}` : 'Complete order'}
            </button>
 
 

@@ -126,7 +126,7 @@ const Products = () => {
                           className={`w-full text-left px-5 py-2.5 text-[0.7rem] font-bold transition-all relative group flex items-center ${sortBy === opt.val ? 'bg-gray-50 dark:bg-white/5 text-black dark:text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-black dark:hover:text-white'}`}
                         >
                           {sortBy === opt.val && <div className="absolute left-0 top-0 bottom-0 w-1 bg-black dark:bg-white" />}
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-black dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-300 dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
                           {opt.label}
                         </button>
                       ))}
@@ -155,7 +155,7 @@ const Products = () => {
                           className={`w-full text-left px-5 py-2.5 text-[0.75rem] font-bold transition-all relative group flex items-center ${pageSize === size ? 'bg-gray-50 dark:bg-white/5 text-black dark:text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-black dark:hover:text-white'}`}
                         >
                           {pageSize === size && <div className="absolute left-0 top-0 bottom-0 w-1 bg-black dark:bg-white" />}
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-black dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gray-300 dark:bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
                           {size}
                         </button>
                       ))}

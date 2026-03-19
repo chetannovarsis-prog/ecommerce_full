@@ -93,7 +93,7 @@ const Navbar = () => {
     setIsSearchOpen(false);
     setSearchQuery('');
     setSuggestions([]);
-    navigate(`/products/${product.id}`);
+    navigate(`/products/${product.handle || product.id}`);
   };
 
   const navClasses = `${isHome ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-[100] transition-all duration-500 ${

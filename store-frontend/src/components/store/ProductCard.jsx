@@ -36,7 +36,7 @@ const ProductCard = ({ product, isListView = false }) => {
   if (isListView) {
     return (
       <div 
-        onClick={() => navigate(`/products/${id}`)}
+        onClick={() => navigate(`/products/${product.handle || id}`)}
         className="flex gap-10 group cursor-pointer py-10 border-b border-gray-50 last:border-0 italic-none"
       >
         <div className="w-60 aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm relative flex-shrink-0">
@@ -89,7 +89,7 @@ const ProductCard = ({ product, isListView = false }) => {
   }
 
   return (
-    <div className="relative group cursor-pointer italic-none" onClick={() => navigate(`/products/${id}`)}>
+    <div className="relative group cursor-pointer italic-none" onClick={() => navigate(`/products/${product.handle || id}`)}>
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
         {badge && (
           <div className="bg-black text-white px-3 py-1 text-[0.6rem] font-black uppercase tracking-widest shadow-xl">
@@ -170,7 +170,7 @@ const ProductCard = ({ product, isListView = false }) => {
           </div>
         </div>
 
-        {colors.length > 0 && (
+        {/* {colors.length > 0 && (
           <div className="flex gap-1.5 pt-1">
             {colors.map(color => {
               const isActive = selectedVariant?.title?.includes(`Color: ${color}`);
@@ -189,7 +189,7 @@ const ProductCard = ({ product, isListView = false }) => {
               );
             })}
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

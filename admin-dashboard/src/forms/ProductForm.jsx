@@ -43,6 +43,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
   const [activeDropdown, setActiveDropdown] = useState(null); // 'categories' or 'collections'
   const [openVariantMenuIndex, setOpenVariantMenuIndex] = useState(null);
   const [showBulkVariantModal, setShowBulkVariantModal] = useState(false);
+  const [bulkEditMode, setBulkEditMode] = useState(false);
   const categoryRef = React.useRef(null);
   const collectionRef = React.useRef(null);
 
@@ -472,23 +473,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-6">
               {formData.images.map((url, i) => (
                 <div key={`existing-${i}`} className="relative aspect-[3/4] group animate-in zoom-in duration-300">
-                  <img src={url} className={`w-full h-full object-cover rounded-2xl border-2 shadow-xl ring-1 ring-black/5 transition-all ${formData.thumbnailUrl === url ? 'border-emerald-500 ring-4 ring-emerald-500/20' : formData.hoverThumbnailUrl === url ? 'border-blue-500 ring-4 ring-blue-500/20' : 'border-white'}`} alt="" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex flex-col items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, thumbnailUrl: url })}
-                      className="px-3 py-1 bg-emerald-500 text-white text-[10px] font-black uppercase rounded shadow-lg hover:scale-105 transition-all"
-                    >
-                      Set Thumbnail
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, hoverThumbnailUrl: url })}
-                      className="px-3 py-1 bg-blue-500 text-white text-[10px] font-black uppercase rounded shadow-lg hover:scale-105 transition-all"
-                    >
-                      Set Hover
-                    </button>
-                  </div>
+                  <img src={url} className="w-full h-full object-cover rounded-2xl border-2 border-white shadow-xl ring-1 ring-black/5 transition-all" alt="" />
                   <button
                     type="button"
                     onClick={() => removeImage(i, false)}
@@ -496,8 +481,6 @@ const ProductForm = ({ onClose, onSave, product }) => {
                   >
                     <X size={12} strokeWidth={3} />
                   </button>
-                  {formData.thumbnailUrl === url && <span className="absolute -top-2 -left-2 bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm">Main</span>}
-                  {formData.hoverThumbnailUrl === url && <span className="absolute -bottom-2 -left-2 bg-blue-500 text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm">Hover</span>}
                 </div>
               ))}
               {stagedImages.map((staged, i) => (
@@ -539,6 +522,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-black font-black">₹</span>
                   <input
                     type="number"
+                    min="0"
                     placeholder="0"
                     className="w-full pl-10 pr-5 py-4 bg-white border border-gray-200 rounded-2xl text-lg font-black focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
                     value={formData.price}
@@ -551,6 +535,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
                 <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Global Stock Count</label>
                 <input
                   type="number"
+                  min="0"
                   placeholder="0"
                   className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-lg font-black focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
                   value={formData.stock}
@@ -583,6 +568,8 @@ const ProductForm = ({ onClose, onSave, product }) => {
                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-black">%</span>
                     <input
                       type="number"
+                      min="0"
+                      max="100"
                       placeholder="e.g. 20"
                       className="w-full pl-10 pr-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-lg font-black focus:bg-white focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
                       value={formData.discountPercentage}
@@ -612,8 +599,21 @@ const ProductForm = ({ onClose, onSave, product }) => {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowBulkVariantModal(true)}
+                  onClick={() => {
+                    setBulkEditMode(true);
+                    setShowBulkVariantModal(true);
+                  }}
                   className="group flex items-center gap-2 bg-gray-50 border border-gray-200 text-gray-600 px-5 py-2.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-gray-100 active:scale-95 transition-all"
+                >
+                  <Settings size={14} className="text-gray-400" /> Bulk Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBulkEditMode(false);
+                    setShowBulkVariantModal(true);
+                  }}
+                  className="group flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-zinc-800 active:scale-95 transition-all shadow-lg shadow-black/10"
                 >
                   <Zap size={14} className="text-amber-500" /> Bulk Create
                 </button>
@@ -715,6 +715,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
                       <label className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Inventory</label>
                       <input
                         type="number"
+                        min="0"
                         className="w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-xs font-black focus:bg-white focus:border-black transition-all"
                         value={variant.stock}
                         onChange={e => updateVariant(index, 'stock', parseInt(e.target.value))}
@@ -831,9 +832,19 @@ const ProductForm = ({ onClose, onSave, product }) => {
           <button
             type="submit"
             onClick={handleSubmit}
-            className="group flex items-center gap-3 bg-black text-white px-10 py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-2xl shadow-black/20 hover:-translate-y-1 active:scale-95"
+            disabled={uploading}
+            className="group flex items-center gap-3 bg-black text-white px-10 py-5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-2xl shadow-black/20 hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
           >
-            {product ? 'Synchronize Data' : 'Post Project'} <ChevronRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+            {uploading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
+                {product ? 'Synchronizing...' : 'Posting...'}
+              </>
+            ) : (
+              <>
+                {product ? 'Synchronize Data' : 'Post Project'} <ChevronRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -841,6 +852,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
       {showBulkVariantModal && (
         <BulkVariantModal 
           product={formData}
+          mode={bulkEditMode ? 'edit' : 'create'}
           onClose={() => setShowBulkVariantModal(false)}
           onGenerate={(newBulkVariants) => {
             const parsedVariants = newBulkVariants.map(v => {
@@ -854,7 +866,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
             
             setFormData(prev => ({
               ...prev,
-              variants: [...prev.variants, ...parsedVariants]
+              variants: bulkEditMode ? parsedVariants : [...prev.variants, ...parsedVariants]
             }));
             setShowBulkVariantModal(false);
           }}

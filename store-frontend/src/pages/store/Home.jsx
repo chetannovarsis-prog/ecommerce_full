@@ -19,15 +19,21 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [collRes, bestRes, newRes] = await Promise.all([
+        const [collRes, bestRes, newRes] = await Promise.allSettled([
           api.get('/collections'),
           api.get('/products/best-sellers'),
           api.get('/products/new-arrivals')
         ]);
 
-        setCollections(collRes.data.sort((a, b) => (a.order || 0) - (b.order || 0)));
-        setBestSellers(bestRes.data);
-        setNewArrivals(newRes.data);
+        if (collRes.status === 'fulfilled') {
+          setCollections(collRes.value.data.sort((a, b) => (a.order || 0) - (b.order || 0)));
+        }
+        if (bestRes.status === 'fulfilled') {
+          setBestSellers(bestRes.value.data);
+        }
+        if (newRes.status === 'fulfilled') {
+          setNewArrivals(newRes.value.data);
+        }
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {
@@ -129,7 +135,7 @@ const Home = () => {
                 Array(5).fill(0).map((_, i) => <ProductSkeleton key={i} />)
               ) : (
                 displayProducts.slice(0, 5).map((product) => (
-                  <Link key={product.id} to={`/products/${product.id}`} className="group space-y-4">
+                  <Link key={product.id} to={`/products/${product.handle || product.id}`} className="group space-y-4">
                     <div className="aspect-[3/4] overflow-hidden rounded-2xl bg-white relative">
                       <img
                         src={product.thumbnailUrl || product.images?.[0]}

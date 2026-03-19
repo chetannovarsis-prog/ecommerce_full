@@ -84,7 +84,7 @@ const Cart = () => {
                 displayCart.map((item, idx) => (
                   <div key={`${item.id}-${item.variantId || idx}`} className="flex gap-6 group">
                     <Link 
-                      to={`/products/${item.id}`} 
+                      to={`/products/${item.handle || item.id}`} 
                       onClick={() => setCartOpen(false)}
                       className="w-24 aspect-[3/4] bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 relative shadow-sm block"
                     >
@@ -105,7 +105,7 @@ const Cart = () => {
                       <div className="flex justify-between items-start">
                         <div className="max-w-[160px]">
                           <h3 className="text-[0.75rem] font-black uppercase tracking-tight text-gray-900 leading-tight">
-                            <Link to={`/products/${item.id}`} onClick={() => setCartOpen(false)} className="hover:opacity-60 transition-opacity">
+                            <Link to={`/products/${item.handle || item.id}`} onClick={() => setCartOpen(false)} className="hover:opacity-60 transition-opacity">
                               {item.name}
                             </Link>
                           </h3>

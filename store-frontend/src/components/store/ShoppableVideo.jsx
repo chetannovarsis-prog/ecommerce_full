@@ -55,8 +55,8 @@ const ShoppableVideo = () => {
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) setItemsToShow(2); // Grid 2x2 on mobile
-      else if (window.innerWidth < 1280) setItemsToShow(4);
-      else setItemsToShow(5);
+      else if (window.innerWidth < 1024) setItemsToShow(3);
+      else setItemsToShow(4); // Strictly 4 on desktop
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -161,7 +161,7 @@ const ShoppableVideo = () => {
               <div 
                 key={vid.id}
                 className="flex-shrink-0 relative group cursor-pointer w-full"
-                style={window.innerWidth >= 768 ? { width: `calc(${100 / itemsToShow}% - ${(itemsToShow - 1) * 1}rem / ${itemsToShow})` } : {}}
+                style={window.innerWidth >= 768 ? { width: `calc((100% - ${(itemsToShow - 1) * 1}rem) / ${itemsToShow})` } : {}}
                 onClick={() => openModal(vid, idx)}
               >
                 <div className="rounded-xl overflow-hidden bg-black shadow-xl relative">

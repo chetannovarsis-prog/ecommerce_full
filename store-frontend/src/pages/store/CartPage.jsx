@@ -64,7 +64,7 @@ const CartPage = () => {
                   className="flex flex-col sm:flex-row gap-8 sm:gap-12 group pb-12 border-b border-gray-100 last:border-0"
                 >
                   <Link 
-                    to={`/products/${item.id}`}
+                    to={`/products/${item.handle || item.id}`}
                     className="w-full sm:w-48 aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden flex-shrink-0 relative shadow-md block"
                   >
                     <img 
@@ -85,7 +85,7 @@ const CartPage = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <h3 className="text-2xl font-black uppercase tracking-tighter text-gray-900 leading-tight">
-                            <Link to={`/products/${item.id}`} className="hover:opacity-60 transition-opacity">{item.name}</Link>
+                            <Link to={`/products/${item.handle || item.id}`} className="hover:opacity-60 transition-opacity">{item.name}</Link>
                           </h3>
                           <div className="space-y-1 mt-3">
                             {item.variantTitle?.split(',').map((part, pIdx) => {

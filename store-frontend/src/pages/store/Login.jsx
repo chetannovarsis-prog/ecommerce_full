@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, User as UserIcon, LogIn, Chrome } from 'lucide-react';
 import api from '../../utils/api';
 import { motion } from 'framer-motion';
+import { GoogleLogin } from '@react-oauth/google';
 
 
 const Login = () => {
@@ -29,9 +30,18 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    // In a real app, integrate Google Identity Service
-    alert('Google Login configuration pending client_id');
+  const handleGoogleSuccess = async (response) => {
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/customer/google-login', { credential: response.credential });
+      localStorage.setItem('customerToken', res.data.token);
+      localStorage.setItem('customer', JSON.stringify(res.data.customer));
+      navigate('/profile');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -96,12 +106,15 @@ const Login = () => {
           <div className="relative flex justify-center text-[0.6rem] uppercase tracking-widest font-black"><span className="bg-white px-4 text-gray-300">or continue with</span></div>
         </div>
 
-        <button 
-          onClick={handleGoogleLogin}
-          className="w-full bg-white border border-gray-100 text-black py-4 rounded-xl text-[0.7rem] font-black uppercase tracking-[2px] flex items-center justify-center gap-3 hover:bg-gray-50 transition-all"
-        >
-          <Chrome size={18} /> Google account
-        </button>
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Google login failed')}
+            theme="outline"
+            size="large"
+            shape="pill"
+          />
+        </div>
 
         <p className="text-center text-[0.65rem] font-bold text-gray-400 uppercase tracking-tight">
           Don't have an account? <Link to="/signup" className="text-black underline underline-offset-4 decoration-2">Create profile</Link>
@@ -112,3 +125,4 @@ const Login = () => {
 };
 
 export default Login;
+

@@ -135,8 +135,10 @@ const ProductDetail = () => {
     setSubmittingReview(true);
     try {
       await api.post('/reviews', {
-        productId: id,
-        ...reviewForm
+        productId: product.id,
+        userName: reviewForm.name,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment
       });
       // Refresh reviews
       const reviewsRes = await api.get(`/reviews/product/${id}`);
@@ -177,11 +179,10 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (selectedVariant) {
-      if (isValidUrl(selectedVariant.thumbnailUrl)) {
-        setActiveImage(selectedVariant.thumbnailUrl);
-      } else if (selectedVariant.images && selectedVariant.images.length > 0) {
-        const firstValid = selectedVariant.images.find(isValidUrl);
-        if (firstValid) setActiveImage(firstValid);
+      // Prioritize variant thumbnail, then first image, then product thumbnail
+      const variantImage = selectedVariant.thumbnailUrl || (selectedVariant.images && selectedVariant.images.length > 0 ? selectedVariant.images[0] : null);
+      if (isValidUrl(variantImage)) {
+        setActiveImage(variantImage);
       }
     }
   }, [selectedVariant]);
@@ -240,32 +241,51 @@ const ProductDetail = () => {
 
   // Helper to find variant matching partial selections
   const findMatchingVariant = (newVal, type) => {
-    const currentTitle = selectedVariant?.title || '';
-    const attributes = currentTitle.split(', ');
+    if (!product.variants || product.variants.length === 0) return null;
     
-    // Create map of current selections
-    const selections = {};
-    attributes.forEach(attr => {
-      if (attr.includes(':')) {
-        const [k, v] = attr.split(': ');
-        selections[k.trim().toLowerCase()] = v.trim();
-      }
+    // 1. Get current selections from the selectedVariant
+    const currentSelections = {};
+    if (selectedVariant?.title) {
+      selectedVariant.title.split(', ').forEach(attr => {
+        if (attr.includes(': ')) {
+          const [name, val] = attr.split(': ');
+          currentSelections[name.trim().toLowerCase()] = val.trim().toLowerCase();
+        } else {
+          // Fallback for non-labeled attributes
+          currentSelections['option'] = attr.trim().toLowerCase();
+        }
+      });
+    }
+
+    // 2. Update the target attribute with the new value
+    currentSelections[type.toLowerCase()] = newVal.toLowerCase();
+
+    // 3. Find matches based on ANY matching attribute first, then score
+    const possibleMatches = product.variants.filter(v => {
+      const vTitle = v.title.toLowerCase();
+      // Relaxed matching: check if the newVal is present in the title
+      return vTitle.includes(newVal.toLowerCase());
     });
 
-    // Update with new choice
-    selections[type.toLowerCase()] = newVal;
+    if (possibleMatches.length === 0) return null;
 
-    // Build target parts
-    const targetParts = Object.entries(selections).map(([k, v]) => {
-      // Capitalize key for matching
-      const key = k.charAt(0).toUpperCase() + k.slice(1);
-      return `${key}: ${v}`;
+    // 4. Score matches based on how many OTHER current selections they satisfy
+    const scoredMatches = possibleMatches.map(v => {
+      let score = 0;
+      const vTitle = v.title.toLowerCase();
+      Object.entries(currentSelections).forEach(([k, val]) => {
+        // If it's the attribute we just clicked, it MUST match (though filtered above)
+        if (k === type.toLowerCase()) {
+           if (vTitle.includes(val)) score += 10; 
+        } else {
+           if (vTitle.includes(val)) score += 1;
+        }
+      });
+      return { variant: v, score };
     });
 
-    // Find best match (variant that contains all target parts)
-    return product.variants.find(v => {
-      return targetParts.every(part => v.title.includes(part));
-    }) || product.variants.find(v => v.title.includes(`${type.charAt(0).toUpperCase() + type.slice(1)}: ${newVal}`));
+    // 5. Return the one with the highest score
+    return scoredMatches.sort((a, b) => b.score - a.score)[0].variant;
   };
 
   return (
@@ -354,15 +374,32 @@ const ProductDetail = () => {
                   <Share2 size={20} />
                 </button>
               </div>
-              <div className="flex items-center gap-2">
-                 <div className="flex text-amber-400">
-                    {[1,2,3,4,5].map(s => <Star key={s} size={16} fill="currentColor" />)}
-                 </div>
-                 <span className="text-sm font-bold text-gray-900">5.0 | (2 Reviews)</span>
-                 <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                 </div>
-              </div>
+                  <button 
+                    onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+                  >
+                     <div className="flex text-amber-400">
+                        {[1, 2, 3, 4, 5].map(s => {
+                          const avgRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0;
+                          return (
+                            <Star 
+                              key={s} 
+                              size={16} 
+                              fill={s <= avgRating ? "currentColor" : "none"} 
+                              className={s <= avgRating ? "" : "text-gray-200"}
+                            />
+                          );
+                        })}
+                     </div>
+                     <span className="text-sm font-bold text-gray-900">
+                       {reviews.length > 0 
+                         ? `${(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} | (${reviews.length} Review${reviews.length > 1 ? 's' : ''})` 
+                         : '0.0 | (0 Reviews)'}
+                     </span>
+                     <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                     </div>
+                  </button>
 
               <div className="flex flex-col gap-1 pt-2">
                   <div className="flex items-center gap-3">
@@ -415,7 +452,7 @@ const ProductDetail = () => {
                     </label>
                     <div className="flex flex-wrap gap-3">
                        {[...variantOptions['size']].map(val => {
-                          const isSelected = selectedVariant?.title?.includes(`Size: ${val}`);
+                          const isSelected = selectedVariant?.title?.toLowerCase().includes(`size: ${val.toLowerCase()}`);
                           return (
                             <button
                               key={val}
@@ -449,28 +486,32 @@ const ProductDetail = () => {
                     </div>
                     <div className="flex flex-wrap gap-4">
                        {[...variantOptions['color']].map(color => {
-                          const isSelected = selectedVariant?.title?.includes(`Color: ${color}`);
+                          const lowerColor = color.toLowerCase();
+                          const lowerTitle = (selectedVariant?.title || '').toLowerCase();
+                          const isSelected = lowerTitle.includes(`color: ${lowerColor}`) || 
+                                           (!lowerTitle.includes('color:') && lowerTitle.includes(lowerColor));
                           // Find a variant that has this color to show its thumbnail
-                          const representativeVariant = product.variants.find(v => 
-                            v.title.includes(`Color: ${color}`)
-                          );
+                          const representativeVariant = product.variants.find(v => {
+                            const vTitle = v.title.toLowerCase();
+                            return vTitle.includes(`color: ${color.toLowerCase()}`) || vTitle.includes(color.toLowerCase());
+                          });
                           const imgUrl = representativeVariant?.thumbnailUrl || representativeVariant?.images?.find(isValidUrl) || product.thumbnailUrl;
                           
                           return (
                             <button
-                              key={color}
-                              onClick={() => {
-                                const variant = findMatchingVariant(color, 'color');
-                                if (variant) setSelectedVariant(variant);
-                              }}
-                              className={`group relative flex flex-col items-center gap-2 transition-all`}
-                            >
-                               <div className={`w-14 h-14 rounded-full border-2 p-1 transition-all duration-300 ${isSelected ? 'border-black' : 'border-transparent group-hover:border-gray-200'}`}>
-                                 <div className="w-full h-full rounded-full overflow-hidden bg-gray-50 border border-black/5">
-                                   <img src={imgUrl} className="w-full h-full object-cover" alt={color} />
-                                 </div>
-                               </div>
-                            </button>
+                               key={color}
+                               onClick={() => {
+                                 const variant = findMatchingVariant(color, 'color');
+                                 if (variant) setSelectedVariant(variant);
+                               }}
+                               className={`group relative flex flex-col items-center gap-2 transition-all p-1 rounded-full ${isSelected ? 'ring-2 ring-black ring-offset-2' : ''}`}
+                             >
+                                <div className={`w-12 h-12 rounded-full border border-gray-100 transition-all duration-300 overflow-hidden shadow-sm`}>
+                                   <div className="w-full h-full bg-gray-50">
+                                     <img src={imgUrl} className="w-full h-full object-cover" alt={color} />
+                                   </div>
+                                </div>
+                             </button>
                           );
                        })}
                     </div>
@@ -507,7 +548,7 @@ const ProductDetail = () => {
         </div>
 
         {/* Reviews Section */}
-        <div className="mt-40 border-t border-gray-100 pt-20">
+        <div id="reviews-section" className="mt-40 border-t border-gray-100 pt-20 scroll-mt-24">
           <div className="flex flex-col md:flex-row justify-between items-start gap-10">
             <div className="md:w-1/3 space-y-6">
               <h2 className="text-3xl font-black uppercase tracking-tight">Customer Reviews</h2>
@@ -633,7 +674,7 @@ const ProductDetail = () => {
               {relatedProducts.map((p, i) => (
                 <Link 
                   key={p.id} 
-                  to={`/products/${p.id}`}
+                  to={`/products/${p.handle || p.id}`}
                   className="group space-y-4"
                 >
                   <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative">

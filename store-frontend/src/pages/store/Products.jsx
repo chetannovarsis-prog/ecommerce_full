@@ -43,16 +43,17 @@ const Products = () => {
       setLoading(true);
       try {
         // Fetch products and optionally collection info
-        const [prodRes, collRes] = await Promise.all([
+        const [prodRes, collRes] = await Promise.allSettled([
           api.get('/products'),
           collectionId ? api.get(`/collections/${collectionId}`) : Promise.resolve({ data: null })
         ]);
 
+        let allProducts = prodRes.status === 'fulfilled' ? prodRes.value.data : [];
+        let collectionData = collRes.status === 'fulfilled' ? collRes.value.data : null;
 
-        let allProducts = prodRes.data;
         if (collectionId) {
           allProducts = allProducts.filter(p => p.collectionId === collectionId || p.collections?.some(c => c.id === collectionId));
-          setCollection(collRes.data);
+          if (collectionData) setCollection(collectionData);
         } else {
           setCollection(null);
         }

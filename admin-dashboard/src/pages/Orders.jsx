@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { ShoppingCart, Package, Clock, CheckCircle2, AlertCircle, Search, Filter, TrendingUp, DollarSign, CreditCard, RotateCcw } from 'lucide-react';
 
 const Orders = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,8 +108,12 @@ const Orders = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                     {orders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50/80 dark:hover:bg-white/2 transition-colors cursor-pointer text-xs font-bold">
-                        <td className="px-6 py-4 text-gray-900 dark:text-white uppercase tracking-tighter">#{order.id.slice(-6)}</td>
+                      <tr 
+                        key={order.id} 
+                        onClick={() => navigate(`/orders/${order.id}`)}
+                        className="hover:bg-gray-50/80 dark:hover:bg-white/2 transition-colors cursor-pointer text-xs font-bold"
+                      >
+                        <td className="px-6 py-4 text-gray-900 dark:text-white uppercase tracking-tighter">#{order.id.slice(-6).toUpperCase()}</td>
                         <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{order.customer?.name || 'Guest'}</td>
                         <td className="px-6 py-4 text-gray-500 dark:text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
                         <td className="px-6 py-4 text-gray-900 dark:text-white font-black">₹{order.total}</td>
