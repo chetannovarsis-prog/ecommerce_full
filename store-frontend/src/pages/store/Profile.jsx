@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, LogOut, Package, MapPin, Settings, ChevronRight, ShoppingBag } from 'lucide-react';
+import { LogOut, Package, MapPin, Settings, ChevronRight, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../utils/api';
 
@@ -93,28 +93,35 @@ const Profile = () => {
                 </div>
              ) : orders.length > 0 ? (
                 orders.map((order) => (
-                  <div key={order.id} className="p-8 hover:bg-gray-50/50 transition-colors group cursor-pointer">
-                    <div className="flex justify-between items-center gap-6">
-                       <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-black group-hover:text-white transition-colors">
-                            <ShoppingBag size={24} strokeWidth={1.5} />
+                   <Link
+                     key={order.id}
+                     to={`/orders/${order.id}`}
+                     className="block p-8 hover:bg-gray-50/60 transition-colors group"
+                   >
+                     <div className="flex justify-between items-center gap-6">
+                        <div className="flex items-center gap-6">
+                           <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-black group-hover:text-white transition-colors">
+                             <ShoppingBag size={24} strokeWidth={1.5} />
+                           </div>
+                           <div>
+                             <p className="text-sm font-black uppercase tracking-tight">Order #{order.id.slice(-6).toUpperCase()}</p>
+                             <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest mt-1">Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
+                           </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                             <p className="text-sm font-black text-gray-900 tracking-tight italic">₹{order.totalAmount}</p>
+                             <span className={`text-[0.6rem] px-2 py-1 rounded-md font-black uppercase tracking-widest ${
+                               order.status === 'PAID' ? 'bg-emerald-50 text-emerald-500' : 'bg-amber-50 text-amber-500'
+                             }`}>
+                               {order.status}
+                             </span>
                           </div>
-                          <div>
-                            <p className="text-sm font-black uppercase tracking-tight">Order #{order.id.slice(-6).toUpperCase()}</p>
-                            <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest mt-1">Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
-                          </div>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-sm font-black text-gray-900 tracking-tight italic">₹{order.totalAmount}</p>
-                          <span className={`text-[0.6rem] px-2 py-1 rounded-md font-black uppercase tracking-widest ${
-                            order.status === 'PAID' ? 'bg-emerald-50 text-emerald-500' : 'bg-amber-50 text-amber-500'
-                          }`}>
-                            {order.status}
-                          </span>
-                       </div>
-                    </div>
-                  </div>
-                ))
+                          <ChevronRight size={16} className="text-gray-300 group-hover:text-black group-hover:translate-x-1 transition-all flex-shrink-0" />
+                        </div>
+                     </div>
+                   </Link>
+                 ))
              ) : (
                 <div className="py-20 text-center space-y-4">
                   <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">

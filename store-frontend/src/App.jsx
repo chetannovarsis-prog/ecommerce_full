@@ -18,6 +18,7 @@ import {
   Terms 
 } from './pages/store/InfoPages';
 import OrderSuccess from './pages/store/OrderSuccess';
+import OrderDetail from './pages/store/OrderDetail';
 import Contact from './pages/store/Contact';
 
 import Shop from './pages/store/Shop';
@@ -80,6 +81,7 @@ function App() {
               <Route path="/shop" element={<Shop />} />
               <Route path="/collections" element={<CollectionsPage />} />
               <Route path="/order-success/:id" element={<OrderSuccess />} />
+              <Route path="/orders/:id" element={<OrderDetail />} />
               <Route path="/collections/:id" element={<Products />} />
               <Route path="/collections/:id" element={<Products />} />
               <Route path="/new-arrivals" element={<NewArrivals />} />
