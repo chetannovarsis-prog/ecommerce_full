@@ -27,7 +27,16 @@ const Hero = () => {
       try {
         const response = await api.get('/banners');
         const list = Array.isArray(response.data) ? response.data : response.data?.data || [];
-        setBanners(list);
+        // Normalize type and order before render
+        const normalized = list.map((b) => ({
+          ...b,
+          type: (b.type || 'DESKTOP').toUpperCase(),
+          order: Number.isInteger(b.order) ? b.order : 0,
+          imageUrl: b.imageUrl || b.img || ''
+        }));
+
+        const sorted = normalized.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+        setBanners(sorted);
 
       } catch (error) {
         console.error('Error fetching banners:', error);

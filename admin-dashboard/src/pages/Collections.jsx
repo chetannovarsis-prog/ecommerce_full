@@ -46,7 +46,8 @@ const Collections = () => {
     setLoading(true);
     try {
       const res = await api.get('/collections');
-      setCollections(res.data);
+      const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
+      setCollections(list.slice().sort((a, b) => (a.order || 0) - (b.order || 0)));
     } catch (error) {
       console.error('Error fetching collections:', error);
     } finally {
