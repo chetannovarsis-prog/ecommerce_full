@@ -26,7 +26,8 @@ const Hero = () => {
     const fetchBanners = async () => {
       try {
         const response = await api.get('/banners');
-        setBanners(response.data);
+        const list = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        setBanners(list);
 
       } catch (error) {
         console.error('Error fetching banners:', error);

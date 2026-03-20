@@ -14,7 +14,8 @@ const CollectionsPage = () => {
     const fetchCollections = async () => {
       try {
         const response = await api.get('/collections');
-        setCollections(response.data);
+        const list = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        setCollections(list);
 
       } catch (error) {
         console.error('Error fetching collections:', error);
