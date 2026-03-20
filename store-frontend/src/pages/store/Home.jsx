@@ -26,7 +26,10 @@ const Home = () => {
         ]);
 
         if (collRes.status === 'fulfilled') {
-          setCollections(collRes.value.data.sort((a, b) => (a.order || 0) - (b.order || 0)));
+          const collectionsData = Array.isArray(collRes.value.data)
+            ? collRes.value.data
+            : collRes.value.data?.data || [];
+          setCollections(collectionsData.sort((a, b) => (a.order || 0) - (b.order || 0)));
         }
         if (bestRes.status === 'fulfilled') {
           setBestSellers(bestRes.value.data);
