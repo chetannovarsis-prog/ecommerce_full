@@ -38,7 +38,9 @@ const Login = () => {
       localStorage.setItem('customer', JSON.stringify(res.data.customer));
       navigate('/profile');
     } catch (err) {
-      setError(err.response?.data?.message || 'Google login failed');
+      const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Google login failed';
+      setError(`Google login failed: ${message}`);
+      console.error('Google login error (frontend):', err);
     } finally {
       setLoading(false);
     }

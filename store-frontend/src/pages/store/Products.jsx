@@ -45,23 +45,36 @@ const Products = () => {
         // Fetch products and optionally collection info
         const [prodRes, collRes] = await Promise.allSettled([
           api.get('/products'),
-          collectionId ? api.get(`/collections/${collectionId}`) : Promise.resolve({ data: null })
+          collectionId && collectionId !== 'all' ? api.get(`/collections/${collectionId}`) : Promise.resolve({ data: null })
         ]);
 
-        let allProducts = prodRes.status === 'fulfilled' ? prodRes.value.data : [];
-        let collectionData = collRes.status === 'fulfilled' ? collRes.value.data : null;
+        const prodData = prodRes.status === 'fulfilled' ? prodRes.value.data : [];
+        const allProducts = Array.isArray(prodData)
+          ? prodData
+          : Array.isArray(prodData?.data)
+          ? prodData.data
+          : [];
 
-        if (collectionId) {
-          allProducts = allProducts.filter(p => p.collectionId === collectionId || p.collections?.some(c => c.id === collectionId));
-          if (collectionData) setCollection(collectionData);
-        } else {
-          setCollection(null);
+        let filtered = allProducts;
+        let collectionData = null;
+
+        if (collectionId && collectionId !== 'all') {
+          filtered = allProducts.filter(p =>
+            p.collectionId === collectionId || p.collections?.some(c => c.id === collectionId)
+          );
+          if (collRes.status === 'fulfilled') {
+            collectionData = collRes.value.data;
+          }
         }
 
-        setProducts(allProducts);
-        setFilteredProducts(allProducts);
+        setCollection(collectionId && collectionId !== 'all' ? collectionData : null);
+        setProducts(filtered);
+        setFilteredProducts(filtered);
       } catch (error) {
         console.error('Error fetching products/collection:', error);
+        setProducts([]);
+        setFilteredProducts([]);
+        setCollection(null);
       } finally {
         setLoading(false);
       }
