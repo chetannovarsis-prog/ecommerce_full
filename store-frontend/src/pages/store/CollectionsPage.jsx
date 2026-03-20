@@ -15,7 +15,7 @@ const CollectionsPage = () => {
       try {
         const response = await api.get('/collections');
         const list = Array.isArray(response.data) ? response.data : response.data?.data || [];
-        setCollections(list);
+        setCollections(list.sort((a, b) => (a.order || 0) - (b.order || 0)));
 
       } catch (error) {
         console.error('Error fetching collections:', error);
