@@ -34,7 +34,12 @@ const ShoppableVideo = () => {
     const fetchProducts = async () => {
       try {
         const res = await api.get('/products');
-        setProducts(res.data);
+        const productList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+        setProducts(productList);
       } catch (err) {
         console.error('Error fetching products for video:', err);
       } finally {
@@ -102,11 +107,15 @@ const ShoppableVideo = () => {
   };
 
   const openModal = (video, index) => {
-    const product = products[index % products.length];
+    const product = products.length ? products[index % products.length] : null;
     setSelectedVideo({ ...video, product });
+
     if (product?.variants?.length > 0) {
       setSelectedColor(product.variants[0].title);
+    } else {
+      setSelectedColor('S');
     }
+
     setQuantity(1);
   };
 
@@ -177,11 +186,11 @@ const ShoppableVideo = () => {
                   
                   <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
                     <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg overflow-hidden border border-white/20 shadow-lg flex-shrink-0">
-                      <img src={products[idx % products.length]?.thumbnailUrl || 'https://via.placeholder.com/50'} className="w-full h-full object-cover" alt="" />
+                      <img src={products.length > 0 ? products[idx % products.length]?.thumbnailUrl || '/images/default-product.jpg' : '/images/default-product.jpg'} className="w-full h-full object-cover" alt="" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[0.55rem] md:text-[0.65rem] font-bold text-white truncate">{products[idx % products.length]?.name || vid.title}</p>
-                      <p className="text-[0.5rem] md:text-[0.6rem] font-black text-white/70 tracking-tighter">₹{products[idx % products.length]?.price || '---'}</p>
+                      <p className="text-[0.55rem] md:text-[0.65rem] font-bold text-white truncate">{products.length > 0 ? products[idx % products.length]?.name : vid.title}</p>
+                      <p className="text-[0.5rem] md:text-[0.6rem] font-black text-white/70 tracking-tighter">₹{products.length > 0 ? products[idx % products.length]?.price ?? '---' : '---'}</p>
                     </div>
                   </div>
                 </div>

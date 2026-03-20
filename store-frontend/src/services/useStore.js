@@ -95,7 +95,13 @@ export const useStore = create(
 
       syncStore: (allProducts) => {
         const { cart, wishlist } = get();
-        const validIds = new Set(allProducts.map((p) => String(p.id)));
+        const products = Array.isArray(allProducts)
+          ? allProducts
+          : Array.isArray(allProducts?.data)
+          ? allProducts.data
+          : [];
+
+        const validIds = new Set(products.map((p) => String(p.id)));
 
         const newCart = cart.filter((item) => validIds.has(String(item.id)));
         const newWishlist = wishlist.filter((item) => validIds.has(String(item.id)));

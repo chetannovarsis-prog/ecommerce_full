@@ -47,8 +47,13 @@ function App() {
     const fetchProductsAndSync = async () => {
       try {
         const response = await api.get('/products');
-        syncStore(response.data);
+        const products = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
 
+        syncStore(products);
       } catch (error) {
         console.error('Error syncing store:', error);
       }

@@ -34,9 +34,15 @@ const Products = () => {
     setLoading(true);
     try {
       const response = await api.get('/products');
-      setProducts(response.data);
+      const productList = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      setProducts(productList);
     } catch (error) {
       console.error('Error fetching products:', error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
