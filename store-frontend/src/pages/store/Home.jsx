@@ -96,7 +96,7 @@ const Home = () => {
                   className="group relative cursor-pointer block mr-16"
                 >
                   {/* Decorative Premium Corner Bracket */}
-                  <div className="absolute -top-[20px] -right-[24px] z-30 w-[80px] h-[80px] pointer-events-none group-hover:scale-110 transition-transform duration-500 shadow-xl shadow-black/5 rounded-full overflow-hidden">
+                  <div className="absolute -top-[34px] -right-[38px] z-30 w-[80px] h-[80px] pointer-events-none transition-transform duration-500 overflow-hidden">
                     <img src="/images/corner_bracket.png" alt="" className="w-full h-full object-contain" />
                   </div>
 
@@ -223,7 +223,7 @@ const Home = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-[600px]">
             <div className="lg:col-span-1 h-full rounded-2xl overflow-hidden shadow-2xl transform rotate-1">
-              <img src="https://images.unsplash.com/photo-1539109132374-3484594a2829?q=80&w=1920&auto=format&fit=crop" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="" />
+              <img src="/images/shopping1.jpg" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="" />
             </div>
             <div className="lg:col-span-1 mt-12 h-full rounded-2xl overflow-hidden shadow-2xl transform -rotate-1">
               <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1920&auto=format&fit=crop" className="w-full h-full object-cover hover:scale-110 transition-transform duration-700" alt="" />
