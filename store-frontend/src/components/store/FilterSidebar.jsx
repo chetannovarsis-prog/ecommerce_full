@@ -58,7 +58,7 @@ const FilterSidebar = ({ isOpen, onClose, onFilterChange }) => {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 left-0 bottom-0 w-full max-w-[320px] bg-white z-[160] shadow-2xl overflow-y-auto italic-none"
+            className="fixed top-0 left-0 bottom-0 w-full max-w-[320px] bg-[#fdf7f0] z-[160] shadow-2xl overflow-y-auto italic-none"
           >
             <div className="p-8 space-y-12">
               <header className="flex justify-between items-center pb-6 border-b border-gray-100">

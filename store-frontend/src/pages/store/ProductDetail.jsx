@@ -289,7 +289,7 @@ const ProductDetail = () => {
   };
 
   return (
-    <div className="bg-white min-h-screen pb-40 italic-none">
+    <div className="min-h-screen pb-40 italic-none">
       {/* Breadcrumbs & Title Top */}
       <div className="max-w-[1400px] mx-auto px-10 pt-6">
         <div className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-widest text-gray-400 mb-6">

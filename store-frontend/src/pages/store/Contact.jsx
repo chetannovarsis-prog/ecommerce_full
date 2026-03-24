@@ -36,7 +36,7 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white pt-32 pb-20 italic-none">
+    <div className="min-h-screen pt-32 pb-20 italic-none">
       <div className="max-w-[95%] mx-auto px-6 md:px-10">
         <header className="mb-20">
           <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic italic">Contact Us</h1>
@@ -63,7 +63,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="text-[0.7rem] font-black uppercase tracking-[0.2em] text-gray-400">Call Us</h3>
-                  <p className="text-md font-black mt-1">+91 98765 43210</p>
+                  <p className="text-md font-black mt-1">+91 88619 40980</p>
                 </div>
               </div>
             </div>
@@ -75,7 +75,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h4 className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Our Store</h4>
-                  <p className="text-[0.9rem] font-black leading-relaxed">C-21 Mall, AB Road, Indore, Madhya Pradesh 452010</p>
+                  <p className="text-[0.9rem] font-black leading-relaxed">Ghar of Ethnics, 38, Booth no-127, 2nd Main Road, Ashwini layout, Ejipura, Koramangala, Bangalore-560047</p>
                 </div>
               </div>
               <div className="flex gap-6 items-start">
@@ -202,10 +202,10 @@ const Contact = () => {
           <div className="absolute top-1/2 left-6 md:left-12 -translate-y-1/2 bg-white/95 backdrop-blur-md p-10 md:p-14 rounded-[2.5rem] shadow-2xl max-w-[95%] md:max-w-md border border-white/20">
             <div className="space-y-6">
               <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-tight">
-                Knitting Knot <br/> Head Office
+                Ghar of Ethnics <br/> Store & Studio
               </h2>
               <p className="text-[0.65rem] md:text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
-                This is our main head office in indore
+                Visit us for a personalized styling session
               </p>
               <div className="pt-4">
                 <a 

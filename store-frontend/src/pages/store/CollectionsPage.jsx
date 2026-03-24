@@ -27,34 +27,54 @@ const CollectionsPage = () => {
   }, []);
 
   return (
-    <div className="bg-white min-h-screen py-20 italic-none">
-      <div className="container mx-auto px-10">
-        <header className="text-center mb-20 space-y-4">
-           <h1 className="text-6xl font-black uppercase tracking-tighter">Collections</h1>
-           <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-[6px]">Discover our curated capsules</p>
+    <div className="min-h-screen py-24 overflow-hidden relative italic-none"
+      style={{ background: 'linear-gradient(135deg, #fdf7f0 0%, #fef9f4 50%, #fdf0e8 100%)' }}
+    >
+      {/* Logo Watermark motifs */}
+      <img src="/images/mandala_motif.png" alt="" className="absolute left-[-5%] top-[20%] w-[400px] opacity-[0.07] pointer-events-none scale-x-[-1]" />
+      <img src="/images/mandala_motif.png" alt="" className="absolute right-[-5%] top-[10%] w-[450px] opacity-[0.08] pointer-events-none" />
+
+      <div className="container mx-auto px-10 relative z-10">
+        <header className="text-center mb-24 space-y-4">
+           <h1 className="text-7xl font-black uppercase tracking-tighter text-[#1a2d5a]">Collections</h1>
+           <div className="flex items-center justify-center gap-4">
+             <div className="h-[2px] w-20 bg-[#e87825]"></div>
+             <p className="text-[0.65rem] text-gray-500 font-bold uppercase tracking-[8px]">Curated Capsules</p>
+             <div className="h-[2px] w-20 bg-[#e87825]"></div>
+           </div>
         </header>
 
         {loading ? (
           <div className="flex justify-center py-40">
-            <div className="w-12 h-12 border-t-2 border-black rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-t-2 border-[#1a2d5a] rounded-full animate-spin"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 max-w-7xl mx-auto">
             <AnimatePresence>
-              {collections.map((c, idx) => (
+              {collections.map((c) => (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   key={c.id}
                   onClick={() => navigate(`/collections/${c.id}`)}
-                  className="group relative h-[500px] overflow-hidden rounded-2xl cursor-pointer bg-gray-50"
+                  className="group relative cursor-pointer"
                 >
-                  <img src={c.imageUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={c.name} />
-                  <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
-                  <div className="absolute bottom-10 left-0 right-0 p-6 flex justify-center">
-                     <div className="bg-white text-black px-10 py-3 rounded-[0.5rem] shadow-2xl transform group-hover:translate-y-[-10px] transition-transform duration-500">
-                        <h2 className="text-sm font-black uppercase tracking-widest">{c.name}</h2>
-                     </div>
+                  {/* Decorative Premium Corner Bracket */}
+                  <div className="absolute -top-[18px] -right-[20px] z-30 w-[70px] h-[70px] pointer-events-none group-hover:scale-110 transition-transform duration-500 shadow-xl shadow-black/5 rounded-full overflow-hidden">
+                    <img src="/images/corner_bracket.png" alt="" className="w-full h-full object-contain" />
+                  </div>
+
+                  <div className="aspect-[4/5] overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white">
+                    <img src={c.imageUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={c.name} />
+                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                  </div>
+                  
+                  <div className="mt-8 text-center space-y-2">
+                    <h2 className="text-lg font-black uppercase tracking-tight text-[#1a2d5a] group-hover:text-[#e87825] transition-colors">{c.name}</h2>
+                    <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
+                      <span className="text-[0.6rem] font-bold uppercase tracking-widest text-[#e87825]">Explore Collection</span>
+                      <ArrowRight size={14} className="text-[#e87825]" />
+                    </div>
                   </div>
                 </motion.div>
               ))}

@@ -5,14 +5,24 @@
 @tailwind utilities;
 
 :root {
-  --primary: #1a1a1a;
-  --secondary: #f4f4f4;
+  --primary-navy: #1a2d5a;
+  --secondary-saffron: #e87825;
+  --warm-cream: #fdf7f0;
   --accent: #ff4d4d;
   --white: #ffffff;
 }
 
 @layer base {
   body {
-    @apply bg-white text-gray-900 antialiased font-['Albert_Sans','serif'] px-0 mx-0 overflow-x-hidden;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: 'Albert Sans', sans-serif;
+    color: #111827;
+    background-color: var(--warm-cream);
+    background-image: radial-gradient(circle at 50% 50%, #fffbf6 0%, #fdf7f0 100%);
   }
 }
+

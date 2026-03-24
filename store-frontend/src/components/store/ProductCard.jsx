@@ -8,9 +8,9 @@ const ProductCard = ({ product, isListView = false }) => {
   const { id, name, price, images, variants, badge, isDiscountable, discountPrice, thumbnailUrl, hoverThumbnailUrl } = product;
   const navigate = useNavigate();
   const { toggleWishlist, wishlist, addToCart } = useStore();
-  
+
   const isFavorited = wishlist.some(p => p.id === id);
-  
+
   // State for selected variant
   const [selectedVariant, setSelectedVariant] = useState(variants && variants.length > 0 ? variants[0] : null);
   const [activeImage, setActiveImage] = useState(thumbnailUrl || (images && images.length > 0 ? images[0] : 'https://via.placeholder.com/400x500?text=No+Image'));
@@ -35,7 +35,7 @@ const ProductCard = ({ product, isListView = false }) => {
 
   if (isListView) {
     return (
-      <div 
+      <div
         onClick={() => navigate(`/products/${product.handle || id}`)}
         className="flex gap-10 group cursor-pointer py-10 border-b border-gray-50 last:border-0 italic-none"
       >
@@ -53,7 +53,7 @@ const ProductCard = ({ product, isListView = false }) => {
             <p className="text-gray-400 text-sm max-w-xl line-clamp-3 leading-relaxed">
               {product.description || "Indulge in the epitome of style with this meticulously crafted piece, designed for those who command attention and value timeless elegance."}
             </p>
-            
+
             {colors.length > 0 && (
               <div className="flex gap-2">
                 {colors.map(color => (
@@ -73,7 +73,7 @@ const ProductCard = ({ product, isListView = false }) => {
             )}
           </div>
           <div className="flex items-center gap-6">
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); addToCart(product, selectedVariant); }}
               className="px-8 py-3.5 bg-black text-white text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm hover:bg-zinc-800 transition-all flex items-center gap-2"
             >
@@ -103,7 +103,7 @@ const ProductCard = ({ product, isListView = false }) => {
         )}
       </div>
 
-      <button 
+      <button
         onClick={(e) => {
           e.stopPropagation();
           toggleWishlist(product);
@@ -112,50 +112,52 @@ const ProductCard = ({ product, isListView = false }) => {
       >
         <Heart size={16} fill={isFavorited ? "currentColor" : "none"} />
       </button>
-      
+
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm ring-1 ring-black/5">
         <div className="w-full h-full relative">
-            <motion.img 
-              initial={false}
-              animate={{ 
-                scale: 1,
-                opacity: 1
-              }}
-              whileHover={{ 
+          <motion.img
+            initial={false}
+            animate={{ scale: 1, opacity: 1 }}
+            whileHover={{
+              scale: 1.15,
+              transition: { scale: { duration: 3, ease: "linear" }, opacity: { duration: 0 } }
+            }}
+            src={activeImage}
+            alt={name}
+            className="w-full h-full object-cover absolute inset-0 z-10"
+          />
+          {hoverThumbnailUrl && (
+            <motion.img
+              initial={{ opacity: 0 }}
+              whileHover={{
+                opacity: 1,
                 scale: 1.15,
                 transition: { scale: { duration: 3, ease: "linear" }, opacity: { duration: 0 } }
               }}
-              src={activeImage} 
-              alt={name} 
-              className="w-full h-full object-cover absolute inset-0 z-10" 
+              src={hoverThumbnailUrl}
+              alt={`${name} hover`}
+              className="w-full h-full object-cover absolute inset-0 z-20"
             />
-            {hoverThumbnailUrl && (
-              <motion.img 
-                initial={{ opacity: 0 }}
-                whileHover={{ 
-                  opacity: 1,
-                  scale: 1.15,
-                  transition: { scale: { duration: 3, ease: "linear" }, opacity: { duration: 0 } }
-                }}
-                src={hoverThumbnailUrl} 
-                alt={`${name} hover`} 
-                className="w-full h-full object-cover absolute inset-0 z-20" 
-              />
-            )}
+          )}
 
+          {/* Decorative Corner Brackets (Images) */}
+          <img src="/images/corner_bracket.png" alt="" className="absolute -top-1 -left-1 z-30 w-7 h-7 pointer-events-none transition-all duration-300 group-hover:scale-110" />
+          <img src="/images/corner_bracket.png" alt="" className="absolute -top-1 -right-1 z-30 w-7 h-7 pointer-events-none transition-all duration-300 group-hover:scale-110 rotate-90" />
+          <img src="/images/corner_bracket.png" alt="" className="absolute bottom-0 -left-1 z-30 w-7 h-7 pointer-events-none transition-all duration-300 group-hover:scale-110 -rotate-90" />
+          <img src="/images/corner_bracket.png" alt="" className="absolute bottom-0 -right-1 z-30 w-7 h-7 pointer-events-none transition-all duration-300 group-hover:scale-110 rotate-180" />
         </div>
-        
+
         {/* Quick Add Button */}
         <div className="absolute inset-x-4 bottom-4 z-30 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-           <button 
-             onClick={(e) => {
-               e.stopPropagation();
-               addToCart(product, selectedVariant);
-             }}
-             className="w-full bg-white/90 backdrop-blur-md text-black py-3 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2 active:scale-95 shadow-2xl"
-           >
-             Add to Bag <ShoppingBag size={14} />
-           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              addToCart(product, selectedVariant);
+            }}
+            className="w-full bg-white/90 backdrop-blur-md text-black py-3 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2 active:scale-95 shadow-2xl"
+          >
+            Add to Bag <ShoppingBag size={14} />
+          </button>
         </div>
       </div>
 
@@ -163,10 +165,10 @@ const ProductCard = ({ product, isListView = false }) => {
         <div className="flex justify-between items-start gap-4">
           <h3 className="text-[0.65rem] font-bold uppercase tracking-tight text-gray-900 leading-tight limit-2-lines flex-1">{name}</h3>
           <div className="flex flex-col items-end">
-             <span className="text-[0.7rem] font-black text-gray-900 tracking-tight">₹{currentPrice}</span>
-             {originalPrice && (
-               <span className="text-[0.6rem] text-gray-300 line-through font-bold">₹{originalPrice}</span>
-             )}
+            <span className="text-[0.7rem] font-black text-gray-900 tracking-tight">₹{currentPrice}</span>
+            {originalPrice && (
+              <span className="text-[0.6rem] text-gray-300 line-through font-bold">₹{originalPrice}</span>
+            )}
           </div>
         </div>
 

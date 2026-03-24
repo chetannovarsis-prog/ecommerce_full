@@ -9,6 +9,18 @@ import ShoppableVideo from '../../components/store/ShoppableVideo';
 import { ProductSkeleton, CircularCollectionSkeleton } from '../../components/store/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Lotus SVG motif — matches the orange lotus inside the GharOfEthnics logo
+const LotusMotif = ({ size = 14, color = '#e87825' }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 4C13 8 11 12 11 16C11 19 13.5 21.5 16 22C18.5 21.5 21 19 21 16C21 12 19 8 16 4Z" fill={color}/>
+    <path d="M7 10C6 13 6 16 7.5 18.5C9 21 11.5 22 14 21.5C14.8 19.5 14.5 17 13 15C11 13 9 11 7 10Z" fill={color} opacity="0.85"/>
+    <path d="M25 10C23 11 21 13 19 15C17.5 17 17.2 19.5 18 21.5C20.5 22 23 21 24.5 18.5C26 16 26 13 25 10Z" fill={color} opacity="0.85"/>
+    <path d="M3 17C4.5 20 7 22.5 10 23.5C12 24 14 23.5 15.5 22.5C15 20.5 13.5 19 11.5 18C9 17 6 17 3 17Z" fill={color} opacity="0.7"/>
+    <path d="M29 17C26 17 23 17 20.5 18C18.5 19 17 20.5 16.5 22.5C18 23.5 20 24 22 23.5C25 22.5 27.5 20 29 17Z" fill={color} opacity="0.7"/>
+    <ellipse cx="16" cy="24" rx="4" ry="2.5" fill={color} opacity="0.5"/>
+  </svg>
+);
+
 const Home = () => {
   const [collections, setCollections] = useState([]);
   const [bestSellers, setBestSellers] = useState([]);
@@ -49,50 +61,68 @@ const Home = () => {
   const displayProducts = activeTab === 'best-sellers' ? bestSellers : newArrivals;
 
   return (
-    <div className="bg-white font-['Albert_Sans']">
+    <div className="font-['Albert_Sans']">
       <Hero />
 
-      {/* SHOP BY COLLECTIONS (Circular Style) */}
-      <section className="py-24 container mx-auto px-6 overflow-hidden">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-black uppercase tracking-tight italic">Shop By Collections</h2>
-          <div className="w-16 h-1 bg-black mx-auto mt-4"></div>
-        </div>
+      {/* SHOP BY COLLECTIONS */}
+      <section
+        className="py-24 overflow-hidden relative"
+        style={{ background: 'linear-gradient(135deg, #fdf7f0 0%, #fef9f4 50%, #fdf0e8 100%)' }}
+      >
+        {/* Logo Watermark motifs */}
+        <img src="/images/mandala_motif.png" alt="" className="absolute left-[-5%] top-[20%] w-[400px] opacity-[0.07] pointer-events-none scale-x-[-1]" />
+        <img src="/images/mandala_motif.png" alt="" className="absolute right-[-5%] top-[10%] w-[450px] opacity-[0.08] pointer-events-none" />
 
-        <div className="flex flex-wrap justify-center gap-10 md:gap-16">
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black uppercase tracking-tight" style={{ color: '#1a2d5a' }}>Shop By Collections</h2>
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <div className="h-px w-16" style={{ background: '#e8782540' }} />
+              <LotusMotif size={20} color="#e87825" />
+              <div className="h-px w-16" style={{ background: '#e8782540' }} />
+            </div>
+          </div>
+
           {loading ? (
-            Array(6).fill(0).map((_, i) => <CircularCollectionSkeleton key={i} />)
+            <div className="flex flex-wrap justify-center gap-8">
+              {Array(3).fill(0).map((_, i) => <div key={i} className="w-64 h-80 bg-gray-100 animate-pulse rounded-lg" />)}
+            </div>
           ) : (
-            <>
-              {collections.slice(0, 6).map((collection) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-9xl mx-auto">
+              {collections.slice(0, 3).map((collection) => (
                 <Link
                   key={collection.id}
                   to={`/collections/${collection.id}`}
-                  className="flex flex-col items-center gap-4 group"
+                  className="group relative cursor-pointer block mr-16"
                 >
-                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden border-2 border-transparent group-hover:border-black transition-all duration-500 p-1 shadow-xl">
+                  {/* Decorative Premium Corner Bracket */}
+                  <div className="absolute -top-[20px] -right-[24px] z-30 w-[80px] h-[80px] pointer-events-none group-hover:scale-110 transition-transform duration-500 shadow-xl shadow-black/5 rounded-full overflow-hidden">
+                    <img src="/images/corner_bracket.png" alt="" className="w-full h-full object-contain" />
+                  </div>
+
+                  <div className="aspect-[4/3] overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5">
                     <img
                       src={collection.imageUrl || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=400'}
-                      className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-700"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                       alt={collection.name}
                     />
                   </div>
-                  <span className="text-[0.65rem] md:text-[0.7rem] font-black uppercase tracking-widest text-gray-500 group-hover:text-black transition-colors">{collection.name}</span>
+
+                  {/* Text — navy name, orange VIEW ALL + lotus */}
+                  <div className="mt-4 px-1">
+                    <h3 className="text-[0.85rem] font-black uppercase tracking-[0.15em]" style={{ color: '#1a2d5a' }}>
+                      {collection.name}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[0.65rem] font-black uppercase tracking-[0.25em]" style={{ color: '#e87825' }}>
+                        View All
+                      </span>
+                      <LotusMotif size={14} color="#e87825" />
+                    </div>
+                  </div>
                 </Link>
               ))}
-
-              {/* Discover More Circle */}
-              <Link
-                to="/collections"
-                className="flex flex-col items-center gap-4 group"
-              >
-                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-gray-100 flex items-center justify-center group-hover:border-black transition-all duration-500 shadow-sm relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gray-50 group-hover:bg-black transition-colors duration-500"></div>
-                  <ChevronRight size={32} className="relative z-10 text-gray-400 group-hover:text-white transition-colors duration-500" />
-                </div>
-                <span className="text-[0.65rem] md:text-[0.7rem] font-black uppercase tracking-widest text-gray-400 group-hover:text-black transition-colors">Discover All</span>
-              </Link>
-            </>
+            </div>
           )}
         </div>
       </section>
@@ -139,6 +169,7 @@ const Home = () => {
               ) : (
                 displayProducts.slice(0, 5).map((product) => (
                   <Link key={product.id} to={`/products/${product.handle || product.id}`} className="group space-y-4">
+                     <div className="product-card">
                     <div className="aspect-[3/4] overflow-hidden rounded-2xl bg-white relative">
                       <img
                         src={product.thumbnailUrl || product.images?.[0]}
@@ -156,6 +187,7 @@ const Home = () => {
                         <div className="absolute top-4 left-4 bg-black text-white px-3 py-1 rounded-full text-[0.6rem] font-black uppercase tracking-widest shadow-lg">Sale</div>
                       )}
                       <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-300"></div>
+                    </div>
                     </div>
                     <div>
                       <h4 className="text-[0.7rem] font-black uppercase tracking-tight text-gray-900">{product.name}</h4>
@@ -229,9 +261,9 @@ const Home = () => {
       <section className="py-24 container mx-auto px-10">
         <div className="bg-gray-50 rounded-[3rem] overflow-hidden flex flex-col lg:flex-row shadow-2xl ring-1 ring-black/5">
           <div className="flex-1 p-16 flex flex-col justify-center">
-            <h2 className="text-4xl font-black uppercase tracking-tighter mb-4 italic italic">Our First Store in Indore</h2>
+            <h2 className="text-4xl font-black uppercase tracking-tighter mb-4 italic italic">Our Store in Bangalore</h2>
             <p className="text-sm text-gray-600 leading-relaxed max-w-md mb-10">
-              Experience our collection in person. Visit our standalone store in the heart of Indore for a personalized styling session and exclusive in-store designs.
+              Experience our ethnic collection in person. Visit us in the heart of Koramangala for a personalized styling session and exclusive in-store designs.
             </p>
 
             <div className="space-y-6">
@@ -244,13 +276,13 @@ const Home = () => {
                   >
                     <MapPin size={18} /></a>
                 </div>
-                <span className="text-xs font-bold uppercase tracking-tight">C-21 Mall, AB Road, Indore</span>
+                <span className="text-xs font-bold uppercase tracking-tight">38, Booth no-127, 2nd Main Road, Ashwini Layout, Ejipura, Koramangala, Bangalore – 560047</span>
               </div>
               <div className="flex items-center gap-4 group">
                 <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-black group-hover:bg-black group-hover:text-white transition-all shadow-lg">
                   <Phone size={18} />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-tight">+91 98765 43210</span>
+                <span className="text-xs font-bold uppercase tracking-tight">+91 88619 40980</span>
               </div>
             </div>
 

@@ -9,7 +9,8 @@ const Checkout = () => {
   const { cart, clearCart } = useStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [customer, setCustomer] = useState(null);
+  const [customer, setCustomer] = useState(null);  const [codEnabled, setCodEnabled] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -25,10 +26,20 @@ const Checkout = () => {
   });
 
   const subtotal = cart.reduce((acc, item) => acc + (item.selectedPrice * item.quantity), 0);
-  const shipping = formData.shippingMethod === 'cod' ? 70 : 0;
+  const shipping = formData.paymentMethod === 'cod' ? 70 : 0;
   const total = subtotal + shipping;
 
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data } = await api.get('/settings');
+        setCodEnabled(data.codEnabled);
+      } catch (err) {
+        console.error('Failed to fetch settings:', err);
+      }
+    };
+    fetchSettings();
+
     const savedCustomer = JSON.parse(localStorage.getItem('customer') || 'null');
     if (savedCustomer) {
       setCustomer(savedCustomer);
@@ -56,18 +67,6 @@ const Checkout = () => {
     });
   };
 
-  useEffect(() => {
-    if (formData.paymentMethod === 'cod') {
-      setFormData(prev => ({ ...prev, shippingMethod: 'cod' }));
-    }
-  }, [formData.paymentMethod]);
-
-  useEffect(() => {
-    if (formData.shippingMethod === 'standard' && formData.paymentMethod === 'cod') {
-      setFormData(prev => ({ ...prev, paymentMethod: 'razorpay' }));
-    }
-  }, [formData.shippingMethod]);
-
   const handlePayment = async () => {
     setLoading(true);
 
@@ -77,7 +76,7 @@ const Checkout = () => {
         currency: 'INR',
         receipt: `receipt_${Date.now()}`,
         items: cart.map(item => ({
-          productId: item.id, // Corrected from item.productId
+          productId: item.id,
           quantity: item.quantity,
           price: item.selectedPrice
         })),
@@ -98,14 +97,13 @@ const Checkout = () => {
       console.log('Sending Order Data:', orderData);
       const { data: order } = await api.post('/payments/create', orderData);
 
-      // If COD, we are done
       if (formData.paymentMethod === 'cod') {
+        setIsProcessing(true);
         clearCart();
-        navigate(`/order-success/${order.orderId}`);
+        setTimeout(() => navigate(`/order-success/${order.orderId}`), 1000);
         return;
       }
 
-      // If Razorpay, load script and open
       const resScript = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
       if (!resScript) {
         alert('Razorpay SDK failed to load. Are you online?');
@@ -117,11 +115,12 @@ const Checkout = () => {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_RakpbWkq6HmsMg',
         amount: order.amount,
         currency: order.currency,
-        name: 'KnittingKnot',
+        name: 'Ghar of Ethnics',
         description: 'Payment for your order',
-        image: '/logo.png', // Replace with your logo
+        image: '/images/logo3.png',
         order_id: order.id,
         handler: async (response) => {
+          setIsProcessing(true);
           try {
             const verifyRes = await api.post('/payments/verify', {
               razorpay_order_id: response.razorpay_order_id,
@@ -130,11 +129,11 @@ const Checkout = () => {
             });
 
             if (verifyRes.data.message === "Payment verified successfully") {
-              // Clear cart and redirect
               clearCart();
               navigate(`/order-success/${order.orderId}`);
             }
           } catch (error) {
+            setIsProcessing(false);
             console.error('Verification error:', error);
             alert('Payment verification failed. Please contact support.');
           }
@@ -145,7 +144,7 @@ const Checkout = () => {
           contact: formData.phone || ''
         },
         theme: {
-          color: '#000000',
+          color: '#1a2d5a',
         },
       };
 
@@ -173,8 +172,25 @@ const Checkout = () => {
     );
   }
 
+  if (isProcessing) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#fdf7f0] space-y-8 animate-in fade-in duration-700">
+        <div className="w-20 h-20 border-4 border-[#1a2d5a] border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center">
+          <h2 className="text-2xl font-black uppercase tracking-widest text-[#1a2d5a]">Finalizing Order...</h2>
+          <p className="text-gray-400 font-bold uppercase tracking-[0.2em] mt-2 text-xs">Please do not refresh or close the window</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-white italic-none pt-32 pb-20">
+    <div className="min-h-screen italic-none pt-32 pb-20 relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #fdf7f0 0%, #fef9f4 50%, #fdf0e8 100%)' }}
+    >
+      {/* Brand Mandalas */}
+      <img src="/images/mandala_motif.png" className="absolute -left-20 top-20 w-80 h-80 opacity-[0.05] pointer-events-none" alt="" />
+      <img src="/images/mandala_motif.png" className="absolute -right-20 bottom-20 w-80 h-80 opacity-[0.05] pointer-events-none" alt="" />
       <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2">
         {/* Left Column - Forms */}
         <div className="p-10 lg:p-20 lg:border-r border-gray-100 space-y-16">
@@ -289,43 +305,23 @@ const Checkout = () => {
               </div>
            </section>
 
-           {/* Shipping Section */}
+           {/* Shipping Section — COD disabled by admin */}
            <section className="space-y-6">
               <h2 className="text-lg font-black tracking-tight">Shipping method</h2>
               <div className="border border-gray-200 rounded-sm overflow-hidden">
-                <div 
-                  onClick={() => setFormData(prev => ({ ...prev, shippingMethod: 'standard' }))}
-                  className={`p-4 flex items-center justify-between border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${formData.shippingMethod === 'standard' ? 'bg-blue-50/20' : ''}`}
-                >
+                <div className="p-4 flex items-center justify-between bg-blue-50/20 border-l-4 border-l-black">
                   <div className="flex items-center gap-3">
                     <input 
                       type="radio" 
                       name="shippingMethod" 
                       id="standard" 
-                      checked={formData.shippingMethod === 'standard'}
-                      onChange={() => setFormData(prev => ({ ...prev, shippingMethod: 'standard' }))}
+                      checked
+                      readOnly
                       className="w-4 h-4 text-black focus:ring-black" 
                     />
-                    <label htmlFor="standard" className="text-[0.7rem] font-bold">Standard</label>
+                    <label htmlFor="standard" className="text-[0.7rem] font-bold">Standard Shipping</label>
                   </div>
-                  <span className="text-[0.7rem] font-black uppercase">FREE</span>
-                </div>
-                <div 
-                  onClick={() => setFormData(prev => ({ ...prev, shippingMethod: 'cod' }))}
-                  className={`p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer ${formData.shippingMethod === 'cod' ? 'bg-blue-50/30 border-l-4 border-l-blue-500' : ''}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <input 
-                      type="radio" 
-                      name="shippingMethod" 
-                      id="cod" 
-                      checked={formData.shippingMethod === 'cod'}
-                      onChange={() => setFormData(prev => ({ ...prev, shippingMethod: 'cod' }))}
-                      className="w-4 h-4 text-black focus:ring-black" 
-                    />
-                    <label htmlFor="cod" className="text-[0.7rem] font-bold uppercase">Cash on Delivery (COD)</label>
-                  </div>
-                  <span className="text-[0.7rem] font-black">₹70.00</span>
+                  <span className="text-[0.7rem] font-black uppercase text-emerald-600">FREE</span>
                 </div>
               </div>
            </section>
@@ -334,32 +330,56 @@ const Checkout = () => {
            <section className="space-y-6">
               <h2 className="text-lg font-black tracking-tight">Payment</h2>
               <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest">All transactions are secure and encrypted.</p>
-              {formData.shippingMethod !== 'cod' && (
-                <div className="border border-gray-200 rounded-sm overflow-hidden">
-                       <div 
-                         onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'razorpay' }))}
-                         className="p-6 space-y-4 cursor-pointer"
-                       >
-                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <input 
+               <div className="border border-gray-200 rounded-sm overflow-hidden">
+                      <div 
+                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'razorpay' }))}
+                        className={`p-6 space-y-4 cursor-pointer transition-all ${formData.paymentMethod === 'razorpay' ? 'bg-blue-50/10' : ''}`}
+                      >
+                        <div className="flex items-center justify-between">
+                           <div className="flex items-center gap-3">
+                             <input 
+                              type="radio" 
+                              name="paymentMethod" 
+                              id="razorpay" 
+                              checked={formData.paymentMethod === 'razorpay'}
+                              readOnly
+                              className="w-4 h-4 text-black focus:ring-black" 
+                             />
+                             <label htmlFor="razorpay" className="text-[0.7rem] font-bold uppercase">Razorpay (UPI/Cards/Netbanking)</label>
+                           </div>
+                        </div>
+                        {formData.paymentMethod === 'razorpay' && (
+                          <div className="bg-gray-50 p-6 rounded-sm text-center space-y-4 animate-in slide-in-from-top-2">
+                            <div className="inline-block p-4 bg-white rounded-full"><CreditCard size={32} strokeWidth={1} className="text-gray-300" /></div>
+                            <p className="text-[0.65rem] text-gray-500 leading-relaxed font-medium">After clicking “Pay ₹{total}”, you will be redirected to Razorpay to complete your purchase securely.</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {codEnabled && (
+                        <div 
+                           onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod' }))}
+                           className={`p-6 border-t border-gray-100 cursor-pointer transition-all ${formData.paymentMethod === 'cod' ? 'bg-blue-50/10' : ''}`}
+                        >
+                           <div className="flex items-center gap-3">
+                             <input 
                                type="radio" 
                                name="paymentMethod" 
-                               id="razorpay" 
-                               checked={formData.paymentMethod === 'razorpay'}
+                               id="cod" 
+                               checked={formData.paymentMethod === 'cod'}
                                readOnly
                                className="w-4 h-4 text-black focus:ring-black" 
-                              />
-                              <label htmlFor="razorpay" className="text-[0.7rem] font-bold uppercase">Razorpay (UPI/Cards/Netbanking)</label>
-                            </div>
-                         </div>
-                         <div className="bg-gray-50 p-6 rounded-sm text-center space-y-4">
-                           <div className="inline-block p-4 bg-white rounded-full"><CreditCard size={32} strokeWidth={1} className="text-gray-300" /></div>
-                           <p className="text-[0.65rem] text-gray-500 leading-relaxed font-medium">After clicking “Pay ₹{total}”, you will be redirected to Razorpay to complete your purchase securely.</p>
-                         </div>
-                       </div>
-                </div>
-              )}
+                             />
+                             <label htmlFor="cod" className="text-[0.7rem] font-bold uppercase">Cash on Delivery (COD)</label>
+                           </div>
+                           {formData.paymentMethod === 'cod' && (
+                             <div className="bg-gray-50 p-6 mt-4 rounded-sm animate-in slide-in-from-top-2">
+                               <p className="text-[0.65rem] text-gray-500 leading-relaxed font-medium">A ₹70 shipping charge applies for Cash on Delivery. Pay at your doorstep.</p>
+                             </div>
+                           )}
+                        </div>
+                      )}
+               </div>
            </section>
 
            <button 

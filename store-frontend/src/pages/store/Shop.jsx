@@ -46,7 +46,7 @@ const Shop = () => {
   });
 
   return (
-    <div className="bg-white min-h-screen py-20 italic-none">
+    <div className="min-h-screen py-20 italic-none">
       <FilterSidebar 
         isOpen={isFilterOpen} 
         onClose={() => setIsFilterOpen(false)} 
@@ -69,7 +69,7 @@ const Shop = () => {
                   <select 
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full appearance-none bg-white border border-gray-200 px-6 py-3.5 pr-12 rounded-xl text-[0.7rem] font-black uppercase tracking-[1px] focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5 cursor-pointer transition-all shadow-sm hover:border-gray-300"
+                    className="w-full appearance-none bg-transparent border border-gray-200 px-6 py-3.5 pr-12 rounded-xl text-[0.7rem] font-black uppercase tracking-[1px] focus:outline-none focus:border-black focus:ring-4 focus:ring-black/5 cursor-pointer transition-all shadow-sm hover:border-gray-300"
                   >
                     <option value="newest">Newest</option>
                     <option value="price-low">Price: Low-High</option>

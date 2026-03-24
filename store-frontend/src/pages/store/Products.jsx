@@ -136,14 +136,20 @@ const Products = () => {
   );
 
   return (
-    <div className="bg-white min-h-screen italic-none">
+    <div className="min-h-screen italic-none relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #fdf7f0 0%, #fef9f4 50%, #fdf0e8 100%)' }}
+    >
+      {/* Brand Mandalas */}
+      <img src="/images/mandala_motif.png" className="absolute -left-20 top-40 w-80 h-80 opacity-[0.05] pointer-events-none" alt="" />
+      <img src="/images/mandala_motif.png" className="absolute -right-20 bottom-40 w-96 h-96 opacity-[0.05] pointer-events-none scale-x-[-1]" />
+
       <FilterSidebar 
         isOpen={isFilterOpen} 
         onClose={() => setIsFilterOpen(false)} 
         onFilterChange={handleFilterChange}
       />
 
-      <div className="max-w-[1400px] mx-auto px-10 py-10">
+      <div className="max-w-[1400px] mx-auto px-10 py-10 relative z-10">
         <header className="flex flex-col gap-10 mb-20">
            <div className="flex flex-col md:flex-row justify-between items-center gap-8">
               <button 

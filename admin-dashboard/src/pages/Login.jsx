@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 
 const Login = () => {
-  const [email, setEmail] = useState('admin@ansupal.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [requires2FA, setRequires2FA] = useState(false);
@@ -52,18 +52,33 @@ const Login = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0a0a0a] antialiased font-sans">
+    <div className="h-screen flex items-center justify-center bg-[#fdf7f0] dark:bg-[#0a0a0a] antialiased font-sans relative overflow-hidden">
+      {/* Brand Mandalas */}
+      <img src="/images/mandala_motif.png" className="absolute -left-20 -top-20 w-80 h-80 opacity-[0.05] pointer-events-none" alt="" />
+      <img src="/images/mandala_motif.png" className="absolute -right-20 -bottom-20 w-80 h-80 opacity-[0.05] pointer-events-none" alt="" />
       <div className="bg-white dark:bg-[#111] p-10 w-full max-w-sm border border-gray-200 dark:border-white/5 shadow-2xl rounded-2xl animate-in fade-in duration-500">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-black dark:bg-white text-white dark:text-black flex items-center justify-center rounded-2xl mx-auto mb-4 font-black text-2xl shadow-xl shadow-black/10">M</div>
-          <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none uppercase italic">Medusa Admin</h1>
-          <p className="text-gray-400 text-[0.6rem] mt-2 uppercase tracking-[0.2em] font-black leading-none">Management Console</p>
+          <div className="w-14 h-14 bg-black dark:bg-white text-white dark:text-black flex items-center justify-center rounded-2xl mx-auto mb-4 font-black text-2xl shadow-xl shadow-black/10">A</div>
+          <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none uppercase italic">Admin Panel</h1>
+          <p className="text-gray-400 text-[0.6rem] mt-2 uppercase tracking-[0.2em] font-black leading-none">Commerce Control Center</p>
         </div>
         
         {!requires2FA ? (
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-1.5">
-              <label className="block text-[0.65rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1 leading-none">Admin Password</label>
+              <label className="block text-[0.65rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1 leading-none">Admin Email</label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="admin@example.com"
+                className="w-full px-5 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 focus:border-black dark:focus:border-white transition-all dark:text-white"
+                required 
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-[0.65rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1 leading-none">Password</label>
               <input 
                 type="password" 
                 value={password} 
