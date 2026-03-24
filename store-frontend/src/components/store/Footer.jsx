@@ -50,8 +50,8 @@ const Footer = () => {
 
           {/* Brand Column */}
           <div className="lg:col-span-2">
-            <Link to="/" className="mb-6 block w-[130px]">
-              <img src="/images/logo3.png" alt="Ghar of Ethnics" className="w-full" />
+            <Link to="/" className="mb-6 block w-[150px]">
+              <img src="/images/footer-logo.png" alt="Ghar of Ethnics" className="w-full" />
             </Link>
             <p className="text-[0.8rem] leading-7 max-w-xs" style={{ color: '#c9b99a' }}>
               Rooted in tradition. Crafted for today. Discover ethnic fashion that celebrates India's timeless heritage.

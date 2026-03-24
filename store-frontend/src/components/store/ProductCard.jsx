@@ -113,7 +113,7 @@ const ProductCard = ({ product, isListView = false }) => {
         <Heart size={16} fill={isFavorited ? "currentColor" : "none"} />
       </button>
 
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm ring-1 ring-black/5">
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-md ring-1 ring-black/5">
         <div className="w-full h-full relative">
           <motion.img
             initial={false}
@@ -141,10 +141,6 @@ const ProductCard = ({ product, isListView = false }) => {
           )}
 
           {/* Decorative Corner Brackets (Images) */}
-          <img src="/images/corner_bracket.png" alt="" className="absolute -top-1 -left-1 z-30 w-7 h-7 pointer-events-none transition-all duration-300 group-hover:scale-110" />
-          <img src="/images/corner_bracket.png" alt="" className="absolute -top-1 -right-1 z-30 w-7 h-7 pointer-events-none transition-all duration-300 group-hover:scale-110 rotate-90" />
-          <img src="/images/corner_bracket.png" alt="" className="absolute bottom-0 -left-1 z-30 w-7 h-7 pointer-events-none transition-all duration-300 group-hover:scale-110 -rotate-90" />
-          <img src="/images/corner_bracket.png" alt="" className="absolute bottom-0 -right-1 z-30 w-7 h-7 pointer-events-none transition-all duration-300 group-hover:scale-110 rotate-180" />
         </div>
 
         {/* Quick Add Button */}
