@@ -21,9 +21,18 @@ import api from './utils/api';
 
 
 
+import { useAdminAuth } from './hooks/useAdminAuth';
+
 const ProtectedRoute = ({ children }) => {
-  const isAuth = localStorage.getItem('adminAuth') === 'true';
-  return isAuth ? children : <Navigate to="/login" />;
+  const { loading, isAdmin } = useAdminAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-t-2 border-black dark:border-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+  return isAdmin ? children : <Navigate to="/login" />;
 };
 
 const Layout = ({ children }) => {
@@ -79,14 +88,17 @@ const Dashboard = () => (
 const Customers = () => {
   const [customers, setCustomers] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
 
   React.useEffect(() => {
     const fetchCustomers = async () => {
       try {
+        setError('');
         const res = await api.get('/auth/customers');
         setCustomers(res.data);
       } catch (error) {
         console.error('Error fetching customers:', error);
+        setError(error.response?.data?.error || error.message || 'Failed to load customers.');
       } finally {
         setLoading(false);
       }
@@ -103,6 +115,10 @@ const Customers = () => {
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 border-t-2 border-black dark:border-white rounded-full animate-spin"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-white dark:bg-[#111] border border-red-200 dark:border-red-500/20 rounded-xl p-10 text-center">
+            <p className="text-sm font-bold text-red-600 dark:text-red-400">{error}</p>
           </div>
         ) : customers.length === 0 ? (
           <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-32 text-center text-gray-400 flex flex-col items-center gap-4">

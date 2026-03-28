@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://ecommerce-backend-s90k.onrender.com/api',
+  timeout: 15000,
 });
 
 // Add interceptor for token if needed in future

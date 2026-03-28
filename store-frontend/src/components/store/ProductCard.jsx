@@ -27,11 +27,21 @@ const ProductCard = ({ product, isListView = false }) => {
   const originalPrice = hasDiscount ? (currentPrice + parseFloat(discountPrice)) : null;
 
   // Extract colors
-  const colors = Array.from(new Set(variants?.map(v => {
+  // Deduplicate colors by case-insensitive matching
+  const colorMap = {};
+  variants?.forEach(v => {
     const title = v.title || '';
     const match = title.match(/color:\s*([^,]+)/i);
-    return match ? match[1].trim() : null;
-  }).filter(Boolean)));
+    if (match) {
+      const colorValue = match[1].trim();
+      const colorLower = colorValue.toLowerCase();
+      // Only add if we haven't seen this color (case-insensitive)
+      if (!colorMap[colorLower]) {
+        colorMap[colorLower] = colorValue; // Store original case
+      }
+    }
+  });
+  const colors = Object.values(colorMap);
 
   if (isListView) {
     return (
@@ -56,7 +66,11 @@ const ProductCard = ({ product, isListView = false }) => {
 
             {colors.length > 0 && (
               <div className="flex gap-2">
-                {colors.map(color => (
+                {colors
+                  .filter((color, index, arr) => 
+                    arr.findIndex(c => c.toLowerCase() === color.toLowerCase()) === index
+                  )
+                  .map(color => (
                   <button
                     key={color}
                     onClick={(e) => {

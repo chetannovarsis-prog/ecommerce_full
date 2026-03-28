@@ -139,10 +139,12 @@ const Categories = () => {
                     </tr>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan="4" className="px-6 py-32 text-center text-gray-400 flex flex-col items-center gap-4">
-                      <Tag size={48} strokeWidth={1} className="text-gray-200 dark:text-white/10" />
-                      <p className="font-black uppercase tracking-widest text-[0.65rem] text-gray-900 dark:text-white">No categories found</p>
+                  <tr className="h-[240px]">
+                    <td colSpan="4" className="px-6 py-0">
+                      <div className="h-full flex flex-col items-center justify-center gap-4 text-gray-400">
+                        <Tag size={48} strokeWidth={1} className="text-gray-200 dark:text-white/10" />
+                        <p className="font-black uppercase tracking-widest text-[0.65rem] text-gray-900 dark:text-white">No categories found</p>
+                      </div>
                     </td>
                   </tr>
                 )}

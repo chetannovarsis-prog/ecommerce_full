@@ -45,31 +45,8 @@ const Orders = () => {
 
       <main className="p-6 md:p-10 max-w-[95%] mx-auto space-y-10">
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-
-          {[
-            { label: 'Profit', value: '₹12,628', trend: '+72.8%', icon: TrendingUp, color: 'emerald' },
-            { label: 'Sales', value: '₹4,679', trend: '+28.4%', icon: DollarSign, color: 'blue' },
-            { label: 'Payments', value: '₹2,468', trend: '-14.8%', icon: CreditCard, color: 'amber' },
-            { label: 'Transactions', value: '₹14,857', trend: '+28.1%', icon: RotateCcw, color: 'purple' },
-          ].map((stat, i) => (
-            <div key={i} className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 p-6 rounded-3xl shadow-sm hover:shadow-xl transition-all">
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
-                  <stat.icon size={24} />
-                </div>
-              </div>
-              <p className="text-[0.65rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{stat.label}</p>
-              <div className="flex items-end justify-between">
-                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{stat.value}</p>
-                <span className={`text-[0.6rem] font-black uppercase tracking-widest ${stat.trend.startsWith('+') ? 'text-emerald-500' : 'text-red-500'}`}>
-                   {stat.trend}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Stats Grid removed per request (show only order list) */}
+        <div className="py-1" />
 
         <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl shadow-sm overflow-hidden ring-1 ring-black/5">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between bg-gray-50/50 dark:bg-white/5">

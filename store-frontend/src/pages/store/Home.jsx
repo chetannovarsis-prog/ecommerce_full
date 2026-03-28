@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
-import { ChevronRight, Star, MapPin, Phone, Instagram, Facebook } from 'lucide-react';
+import { ChevronRight, Star, MapPin, Phone } from 'lucide-react';
 import Hero from '../../components/store/Hero';
 import Testimonials from '../../components/store/Testimonials';
 import Benefits from '../../components/store/Benefits';
@@ -258,7 +258,7 @@ const Home = () => {
       </section>
 
       {/* Store Section - Indore Store */}
-      <section className="py-24 container mx-auto px-10">
+      {/* <section className="py-24 container mx-auto px-10">
         <div className="bg-gray-50 rounded-[3rem] overflow-hidden flex flex-col lg:flex-row shadow-2xl ring-1 ring-black/5">
           <div className="flex-1 p-16 flex flex-col justify-center">
             <h2 className="text-4xl font-black uppercase tracking-tighter mb-4 italic italic">Our Store in Bangalore</h2>
@@ -288,20 +288,13 @@ const Home = () => {
 
             <div className="mt-12 flex gap-4">
               <Link to="/contact" className="bg-black text-white px-8 py-4 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">Get Directions</Link>
-              <div className="flex gap-2">
-                <a href="#" className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center hover:bg-black hover:text-white transition-all"><Instagram size={18} /></a>
-                <a href="#" className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center hover:bg-black hover:text-white transition-all"><Facebook size={18} /></a>
-              </div>
             </div>
           </div>
           <div className="flex-1 h-[500px] lg:h-auto overflow-hidden">
             <img src="/images/knitting_knot.png" className="w-full h-full object-cover" alt="Indore Store" />
           </div>
         </div>
-      </section>
-
-
-
+      </section> */}
     </div>
   );
 };

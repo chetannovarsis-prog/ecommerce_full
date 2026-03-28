@@ -4,6 +4,17 @@ import { X, ChevronLeft, ChevronRight, ShoppingBag, Plus, Minus, Info, Volume2, 
 import api from '../../utils/api';
 import { useStore } from '../../services/useStore';
 
+const parseVariantAttributes = (title = '') => {
+  const attrs = {};
+  title.split(', ').forEach((part) => {
+    if (!part.includes(': ')) return;
+    const [name, value] = part.split(': ');
+    if (!name || !value) return;
+    attrs[name.trim().toLowerCase()] = value.trim();
+  });
+  return attrs;
+};
+
 const ShoppableVideo = () => {
   const [products, setProducts] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
@@ -111,12 +122,49 @@ const ShoppableVideo = () => {
     setSelectedVideo({ ...video, product });
 
     if (product?.variants?.length > 0) {
-      setSelectedColor(product.variants[0].title);
+      const firstAttributes = parseVariantAttributes(product.variants[0].title);
+      setSelectedColor(firstAttributes.color || '');
+      setSelectedSize(firstAttributes.size || 'S');
     } else {
-      setSelectedColor('S');
+      setSelectedColor('');
+      setSelectedSize('S');
     }
 
     setQuantity(1);
+  };
+
+  const getVariantOptions = (product) => {
+    const colors = [];
+    const sizes = [];
+    const seenColors = new Set();
+    const seenSizes = new Set();
+
+    product?.variants?.forEach((variant) => {
+      const attrs = parseVariantAttributes(variant.title);
+      if (attrs.color && !seenColors.has(attrs.color.toLowerCase())) {
+        seenColors.add(attrs.color.toLowerCase());
+        colors.push(attrs.color);
+      }
+      if (attrs.size && !seenSizes.has(attrs.size.toLowerCase())) {
+        seenSizes.add(attrs.size.toLowerCase());
+        sizes.push(attrs.size);
+      }
+    });
+
+    return { colors, sizes };
+  };
+
+  const findMatchingVariant = (product, color, size) => {
+    if (!product?.variants?.length) return null;
+
+    return (
+      product.variants.find((variant) => {
+        const attrs = parseVariantAttributes(variant.title);
+        const colorMatches = color ? attrs.color?.toLowerCase() === color.toLowerCase() : true;
+        const sizeMatches = size ? attrs.size?.toLowerCase() === size.toLowerCase() : true;
+        return colorMatches && sizeMatches;
+      }) || product.variants[0]
+    );
   };
 
   const closeModal = () => {
@@ -133,6 +181,9 @@ const ShoppableVideo = () => {
   };
 
   if (loading && products.length === 0) return null;
+
+  const variantOptions = getVariantOptions(selectedVideo?.product);
+  const activeVariant = findMatchingVariant(selectedVideo?.product, selectedColor, selectedSize);
 
   return (
     <section ref={sectionRef} className="py-24 bg-white overflow-hidden relative">
@@ -277,14 +328,12 @@ const ShoppableVideo = () => {
                   <div>
                     <h4 className="text-[0.65rem] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Color</h4>
                     <div className="flex gap-3">
-                       {selectedVideo.product?.variants?.map(v => {
-                         const colorMatch = v.title.match(/color:\s*([^,]+)/i);
-                         const color = colorMatch ? colorMatch[1].trim() : v.title;
+                       {variantOptions.colors.map((color) => {
                          return (
                             <button 
-                              key={v.id}
-                              onClick={() => setSelectedColor(v.title)}
-                              className={`px-4 py-2 border-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${selectedColor === v.title ? 'border-black bg-black text-white' : 'border-gray-100 hover:border-black'}`}
+                              key={color}
+                              onClick={() => setSelectedColor(color)}
+                              className={`px-4 py-2 border-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${selectedColor === color ? 'border-black bg-black text-white' : 'border-gray-100 hover:border-black'}`}
                             >
                               {color}
                             </button>
@@ -297,7 +346,7 @@ const ShoppableVideo = () => {
                   <div>
                     <h4 className="text-[0.65rem] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Size</h4>
                     <div className="flex gap-3">
-                       {['S', 'M', 'L', 'XL', 'XXL'].map(size => (
+                       {(variantOptions.sizes.length ? variantOptions.sizes : ['S', 'M', 'L', 'XL', 'XXL']).map(size => (
                           <button 
                             key={size}
                             onClick={() => setSelectedSize(size)}
@@ -321,7 +370,14 @@ const ShoppableVideo = () => {
                     
                     <div className="flex gap-4">
                       <button 
-                        onClick={() => addToCart(selectedVideo.product, { id: selectedVideo.product.id, title: `${selectedColor} / ${selectedSize}`, price: selectedVideo.product.price })}
+                        onClick={() => addToCart(
+                          selectedVideo.product,
+                          activeVariant || {
+                            id: selectedVideo.product.id,
+                            title: `${selectedColor} / ${selectedSize}`,
+                            price: selectedVideo.product.price,
+                          }
+                        )}
                         className="flex-1 bg-black text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[0.75rem] shadow-2xl shadow-black/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 active:scale-95"
                       >
                         Add to Bag <ShoppingBag size={18} />

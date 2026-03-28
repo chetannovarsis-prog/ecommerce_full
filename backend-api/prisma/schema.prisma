@@ -140,6 +140,14 @@ model Customer {
   orders    Order[]
 }
 
+model Profile {
+  id        String   @id // Supabase auth user UUID
+  email     String   @unique
+  role      String   @default("user") // "user" or "admin"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Admin {
   id            String   @id @default(uuid())
   email         String   @unique

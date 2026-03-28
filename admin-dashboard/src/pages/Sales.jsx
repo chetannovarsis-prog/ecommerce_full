@@ -70,35 +70,8 @@ const Sales = () => {
 
       <main className="p-6 md:p-10 max-w-[95%] mx-auto space-y-10">
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-
-          {[
-            { label: 'Total Sales', value: '₹54,230', trend: '+12.5%', icon: TrendingUp, color: 'emerald' },
-            { label: 'Website Sales', value: '₹32,100', trend: '+8.2%', icon: Globe, color: 'blue' },
-            { label: 'Store Sales', value: '₹22,130', trend: '+18.4%', icon: Store, color: 'amber' },
-            { label: 'Inventory Value', value: '₹142,000', trend: '-2.1%', icon: Package, color: 'purple' },
-          ].map((stat, i) => (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              key={i}
-              className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 p-6 rounded-3xl shadow-sm group hover:shadow-xl transition-all"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
-                  <stat.icon size={24} />
-                </div>
-                <span className={`text-[0.65rem] font-black uppercase tracking-widest ${stat.trend.startsWith('+') ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {stat.trend}
-                </span>
-              </div>
-              <p className="text-[0.65rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">{stat.label}</p>
-              <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{stat.value}</p>
-            </motion.div>
-          ))}
-        </div>
+        {/* Stats Grid removed per request (show only transactions list) */}
+        <div className="py-1" />
 
         {/* Transactions Table */}
          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl shadow-sm overflow-hidden">

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Image as ImageIcon, Check, Trash2, Upload, ChevronRight } from 'lucide-react';
 import api from '../utils/api';
 
-const BulkVariantModal = ({ product, onClose, onGenerate, mode = 'create' }) => {
+const BulkVariantModal = ({ product, mediaAssets, onClose, onGenerate, mode = 'create' }) => {
   const [colors, setColors] = useState([]); // { name, images: [] }
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [colorPrices, setColorPrices] = useState({}); // { index/name: { useDefault: boolean, price: number } }
@@ -58,6 +58,12 @@ const BulkVariantModal = ({ product, onClose, onGenerate, mode = 'create' }) => 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const availableMedia = Array.from(
+    new Set(
+      (mediaAssets && mediaAssets.length > 0 ? mediaAssets : product.images || []).filter(Boolean)
+    )
+  );
 
   const availableSizes = ['XS', 'S', 'M', 'L', 'XL', '2XL'];
 
@@ -191,7 +197,7 @@ const BulkVariantModal = ({ product, onClose, onGenerate, mode = 'create' }) => 
                                  <button onClick={() => setActivePicker(null)} className="p-1 hover:bg-gray-100 rounded-lg"><X size={14} /></button>
                               </div>
                               <div className="grid grid-cols-4 gap-2 max-h-56 overflow-y-auto no-scrollbar p-1">
-                                {product.images?.map((img, imgIdx) => {
+                                {availableMedia.map((img, imgIdx) => {
                                   const isSelected = color.images?.includes(img);
                                   return (
                                     <button
@@ -218,7 +224,7 @@ const BulkVariantModal = ({ product, onClose, onGenerate, mode = 'create' }) => 
                                     </button>
                                   );
                                 })}
-                                {(!product.images || product.images.length === 0) && (
+                                {availableMedia.length === 0 && (
                                   <div className="col-span-4 py-8 text-center bg-gray-50 rounded-2xl">
                                     <ImageIcon size={20} className="mx-auto text-gray-300 mb-2 opacity-20" />
                                     <p className="text-[0.55rem] font-bold text-gray-400 uppercase tracking-widest">No assets available</p>

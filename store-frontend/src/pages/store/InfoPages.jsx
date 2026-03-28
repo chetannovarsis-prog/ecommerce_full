@@ -73,7 +73,104 @@ export const Shop = () => <ComingSoon title="Shop" />;
 export const CollectionsPage = () => <ComingSoon title="Collections" />;
 export const NewArrivals = () => <ComingSoon title="New Arrivals" />;
 export const About = () => <ComingSoon title="About Us" />;
-export const Privacy = () => <ComingSoon title="Privacy" />;
+export const Privacy = () => (
+  <PageLayout title="Privacy Policy">
+    <section className="space-y-4">
+      <p className="text-gray-600 font-medium leading-relaxed">
+        <span className="font-black text-black">GHAR OF ETHNICS</span> values your privacy and is committed to protecting your
+        personal information. This Privacy Policy explains how we collect, use, and safeguard your data when you
+        visit our website or make a purchase.
+      </p>
+      <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs">
+        Effective Date: [Insert Date]
+      </p>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">1. Information We Collect</h2>
+      <div className="space-y-4">
+        <p className="text-gray-700 font-black uppercase tracking-wide">a. Personal Information</p>
+        <p className="text-gray-600 font-medium leading-relaxed">
+          Full Name, Email Address, Phone Number, Shipping and Billing Address, and Payment Details
+          processed securely via third-party gateways.
+        </p>
+      </div>
+      <div className="space-y-4">
+        <p className="text-gray-700 font-black uppercase tracking-wide">b. Non-Personal Information</p>
+        <p className="text-gray-600 font-medium leading-relaxed">
+          Browser type, device information, IP address, and website usage data.
+        </p>
+      </div>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">2. How We Use Your Information</h2>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        We use your information for processing orders, customer support, improving user experience,
+        marketing with your consent, and fraud prevention.
+      </p>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">3. Sharing of Information</h2>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        We do not sell or rent personal data. Information may be shared with delivery partners,
+        payment gateways, and legal authorities if required.
+      </p>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">4. Data Security</h2>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        We implement secure systems and restricted access to protect your data, though no method is
+        100% secure.
+      </p>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">5. Cookies Policy</h2>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        Cookies are used to enhance experience and analyze traffic. Users can disable cookies in
+        browser settings.
+      </p>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">6. Your Rights</h2>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        You may access, update, or delete personal data, and opt out of marketing at any time by
+        contacting us.
+      </p>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">7. Third-Party Links</h2>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        We are not responsible for the privacy practices of external websites linked from our platform.
+      </p>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">8. Changes to This Policy</h2>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        This policy may be updated at any time with a revised effective date.
+      </p>
+    </section>
+
+    <section className="space-y-6">
+      <h2 className="text-2xl font-black uppercase tracking-tight">9. Contact Us</h2>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        GHAR OF ETHNICS
+      </p>
+      <p className="text-gray-600 font-medium leading-relaxed">Email: [Insert Email]</p>
+      <p className="text-gray-600 font-medium leading-relaxed">Phone: +91 98456 34734</p>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        Address: Ghar of Ethnics, 38, Booth no-127, 2nd Main Road, Ashwini Layout, Ejipura,
+        Koramangala, Bangalore-560047
+      </p>
+    </section>
+  </PageLayout>
+);
 export const Terms = () => <ComingSoon title="Terms" />;
 
 export default { Shipping, Returns, Shop, CollectionsPage, NewArrivals, About, Privacy, Terms };

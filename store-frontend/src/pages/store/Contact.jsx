@@ -38,58 +38,60 @@ const Contact = () => {
   return (
     <div className="min-h-screen pt-32 pb-20 italic-none">
       <div className="max-w-[95%] mx-auto px-6 md:px-10">
-        <header className="mb-20">
-          <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter italic italic">Contact Us</h1>
-          <p className="text-gray-400 font-bold uppercase tracking-[0.3em] text-xs mt-4">We are here to help you</p>
-          <div className="w-40 h-1.5 bg-black mt-10"></div>
+        <header className="mb-20 text-center ">
+          <h1 className="text-4xl md:text-6xl font-black ">Contact Us</h1>
+          <p className="text-gray-400  text-xl mt-4">We are here to help you</p>
+          <div className="w-52 mx-auto h-1.5 bg-black mt-5 "></div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
           {/* Info Side */}
           <div className="space-y-16">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="p-8 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-sm">
-                <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-xl shadow-black/20">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+              <div className="p-8 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-md">
+                <div className="w-12 h-12 bg-white mx-auto text-black rounded-full flex items-center justify-center shadow-xl">
                   <Mail size={20} />
                 </div>
-                <div>
-                  <h3 className="text-[0.7rem] font-black uppercase tracking-[0.2em] text-gray-400">Email Us</h3>
-                  <p className="text-md font-black mt-1">support@knittingknot.com</p>
+                <div className='text-center'>
+                  <h3 className="font-semibold text-gray-500">Email Us</h3>
+                  <p className="text-md font-semibold mt-1">support@knittingknot.com</p>
                 </div>
               </div>
-              <div className="p-8 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-sm">
-                <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center shadow-xl shadow-black/20">
-                  <Phone size={20} />
+              <div className="p-6 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-md group">
+                <div className="w-12 h-12 mx-auto bg-white text-black rounded-full flex items-center justify-center shadow-sm group-hover:shadow-xl group-hover:translate-y-[-1px] transition-all duration-700">
+                  <a href="tel:+919845634734" target="_blank" rel="noopener noreferrer"><Phone size={20} /></a>
                 </div>
-                <div>
-                  <h3 className="text-[0.7rem] font-black uppercase tracking-[0.2em] text-gray-400">Call Us</h3>
-                  <p className="text-md font-black mt-1">+91 88619 40980</p>
+                <div className='flex-col items-center justify-center text-center gap-5'>
+                  <h3 className="font-semibold text-lg text-gray-500">Call Us....</h3>
+                  <a href="tel:+919845634734" target="_blank" rel="noopener noreferrer" className="text-md font-semibold mt-1 inline-block h">
+                    +91 98456 34734
+                  </a>
                 </div>
               </div>
             </div>
 
             <div className="space-y-10">
               <div className="flex gap-6 items-start">
-                <div className="w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center">
-                  <MapPin size={18} className="text-gray-400" />
+                <div className="w-10 h-10 rounded-full shadow-xl border border-gray-100 flex-shrink-0 flex items-center justify-center">
+                  <MapPin size={18} className="text-gray-700" />
                 </div>
                 <div>
-                  <h4 className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Our Store</h4>
-                  <p className="text-[0.9rem] font-black leading-relaxed">Ghar of Ethnics, 38, Booth no-127, 2nd Main Road, Ashwini layout, Ejipura, Koramangala, Bangalore-560047</p>
+                  <h4 className=" font-bold text-orange-500 mb-2">Our Store</h4>
+                  <p className="text-md font-black">Ghar of Ethnics, 38, Booth no-127, 2nd Main Road, Ashwini layout, Ejipura, Koramangala, Bangalore-560047</p>
                 </div>
               </div>
               <div className="flex gap-6 items-start">
-                <div className="w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex-shrink-0 flex items-center justify-center">
-                  <Clock size={18} className="text-gray-400" />
+                <div className="w-10 h-10 rounded-full shadow-lg border border-gray-100 flex-shrink-0 flex items-center justify-center">
+                  <Clock size={18} className="text-gray-700" />
                 </div>
                 <div>
-                  <h4 className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-gray-400 mb-2">Operation Hours</h4>
-                  <p className="text-[0.9rem] font-black leading-relaxed uppercase">Mon - Sat: 10:00 AM - 08:30 PM<br/>Sun: 11:00 AM - 06:00 PM</p>
+                  <h4 className=" font-bold text-orange-500 mb-2">Operation Hours</h4>
+                  <p className=" ml-2 font-black leading-relaxed uppercase">Mon - Sat: 10:00 AM - 08:30 PM<br />Sun: 11:00 AM - 06:00 PM</p>
                 </div>
               </div>
             </div>
 
-            <div className="relative w-full bg-gray-50 rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white ring-1 ring-gray-100">
+            {/* <div className="relative w-full bg-gray-50 rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white ring-1 ring-gray-100">
               <img 
                 src="images/knitting_knot.png" 
                 className="w-full h-full object-cover" 
@@ -100,7 +102,7 @@ const Contact = () => {
                  <p className="text-[0.65rem] font-black uppercase tracking-widest leading-none mb-2">Indore Flagship Store</p>
                  <p className="text-gray-600 ">Come visit our studio for a local touch</p>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Form Side */}
@@ -109,15 +111,15 @@ const Contact = () => {
               <div className="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-black">
                 <MessageSquare size={20} />
               </div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter">Send a Message</h2>
+              <h2 className="text-3xl font-semibold ">Send a Message</h2>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <label className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">Full Name</label>
-                  <input 
-                    type="text" 
+                  <label className="text-gray-600 text-sm font-semibold ml-2">Full Name</label>
+                  <input
+                    type="text"
                     name="name"
                     required
                     value={formData.name}
@@ -127,9 +129,9 @@ const Contact = () => {
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">Email Address</label>
-                  <input 
-                    type="email" 
+                  <label className="text-gray-600 text-sm font-semibold ml-2">Email Address</label>
+                  <input
+                    type="email"
                     name="email"
                     required
                     value={formData.email}
@@ -140,19 +142,19 @@ const Contact = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                <label className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">Subject</label>
-                <input 
-                  type="text" 
+                <label className="text-gray-600 text-sm font-semibold ml-2">Subject</label>
+                <input
+                  type="text"
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  className="w-full bg-white border border-gray-100 px-6 py-5 rounded-2xl outline-none focus:ring-2 ring-black/5 transition-all font-bold text-sm"
+                  className="w-full bg-white border border-gray-100 px-6 py-5 rounded-2xl outline-none focus:ring-2 ring-black/5 transition-all font-semibold text-sm"
                   placeholder="How can we help?"
                 />
               </div>
               <div className="space-y-3">
-                <label className="text-[0.6rem] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">Message</label>
-                <textarea 
+                <label className="text-gray-600 text-sm font-semibold ml-2">Message</label>
+                <textarea
                   name="message"
                   required
                   rows="6"
@@ -169,14 +171,14 @@ const Contact = () => {
                 </div>
               )}
 
-              <button 
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-black text-white py-6 rounded-2xl font-black uppercase tracking-[0.3em] text-[0.75rem] shadow-2xl shadow-black/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50"
+                className="mx-auto  bg-black px-6 text-white group py-5 rounded-full font-semibold shadow-xl hover:shadow-2xl hover: transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
               >
                 {loading ? 'Sending...' : (
                   <>
-                    Send Message <Send size={18} />
+                    Send Message <Send className='group-hover:rotate-[360deg] group-hover:scale-110  transition-all duration-500' size={20} />
                   </>
                 )}
               </button>
@@ -185,8 +187,7 @@ const Contact = () => {
         </div>
 
         {/* New Store Info Section (Map with Floating Card) */}
-        <div className="mt-32 relative h-[650px] w-full rounded-[3rem] overflow-hidden shadow-2xl border border-gray-100">
-          {/* Google Map Iframe */}
+        {/* <div className="mt-32 relative h-[650px] w-full rounded-[3rem] overflow-hidden shadow-2xl border border-gray-100">
           <iframe 
             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d58871.309615744205!2d75.81821072167968!3d22.748420999999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3962fd57c7b315d5%3A0xe8e1287dffe4c75!2sVikram%20Urbane!5e0!3m2!1sen!2sin!4v1750925944552!5m2!1sen!2sin" 
             width="100%" 
@@ -198,10 +199,9 @@ const Contact = () => {
             className="contrast-125 opacity-80"
           ></iframe>
 
-          {/* Floating Info Card */}
           <div className="absolute top-1/2 left-6 md:left-12 -translate-y-1/2 bg-white/95 backdrop-blur-md p-10 md:p-14 rounded-[2.5rem] shadow-2xl max-w-[95%] md:max-w-md border border-white/20">
             <div className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-tight">
+              <h2 className="text-2xl md:text-4xl font-semibold">
                 Ghar of Ethnics <br/> Store & Studio
               </h2>
               <p className="text-[0.65rem] md:text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest leading-relaxed">
@@ -219,7 +219,7 @@ const Contact = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

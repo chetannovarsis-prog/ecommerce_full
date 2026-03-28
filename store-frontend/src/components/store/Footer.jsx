@@ -1,5 +1,5 @@
-import { Instagram, Facebook, MapPin, Phone, Heart } from 'lucide-react';
-import { TbBrandPinterest, TbBrandWhatsapp } from 'react-icons/tb';
+import { Facebook, MapPin, Phone } from 'lucide-react';
+import { TbBrandLinkedin, TbBrandThreads, TbBrandWhatsapp, TbBrandYoutube } from 'react-icons/tb';
 import { Link } from 'react-router-dom';
 
 // Lotus/mandala motif SVG — matches logo accent color
@@ -71,33 +71,38 @@ const Footer = () => {
                 </span>
               </a>
               <a
-                href="tel:+918861940980"
+                href="tel:+919845634734"
                 className="flex items-center gap-3"
               >
                 <Phone size={13} style={{ color: '#e87825' }} />
-                <span className="text-[0.72rem]" style={{ color: '#c9b99a' }}>+91 88619 40980</span>
+                <span className="text-[0.72rem]" style={{ color: '#c9b99a' }}>+91 98456 34734</span>
               </a>
             </div>
 
             {/* Social Icons */}
             <div className="flex gap-5 mt-8">
-              <a href="https://www.instagram.com/gharofethnics/" target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
-                style={{ borderColor: '#e87825', color: '#e87825' }}>
-                <Instagram size={16} />
-              </a>
-              <a href="https://www.facebook.com/gharofethnics/" target="_blank" rel="noopener noreferrer"
+              <a href="https://www.facebook.com/share/1DrpmWT9hW/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
                 style={{ borderColor: '#e87825', color: '#e87825' }}>
                 <Facebook size={16} />
               </a>
-              <a href="https://in.pinterest.com/gharofethnics/" target="_blank" rel="noopener noreferrer"
+              <a href="https://youtube.com/@gharofethnics?si=0PHrceQJ-U73T_lk" target="_blank" rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
                 style={{ borderColor: '#e87825', color: '#e87825' }}>
-                <TbBrandPinterest size={16} />
+                <TbBrandYoutube size={16} />
+              </a>
+              <a href="https://www.threads.com/@gharofethnics?igshid=NTc4MTIwNjQ2YQ==" target="_blank" rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
+                style={{ borderColor: '#e87825', color: '#e87825' }}>
+                <TbBrandThreads size={16} />
+              </a>
+              <a href="https://in.linkedin.com/in/ghar-of-ethnics-2787813ba" target="_blank" rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
+                style={{ borderColor: '#e87825', color: '#e87825' }}>
+                <TbBrandLinkedin size={16} />
               </a>
               <a
-                href="https://wa.me/918861940980"
+                href="https://wa.me/919845634734"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
@@ -173,6 +178,7 @@ const Footer = () => {
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
         </div>
+         <p className="text-center text-gray-500 text-[0.9rem] mt-1">Crafted with ❤️ by <a href="https://www.novarsistech.com" target="_blank" rel="noopener noreferrer" className="hover:text-white text-gray-100 font-bold transition-colors animate-pulse">Novarsis Technologies</a></p>
       </div>
     </footer>
   );

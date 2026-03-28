@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Plus, 
   ShoppingCart, 
@@ -23,9 +23,10 @@ import {
 } from 'lucide-react';
 
 import { useTheme } from '../context/ThemeContext';
-import api from '../utils/api';
+import { logoutAdmin } from '../services/adminAuth';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [showProfileMenu, setShowProfileMenu] = React.useState(false);
   const profileMenuRef = React.useRef(null);
@@ -149,7 +150,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                </div>
             </div>
 
-            <div className="px-3 py-2 border-b border-gray-100 dark:border-white/5 mb-2">
+            {/* <div className="px-3 py-2 border-b border-gray-100 dark:border-white/5 mb-2">
                <div className="flex items-center justify-between">
                  <div className="flex items-center gap-2">
                    <ShieldCheck size={14} className="text-emerald-500" />
@@ -163,9 +164,18 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
                  </button>
                </div>
                <p className="text-[0.55rem] text-gray-400 mt-1">Receive OTP on every login</p>
-            </div>
+            </div> */}
 
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-600 rounded-xl transition-all font-bold text-[0.75rem]">
+            <button onClick={async () => {
+                try {
+                  await logoutAdmin();
+                } catch (err) {
+                  console.error('Error signing out', err);
+                } finally {
+                  navigate('/login');
+                }
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-600 rounded-xl transition-all font-bold text-[0.75rem]">
               <LogOut size={16} /> SIGN OUT
             </button>
           </div>

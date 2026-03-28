@@ -16,22 +16,13 @@ const transporter = nodemailer.createTransport({
 
 export const login = async (req, res) => {
   let { email, password } = req.body;
-  
-  console.log('--- LOGIN DEBUG ---');
-  console.log('Email received:', email);
-  console.log('Password exists:', !!password);
-  if (password) {
-    password = password.trim();
-    console.log('Password length after trim:', password.length);
-  }
+  if (email) email = email.trim();
+  if (password) password = password.trim();
 
   // Allow both admin123 and Admin123 for easier entry
   if (password?.toLowerCase() !== 'admin123') {
-    console.log('Access Denied: Password mismatch.');
     return res.status(401).json({ message: 'Invalid credentials' });
   }
-  
-  console.log('Access Granted! Proceeding to DB lookup...');
 
   try {
     let admin = await prisma.admin.findUnique({ where: { email } });
@@ -97,7 +88,7 @@ export const login = async (req, res) => {
     // Generate JWT
     const token = jwt.sign(
       { id: admin.id, email: admin.email, role: 'admin' },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'default-secret-key-123',
       { expiresIn: '1d' }
     );
 
@@ -132,7 +123,7 @@ export const verifyOtp = async (req, res) => {
     // Generate JWT
     const token = jwt.sign(
       { id: admin.id, email: admin.email, role: 'admin' },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'default-secret-key-123',
       { expiresIn: '1d' }
     );
 
@@ -149,7 +140,12 @@ export const verifyOtp = async (req, res) => {
 
 export const toggle2FA = async (req, res) => {
   const { email, enabled } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required' });
   try {
+    const admin = await prisma.admin.findUnique({ where: { email } });
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin user not found' });
+    }
     await prisma.admin.update({
       where: { email },
       data: { is2FAEnabled: enabled }

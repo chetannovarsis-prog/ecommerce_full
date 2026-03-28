@@ -13,6 +13,7 @@ import contactRoutes from './routes/contactRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import { requireAdmin } from './middleware/requireAdmin.js';
 
 
 
@@ -34,8 +35,8 @@ app.use('/api/sales', saleRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/settings', settingsRoutes);
+app.use('/api/orders', requireAdmin, orderRoutes);
+app.use('/api/settings', requireAdmin, settingsRoutes);
 
 
 

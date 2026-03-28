@@ -155,18 +155,18 @@ const ProductForm = ({ onClose, onSave, product }) => {
     }
   };
 
-  const addVariant = () => {
-    setFormData(prev => ({
-      ...prev,
-      variants: [...prev.variants, {
-        attributes: [{ name: '', value: '' }],
-        price: prev.price || 0,
-        useDefaultPrice: true,
-        stock: 0,
-        images: []
-      }]
-    }));
-  };
+  // const addVariant = () => {
+  //   setFormData(prev => ({
+  //     ...prev,
+  //     variants: [...prev.variants, {
+  //       attributes: [{ name: '', value: '' }],
+  //       price: prev.price || 0,
+  //       useDefaultPrice: true,
+  //       stock: 0,
+  //       images: []
+  //     }]
+  //   }));
+  // };
 
   const updateVariant = (index, field, value) => {
     const newVariants = [...formData.variants];
@@ -615,15 +615,15 @@ const ProductForm = ({ onClose, onSave, product }) => {
                   }}
                   className="group flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-zinc-800 active:scale-95 transition-all shadow-lg shadow-black/10"
                 >
-                  <Zap size={14} className="text-amber-500" /> Bulk Create
+                  <Zap size={14} className="text-amber-500" /> Create
                 </button>
-                <button
+                {/* <button
                   type="button"
                   onClick={addVariant}
                   className="group flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10"
                 >
                   <Plus size={14} strokeWidth={3} /> Add Variation
-                </button>
+                </button> */}
               </div>
             </div>
 
@@ -852,6 +852,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
       {showBulkVariantModal && (
         <BulkVariantModal 
           product={formData}
+          mediaAssets={[...formData.images, ...stagedImages.map((staged) => staged.previewUrl)]}
           mode={bulkEditMode ? 'edit' : 'create'}
           onClose={() => setShowBulkVariantModal(false)}
           onGenerate={(newBulkVariants) => {

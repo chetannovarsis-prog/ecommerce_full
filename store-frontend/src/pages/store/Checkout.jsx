@@ -11,6 +11,7 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(null);  const [codEnabled, setCodEnabled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -55,6 +56,52 @@ const Checkout = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  const getInputClassName = (fieldName) =>
+    `w-full p-4 border rounded-sm text-sm outline-none transition-all ${
+      errors[fieldName]
+        ? 'border-red-500 bg-red-50/40 focus:ring-1 focus:ring-red-500'
+        : 'border-gray-200 focus:ring-1 focus:ring-black'
+    }`;
+
+  const validateForm = () => {
+    const nextErrors = {};
+
+    if (!formData.email.trim()) {
+      nextErrors.email = 'Please fill your email address.';
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
+      nextErrors.email = 'Please enter a valid email address.';
+    }
+
+    if (!formData.firstName.trim()) nextErrors.firstName = 'Please fill your first name.';
+    if (!formData.lastName.trim()) nextErrors.lastName = 'Please fill your last name.';
+    if (!formData.address.trim()) nextErrors.address = 'Please fill your address.';
+    if (!formData.city.trim()) nextErrors.city = 'Please fill your city.';
+    if (!formData.state.trim()) nextErrors.state = 'Please select your state.';
+
+    if (!formData.pinCode.trim()) {
+      nextErrors.pinCode = 'Please fill your PIN code.';
+    } else if (!/^\d{6}$/.test(formData.pinCode.trim())) {
+      nextErrors.pinCode = 'PIN code must be 6 digits.';
+    }
+
+    if (!formData.phone.trim()) {
+      nextErrors.phone = 'Please fill your phone number.';
+    } else if (!/^\d{10}$/.test(formData.phone.trim())) {
+      nextErrors.phone = 'Phone number must be 10 digits.';
+    }
+
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      const firstInvalidField = Object.keys(nextErrors)[0];
+      document.querySelector(`[name="${firstInvalidField}"]`)?.focus();
+      return false;
+    }
+
+    return true;
   };
 
   const loadScript = (src) => {
@@ -68,6 +115,10 @@ const Checkout = () => {
   };
 
   const handlePayment = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -81,10 +132,13 @@ const Checkout = () => {
           price: item.selectedPrice
         })),
         customerId: customer?.id || null,
+        customerEmail: formData.email || customer?.email || '',
+        customerName: `${formData.firstName} ${formData.lastName}`.trim() || customer?.name || '',
         paymentMethod: formData.paymentMethod,
         shippingAddress: {
           firstName: formData.firstName,
           lastName: formData.lastName,
+          email: formData.email || customer?.email || '',
           address: formData.address,
           apartment: formData.apartment,
           city: formData.city,
@@ -221,8 +275,9 @@ const Checkout = () => {
                 placeholder="Email or mobile phone number" 
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none transition-all"
+                className={getInputClassName('email')}
               />
+              {errors.email && <p className="text-sm text-red-600 font-semibold -mt-3">{errors.email}</p>}
               <p className="text-[0.6rem] text-gray-400 leading-relaxed">
                 You may receive text messages related to order confirmation and shipping updates. Reply STOP to unsubscribe.
               </p>
@@ -236,28 +291,37 @@ const Checkout = () => {
                   <option>Country/Region: India</option>
                 </select>
                 <div className="grid grid-cols-2 gap-4">
-                  <input 
-                    name="firstName"
-                    placeholder="First name" 
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none" 
-                  />
-                  <input 
-                    name="lastName"
-                    placeholder="Last name" 
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none" 
-                  />
+                  <div className="space-y-2">
+                    <input 
+                      name="firstName"
+                      placeholder="First name" 
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      className={getInputClassName('firstName')}
+                    />
+                    {errors.firstName && <p className="text-sm text-red-600 font-semibold">{errors.firstName}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <input 
+                      name="lastName"
+                      placeholder="Last name" 
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      className={getInputClassName('lastName')}
+                    />
+                    {errors.lastName && <p className="text-sm text-red-600 font-semibold">{errors.lastName}</p>}
+                  </div>
                 </div>
-                <input 
-                  name="address"
-                  placeholder="Address" 
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="w-full p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none" 
-                />
+                <div className="space-y-2">
+                  <input 
+                    name="address"
+                    placeholder="Address" 
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    className={getInputClassName('address')}
+                  />
+                  {errors.address && <p className="text-sm text-red-600 font-semibold">{errors.address}</p>}
+                </div>
                 <input 
                   name="apartment"
                   placeholder="Apartment, suite, etc. (optional)" 
@@ -266,42 +330,58 @@ const Checkout = () => {
                   className="w-full p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none" 
                 />
                 <div className="grid grid-cols-3 gap-4">
-                   <input 
-                    name="city"
-                    placeholder="City" 
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className="p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none" 
-                   />
-                   <select 
-                    name="state"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    className="p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none bg-white col-span-1"
-                   >
-                      <option value="">State</option>
-                      {[
-                        "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
-                        "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
-                      ].map(state => (
-                        <option key={state} value={state}>{state}</option>
-                      ))}
-                   </select>
-                   <input 
-                    name="pinCode"
-                    placeholder="PIN code" 
-                    value={formData.pinCode}
-                    onChange={handleInputChange}
-                    className="p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none" 
-                   />
+                   <div className="space-y-2">
+                     <input 
+                      name="city"
+                      placeholder="City" 
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      className={getInputClassName('city')}
+                     />
+                     {errors.city && <p className="text-sm text-red-600 font-semibold">{errors.city}</p>}
+                   </div>
+                   <div className="space-y-2">
+                     <select 
+                      name="state"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                      className={`p-4 border rounded-sm text-sm outline-none transition-all bg-white col-span-1 w-full ${
+                        errors.state
+                          ? 'border-red-500 bg-red-50/40 focus:ring-1 focus:ring-red-500'
+                          : 'border-gray-200 focus:ring-1 focus:ring-black'
+                      }`}
+                     >
+                        <option value="">State</option>
+                        {[
+                          "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+                          "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+                        ].map(state => (
+                          <option key={state} value={state}>{state}</option>
+                        ))}
+                     </select>
+                     {errors.state && <p className="text-sm text-red-600 font-semibold">{errors.state}</p>}
+                   </div>
+                   <div className="space-y-2">
+                     <input 
+                      name="pinCode"
+                      placeholder="PIN code" 
+                      value={formData.pinCode}
+                      onChange={handleInputChange}
+                      className={getInputClassName('pinCode')}
+                     />
+                     {errors.pinCode && <p className="text-sm text-red-600 font-semibold">{errors.pinCode}</p>}
+                   </div>
                 </div>
-                <input 
-                  name="phone"
-                  placeholder="Phone" 
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="w-full p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none" 
-                />
+                <div className="space-y-2">
+                  <input 
+                    name="phone"
+                    placeholder="Phone" 
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className={getInputClassName('phone')}
+                  />
+                  {errors.phone && <p className="text-sm text-red-600 font-semibold">{errors.phone}</p>}
+                </div>
               </div>
            </section>
 

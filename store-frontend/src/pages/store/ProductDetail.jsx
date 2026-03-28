@@ -222,8 +222,10 @@ const ProductDetail = () => {
     setActiveImage(allImages[prevIdx]);
   };
 
-  // Group variants by multiple attributes
+  // Group variants by multiple attributes (deduplicated by case-insensitive matching)
   const variantOptions = {};
+  const valueMapByAttribute = {}; // Maps lowercase values to their original case
+  
   product.variants?.forEach(v => {
     if (!v.title) return;
     // Split by comma for multiple attributes (e.g., "Color: Red, Size: XL")
@@ -234,8 +236,18 @@ const ProductDetail = () => {
       if (parts.length < 2) return;
       const name = parts[0].trim().toLowerCase();
       const value = parts[1].trim();
-      if (!variantOptions[name]) variantOptions[name] = new Set();
-      variantOptions[name].add(value);
+      const valueLower = value.toLowerCase();
+      
+      if (!variantOptions[name]) {
+        variantOptions[name] = new Set();
+        valueMapByAttribute[name] = {};
+      }
+      
+      // Only add if we haven't seen this value (case-insensitive)
+      if (!valueMapByAttribute[name][valueLower]) {
+        variantOptions[name].add(value);
+        valueMapByAttribute[name][valueLower] = value; // Store original case
+      }
     });
   });
 
@@ -451,7 +463,11 @@ const ProductDetail = () => {
                       })()}
                     </label>
                     <div className="flex flex-wrap gap-3">
-                       {[...variantOptions['size']].map(val => {
+                       {Array.from(variantOptions['size'] || [])
+                         .filter((size, index, arr) => 
+                           arr.findIndex(s => s.toLowerCase() === size.toLowerCase()) === index
+                         )
+                         .map(val => {
                           const isSelected = selectedVariant?.title?.toLowerCase().includes(`size: ${val.toLowerCase()}`);
                           return (
                             <button
@@ -485,7 +501,12 @@ const ProductDetail = () => {
                       </label>
                     </div>
                     <div className="flex flex-wrap gap-4">
-                       {[...variantOptions['color']].map(color => {
+                       {Array.from(variantOptions['color'] || [])
+                         .filter((color, index, arr) => 
+                           // Double-check deduplication: keep only first occurrence (case-insensitive)
+                           arr.findIndex(c => c.toLowerCase() === color.toLowerCase()) === index
+                         )
+                         .map(color => {
                           const lowerColor = color.toLowerCase();
                           const lowerTitle = (selectedVariant?.title || '').toLowerCase();
                           const isSelected = lowerTitle.includes(`color: ${lowerColor}`) || 

@@ -28,6 +28,7 @@ const Collections = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [orderDirty, setOrderDirty] = useState(false);
   const navigate = useNavigate();
 
   const sensors = useSensors(
@@ -127,6 +128,7 @@ const Collections = () => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
 
+        setOrderDirty(true);
         return arrayMove(items, oldIndex, newIndex);
       });
     }
@@ -134,10 +136,12 @@ const Collections = () => {
 
 
   const saveOrder = async () => {
+    if (!orderDirty) return;
     setUploading(true);
     try {
       const items = collections.map((c, i) => ({ id: c.id, order: i }));
       await api.post('/collections/reorder', { items });
+      setOrderDirty(false);
       alert('Order saved successfully!');
     } catch (error) {
       console.error('Error saving order:', error);
@@ -153,7 +157,8 @@ const Collections = () => {
         <h1 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Collections</h1>
         <button 
           onClick={saveOrder}
-          className="bg-black dark:bg-white text-white dark:text-black px-4 md:px-6 py-2 rounded-xl text-[0.6rem] md:text-[0.65rem] font-black uppercase tracking-widest shadow-xl shadow-black/10 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+          disabled={!orderDirty || loading || uploading}
+          className={`px-4 md:px-6 py-2 rounded-xl text-[0.6rem] md:text-[0.65rem] font-black uppercase tracking-widest shadow-xl shadow-black/10 transition-all ${orderDirty && !loading && !uploading ? 'bg-black dark:bg-white text-white dark:text-black hover:scale-105' : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-300 cursor-not-allowed'} ${!orderDirty || loading || uploading ? 'opacity-50 pointer-events-none' : ''}`}
         >
           Save Order
         </button>
@@ -275,10 +280,12 @@ const Collections = () => {
                         />
                       ))
                     ) : (
-                      <tr>
-                        <td colSpan="6" className="px-6 py-32 text-center text-gray-400 flex flex-col items-center gap-4">
-                           <Layers size={48} strokeWidth={1} className="text-gray-200 dark:text-white/10" />
-                           <p className="font-black uppercase tracking-widest text-[0.65rem] text-gray-900 dark:text-white">No collections found</p>
+                      <tr className="h-[240px]">
+                        <td colSpan="6" className="px-6 py-0">
+                          <div className="h-full flex flex-col items-center justify-center gap-4 text-gray-400">
+                             <Layers size={48} strokeWidth={1} className="text-gray-200 dark:text-white/10" />
+                             <p className="font-black uppercase tracking-widest text-[0.65rem] text-gray-900 dark:text-white">No collections found</p>
+                          </div>
                         </td>
                       </tr>
                     )}
