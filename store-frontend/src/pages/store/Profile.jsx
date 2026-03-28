@@ -45,12 +45,12 @@ const Profile = () => {
       <div className="max-w-6xl mx-auto space-y-12">
         <div className="flex flex-col md:flex-row gap-10 items-center md:items-start justify-between">
            <div className="flex items-center gap-8">
-              <div className="w-24 h-24 bg-black rounded-full flex items-center justify-center text-white text-3xl font-black ring-8 ring-white shadow-xl">
+              <div className="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center text-white text-3xl font-black ring-8 ring-white shadow-xl">
                 {customer.name?.charAt(0) || 'U'}
               </div>
               <div className="space-y-1">
-                <h1 className="text-4xl font-black uppercase tracking-tighter italic">{customer.name}</h1>
-                <p className="text-[0.7rem] text-gray-400 font-black uppercase tracking-[2px]">{customer.email}</p>
+                <h1 className="text-3xl font-black">{customer.name}</h1>
+                <p className="text-gray-400 font-semibold">{customer.email}</p>
               </div>
            </div>
            <button 

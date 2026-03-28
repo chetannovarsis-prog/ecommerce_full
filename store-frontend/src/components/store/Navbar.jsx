@@ -57,7 +57,11 @@ const Navbar = () => {
       setIsSearching(true);
       try {
         const response = await api.get(`/products?search=${searchQuery}`);
-        const data = response.data;
+        const data = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
         const rankedData = data.map(product => {
           let score = 0;
           const q = searchQuery.toLowerCase();

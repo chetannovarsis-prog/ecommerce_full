@@ -20,8 +20,7 @@ const Login = () => {
     try {
       const res = await api.post('/auth/customer/login', { email, password });
       localStorage.setItem('customerToken', res.data.token);
-
-      localStorage.setItem('customer', JSON.stringify(res.data.customer));
+      localStorage.setItem('customer', JSON.stringify({ ...res.data.customer, token: res.data.token }));
       navigate('/profile');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
@@ -35,7 +34,7 @@ const Login = () => {
     try {
       const res = await api.post('/auth/customer/google-login', { credential: response.credential });
       localStorage.setItem('customerToken', res.data.token);
-      localStorage.setItem('customer', JSON.stringify(res.data.customer));
+      localStorage.setItem('customer', JSON.stringify({ ...res.data.customer, token: res.data.token }));
       navigate('/profile');
     } catch (err) {
       const message = err.response?.data?.error || err.response?.data?.message || err.message || 'Google login failed';
@@ -55,7 +54,7 @@ const Login = () => {
       >
         <div className="text-center space-y-2">
           <h1 className="text-5xl font-black uppercase tracking-tighter">Sign In</h1>
-          <p className="text-[0.65rem] text-gray-400 font-black uppercase tracking-[3px]">Welcome back to Vogue</p>
+          <p className="text-[0.65rem] text-gray-400 font-black uppercase tracking-[3px]">Welcome Back</p>
         </div>
 
         {error && (
@@ -127,4 +126,3 @@ const Login = () => {
 };
 
 export default Login;
-

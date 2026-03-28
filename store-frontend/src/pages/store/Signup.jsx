@@ -32,7 +32,7 @@ const Signup = () => {
     try {
       const res = await api.post('/auth/customer/google-login', { credential: response.credential });
       localStorage.setItem('customerToken', res.data.token);
-      localStorage.setItem('customer', JSON.stringify(res.data.customer));
+      localStorage.setItem('customer', JSON.stringify({ ...res.data.customer, token: res.data.token }));
       navigate('/profile');
     } catch (err) {
       setError(err.response?.data?.message || 'Google login failed');
@@ -49,8 +49,8 @@ const Signup = () => {
         className="w-full max-w-md space-y-10"
       >
         <div className="text-center space-y-2">
-          <h1 className="text-5xl font-black uppercase tracking-tighter">Join Vogue</h1>
-          <p className="text-[0.65rem] text-gray-400 font-black uppercase tracking-[3px]">Create your premium experience</p>
+          <h1 className="text-5xl font-black uppercase tracking-tighter">Join Ghar Of Ethnics</h1>
+          <p className="text-[0.65rem] text-gray-400 font-black uppercase tracking-[3px]">Create Your Account</p>
         </div>
 
         {error && (

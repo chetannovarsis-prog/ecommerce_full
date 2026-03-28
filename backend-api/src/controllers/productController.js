@@ -4,7 +4,7 @@ export const getAllProducts = async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(5, parseInt(req.query.limit, 10) || 20));
   const skip = (page - 1) * limit;
-  const { collectionId, categoryId } = req.query;
+  const { collectionId, categoryId, search } = req.query;
 
   try {
     const where = {};
@@ -13,6 +13,15 @@ export const getAllProducts = async (req, res) => {
     }
     if (categoryId) {
       where.categories = { some: { id: categoryId } };
+    }
+    if (search?.trim()) {
+      const query = search.trim();
+      where.OR = [
+        { name: { contains: query, mode: 'insensitive' } },
+        { subtitle: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { handle: { contains: query.toLowerCase(), mode: 'insensitive' } }
+      ];
     }
 
     const [products, total] = await Promise.all([

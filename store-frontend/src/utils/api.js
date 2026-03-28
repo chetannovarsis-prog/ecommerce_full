@@ -7,8 +7,7 @@ const api = axios.create({
 // Add a request interceptor to include the customer token
 api.interceptors.request.use(
   (config) => {
-    const customer = JSON.parse(localStorage.getItem('customer') || 'null');
-    const token = customer?.token;
+    const token = localStorage.getItem('customerToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
