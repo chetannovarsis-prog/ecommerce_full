@@ -26,9 +26,9 @@ const Benefits = () => {
   ];
 
   return (
-    <section className="pb-32 bg-[#fafafa] font-['Albert_Sans']">
+    <section className="pb-32 font-['Albert_Sans']">
       <div className="container mx-auto px-10">
-        <div className="bg-white rounded-[2rem] border border-amber-100 p-12 md:p-16 shadow-[0_20px_60px_rgba(0,0,0,0.03)]">
+        <div className="bg-white rounded-[2rem] border border-amber-300 p-12 md:p-16 shadow-[0_20px_60px_rgba(0,0,0,0.03)] shadow-xl">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-0 divide-y md:divide-y-0 lg:divide-x divide-amber-100">
             {benefits.map((b, i) => (
               <div key={i} className="flex flex-col items-center text-center px-8 first:pl-0 last:pr-0 pt-8 first:pt-0 md:pt-0">

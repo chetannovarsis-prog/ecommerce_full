@@ -60,13 +60,13 @@ const CollectionsPage = () => {
                   className="group relative cursor-pointer"
                 >
                   {/* Decorative Premium Corner Bracket */}
-                  <div className="absolute -top-[18px] -right-[20px] z-30 w-[70px] h-[70px] pointer-events-none group-hover:scale-110 transition-transform duration-500 shadow-xl shadow-black/5 rounded-full overflow-hidden">
+                  <div className="absolute -top-[45px] -right-[49px] z-30 w-[100px] h-[100px] pointer-events-none transition-transform duration-500  overflow-hidden">
                     <img src="/images/corner_bracket.png" alt="" className="w-full h-full object-contain" />
                   </div>
 
-                  <div className="aspect-[4/5] overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white">
-                    <img src={c.imageUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={c.name} />
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors duration-500" />
+                  <div className="aspect-[4/5] overflow-hidden rounded-xl shadow-lg transition-all duration-300 group-hover:shadow-orange-300 group-hover:shadow-[0_10px_25px_rgba(0,0,0,0.06)]  bg-white">
+                    <img src={c.imageUrl} className="w-full h-full object-cover transition-transform duration-1000 " alt={c.name} />
+                    <div className="absolute inset-0" />
                   </div>
                   
                   <div className="mt-8 text-center space-y-2">

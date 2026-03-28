@@ -46,123 +46,118 @@ const Collections = () => {
   }
 
   return (
-    <section className="max-w-[1400px] mx-auto px-10 my-20 italic-none">
-      <h2 className="text-center text-3xl font-black mb-16 uppercase tracking-tight">Shop by Collections</h2>
+    // <section className="max-w-[1400px] mx-auto px-10 my-20 italic-none">
+    //   <h2 className="text-center text-3xl font-black mb-16 uppercase tracking-tight">Shop by Collections</h2>
 
-      {/* ── OPTION A · Colored Font Text (logo navy + orange) ── */}
-      <div className="mb-2">
-        <p className="text-[0.55rem] font-black uppercase tracking-[4px] text-center mb-6" style={{ color: '#e87825' }}>
-          ✦ Option A — Accent Colors Matching Logo ✦
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {collections.map((c) => (
-            <div
-              key={`a-${c.id}`}
-              onClick={() => navigate(`/collections/${c.id}`)}
-              className="relative overflow-hidden cursor-pointer group rounded-sm"
-            >
-              {/* Corner bracket decorations */}
-              <span className="absolute top-2 left-2 z-30 w-5 h-5 border-t-2 border-l-2 pointer-events-none" style={{ borderColor: '#e87825' }} />
-              <span className="absolute top-2 right-2 z-30 w-5 h-5 border-t-2 border-r-2 pointer-events-none" style={{ borderColor: '#e87825' }} />
-              <span className="absolute bottom-14 left-2 z-30 w-5 h-5 border-b-2 border-l-2 pointer-events-none" style={{ borderColor: '#e87825' }} />
-              <span className="absolute bottom-14 right-2 z-30 w-5 h-5 border-b-2 border-r-2 pointer-events-none" style={{ borderColor: '#e87825' }} />
+    //   {/* ── OPTION A · Colored Font Text (logo navy + orange) ── */}
+    //   <div className="mb-2">
+    //     <p className="text-[0.55rem] font-black uppercase tracking-[4px] text-center mb-6" style={{ color: '#e87825' }}>
+    //       ✦ Option A — Accent Colors Matching Logo ✦
+    //     </p>
+    //     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    //       {collections.map((c) => (
+    //         <div
+    //           key={`a-${c.id}`}
+    //           onClick={() => navigate(`/collections/${c.id}`)}
+    //           className="relative overflow-hidden cursor-pointer group rounded-sm"
+    //         >
+    //           {/* Corner bracket decorations */}
+    //           <span className="absolute top-2 left-2 z-30 w-5 h-5 border-t-2 border-l-2 pointer-events-none" style={{ borderColor: '#e87825' }} />
+    //           <span className="absolute top-2 right-2 z-30 w-5 h-5 border-t-2 border-r-2 pointer-events-none" style={{ borderColor: '#e87825' }} />
+    //           <span className="absolute bottom-14 left-2 z-30 w-5 h-5 border-b-2 border-l-2 pointer-events-none" style={{ borderColor: '#e87825' }} />
+    //           <span className="absolute bottom-14 right-2 z-30 w-5 h-5 border-b-2 border-r-2 pointer-events-none" style={{ borderColor: '#e87825' }} />
 
-              {/* Image */}
-              <div className="h-[360px] overflow-hidden">
-                <img
-                  src={c.imageUrl || c.img || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=800'}
-                  alt={c.name}
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                />
-              </div>
+    //           {/* Image */}
+    //           <div className="h-[360px] overflow-hidden">
+    //             <img
+    //               src={c.imageUrl || c.img || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=800'}
+    //               alt={c.name}
+    //               className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+    //             />
+    //           </div>
 
-              {/* Text block — Option A: colored fonts, no bg */}
-              <div className="pt-3 pb-1 px-1">
-                <h3
-                  className="text-sm font-black uppercase tracking-widest"
-                  style={{ color: '#1a2d5a' }}
-                >
-                  {c.name}
-                </h3>
-                <div className="flex items-center gap-1 mt-1">
-                  <span
-                    className="text-[0.6rem] font-black uppercase tracking-[3px]"
-                    style={{ color: '#e87825' }}
-                  >
-                    View All
-                  </span>
-                  <LotusMotif size={13} color="#e87825" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+    //           {/* Text block — Option A: colored fonts, no bg */}
+    //           <div className="pt-3 pb-1 px-1">
+    //             <h3
+    //               className="text-sm font-black uppercase tracking-widest"
+    //               style={{ color: '#1a2d5a' }}
+    //             >
+    //               {c.name}
+    //             </h3>
+    //             <div className="flex items-center gap-1 mt-1">
+    //               <span
+    //                 className="text-[0.6rem] font-black uppercase tracking-[3px]"
+    //                 style={{ color: '#e87825' }}
+    //               >
+    //                 View All
+    //               </span>
+    //               <LotusMotif size={13} color="#e87825" />
+    //             </div>
+    //           </div>
+    //         </div>
+    //       ))}
+    //     </div>
+    //   </div>
 
-      {/* Divider between options */}
-      <div className="my-16 flex items-center gap-4">
-        <div className="flex-1 h-px bg-gray-100" />
-        <LotusMotif size={20} color="#e87825" />
-        <span className="text-[0.55rem] font-black uppercase tracking-[4px] text-gray-300">vs</span>
-        <LotusMotif size={20} color="#1a2d5a" />
-        <div className="flex-1 h-px bg-gray-100" />
-      </div>
+    //   {/* Divider between options */}
+    //   <div className="my-16 flex items-center gap-4">
+    //     <div className="flex-1 h-px bg-gray-100" />
+    //     <LotusMotif size={20} color="#e87825" />
+    //     <span className="text-[0.55rem] font-black uppercase tracking-[4px] text-gray-300">vs</span>
+    //     <LotusMotif size={20} color="#1a2d5a" />
+    //     <div className="flex-1 h-px bg-gray-100" />
+    //   </div>
 
-      {/* ── OPTION B · Logo Watermark Background ── */}
-      <div>
-        <p className="text-[0.55rem] font-black uppercase tracking-[4px] text-center mb-6" style={{ color: '#1a2d5a' }}>
-          ✦ Option B — Logo Watermark in Background ✦
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {collections.map((c) => (
-            <div
-              key={`b-${c.id}`}
-              onClick={() => navigate(`/collections/${c.id}`)}
-              className="relative overflow-hidden cursor-pointer group rounded-sm"
-            >
-              {/* Corner bracket decorations */}
-              <span className="absolute top-2 left-2 z-30 w-5 h-5 border-t-2 border-l-2 pointer-events-none" style={{ borderColor: '#1a2d5a' }} />
-              <span className="absolute top-2 right-2 z-30 w-5 h-5 border-t-2 border-r-2 pointer-events-none" style={{ borderColor: '#1a2d5a' }} />
-              <span className="absolute bottom-14 left-2 z-30 w-5 h-5 border-b-2 border-l-2 pointer-events-none" style={{ borderColor: '#1a2d5a' }} />
-              <span className="absolute bottom-14 right-2 z-30 w-5 h-5 border-b-2 border-r-2 pointer-events-none" style={{ borderColor: '#1a2d5a' }} />
+    //   {/* ── OPTION B · Logo Watermark Background ── */}
+    //   <div>
+    //     <p className="text-[0.55rem] font-black uppercase tracking-[4px] text-center mb-6" style={{ color: '#1a2d5a' }}>
+    //       ✦ Option B — Logo Watermark in Background ✦
+    //     </p>
+    //     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    //       {collections.map((c) => (
+    //         <div
+    //           key={`b-${c.id}`}
+    //           onClick={() => navigate(`/collections/${c.id}`)}
+    //           className="relative overflow-hidden cursor-pointer group rounded-sm"
+    //         >
+    //           {/* Image */}
+    //           <div className="h-[360px] overflow-hidden">
+    //             <img
+    //               src={c.imageUrl || c.img || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=800'}
+    //               alt={c.name}
+    //               className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+    //             />
+    //           </div>
 
-              {/* Image */}
-              <div className="h-[360px] overflow-hidden">
-                <img
-                  src={c.imageUrl || c.img || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=800'}
-                  alt={c.name}
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                />
-              </div>
-
-              {/* Text block — Option B: logo watermark background */}
-              <div
-                className="pt-3 pb-1 px-1 relative overflow-hidden"
-                style={{ backgroundColor: '#faf9f7' }}
-              >
-                {/* Logo watermark */}
-                <img
-                  src="/images/logo3.png"
-                  alt=""
-                  aria-hidden="true"
-                  className="absolute right-0 bottom-0 w-16 h-16 object-contain pointer-events-none"
-                  style={{ opacity: 0.08 }}
-                />
-                <h3 className="text-sm font-black uppercase tracking-widest text-gray-900 relative z-10">
-                  {c.name}
-                </h3>
-                <div className="flex items-center gap-1 mt-1 relative z-10">
-                  <span className="text-[0.6rem] font-black uppercase tracking-[3px] text-gray-500">
-                    View All
-                  </span>
-                  <LotusMotif size={13} color="#e87825" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+    //           {/* Text block — Option B: logo watermark background */}
+    //           <div
+    //             className="pt-3 pb-1 px-1 relative overflow-hidden"
+    //             style={{ backgroundColor: '#faf9f7' }}
+    //           >
+    //             {/* Logo watermark */}
+    //             <img
+    //               src="/images/logo3.png"
+    //               alt=""
+    //               aria-hidden="true"
+    //               className="absolute right-0 bottom-0 w-16 h-16 object-contain pointer-events-none"
+    //               style={{ opacity: 0.08 }}
+    //             />
+    //             <h3 className="text-sm font-black uppercase tracking-widest text-gray-900 relative z-10">
+    //               {c.name}
+    //             </h3>
+    //             <div className="flex items-center gap-1 mt-1 relative z-10">
+    //               <span className="text-[0.6rem] font-black uppercase tracking-[3px] text-gray-500">
+    //                 View All
+    //               </span>
+    //               <LotusMotif size={13} color="#e87825" />
+    //             </div>
+    //           </div>
+    //         </div>
+    //       ))}
+    //     </div>
+    //   </div>
+    // </section>
+    <></>
   );
 };
 

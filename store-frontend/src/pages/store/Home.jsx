@@ -128,7 +128,7 @@ const Home = () => {
       </section>
 
       {/* Featured Products Tabs */}
-      <section className="py-24 bg-white">
+      <section className="py-24">
         <div className="container mx-auto px-10">
           <div className="flex flex-col items-center mb-16">
             <div className="flex gap-10 md:gap-16 border-b border-gray-100 w-full justify-center mb-12">
@@ -137,14 +137,14 @@ const Home = () => {
                 className={`pb-4 text-[0.7rem] font-black uppercase tracking-[0.3em] transition-all relative ${activeTab === 'best-sellers' ? 'text-black' : 'text-gray-300 hover:text-gray-500'}`}
               >
                 Best Sellers
-                {activeTab === 'best-sellers' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-black" />}
+                {activeTab === 'best-sellers' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-orange-400" />}
               </button>
               <button
                 onClick={() => setActiveTab('new-arrivals')}
                 className={`pb-4 text-[0.7rem] font-black uppercase tracking-[0.3em] transition-all relative ${activeTab === 'new-arrivals' ? 'text-black' : 'text-gray-300 hover:text-gray-500'}`}
               >
                 New Arrival
-                {activeTab === 'new-arrivals' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-black" />}
+                {activeTab === 'new-arrivals' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-orange-400" />}
               </button>
             </div>
             <h2 className="text-4xl font-black uppercase tracking-tighter mb-4 italic">
@@ -206,7 +206,7 @@ const Home = () => {
           <div className="text-center mt-20">
             <Link
               to="/collections/25a1dc7c-029e-44b9-b64b-e25e1525a4de"
-              className="inline-flex items-center gap-3 bg-white text-black border border-black px-12 py-4 rounded-full text-[0.65rem] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-xl active:scale-95"
+              className="inline-flex items-center gap-3 bg-white text-black border border-black px-12 py-4 rounded-full text-[0.65rem] font-black uppercase tracking-widest hover:bg-black hover:text-white hover:border-orange-600 transition-all shadow-xl active:scale-95 duration-300"
             >
               View all <ChevronRight size={14} />
             </Link>

@@ -42,7 +42,7 @@ const Testimonials = () => {
   const prev = () => setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
 
   return (
-    <section className="py-32 bg-[#fafafa] font-['Albert_Sans']">
+    <section className="py-32  font-['Albert_Sans']">
       <div className="container mx-auto px-10">
         <div className="text-center mb-20">
           <h2 className="text-4xl font-black uppercase tracking-tight text-black mb-4">Happy Clients</h2>

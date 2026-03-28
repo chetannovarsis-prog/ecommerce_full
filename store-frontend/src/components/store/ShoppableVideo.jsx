@@ -186,11 +186,11 @@ const ShoppableVideo = () => {
   const activeVariant = findMatchingVariant(selectedVideo?.product, selectedColor, selectedSize);
 
   return (
-    <section ref={sectionRef} className="py-24 bg-white overflow-hidden relative">
+    <section ref={sectionRef} className="py-24 overflow-hidden relative">
       <div className="max-w-full mx-auto md:px-10 px-4">
         <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
           <div className="text-center md:text-left">
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter italic">Shop The Look</h2>
+            <h2 className="text-3xl md:text-4xl font-bold italic">Shop The Look</h2>
             <p className="text-[0.6rem] md:text-xs font-black text-gray-400 uppercase tracking-widest mt-2">Tap to shop your favorite styles</p>
           </div>
           <div className="flex gap-4">

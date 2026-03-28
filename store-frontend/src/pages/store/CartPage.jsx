@@ -128,14 +128,14 @@ const CartPage = () => {
   const finalTotal = subtotal - discountAmount;
 
   return (
-    <div className="min-h-screen pb-20 pt-24 sm:pt-32 italic-none">
+    <div className="min-h-screen pb-20 pt-12 sm:pt-20 italic-none">
       <div className="max-w-[1400px] mx-auto px-6 sm:px-10">
 
         {/* Header */}
         <header className="flex flex-col gap-4 mb-16">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-gray-400 hover:text-black transition-colors"
+            className="flex items-center gap-2 font-semibold text-gray-400 hover:text-black transition-colors"
           >
             <ChevronLeft size={16} /> Continue Shopping
           </button>
@@ -182,7 +182,7 @@ const CartPage = () => {
                   >
                     <img
                       src={item.selectedImage}
-                      className={`w-full h-full object-cover transition-all duration-700 ${item.hoverImage ? 'absolute inset-0 group-hover:opacity-0' : 'group-hover:scale-105'}`}
+                      className={`w-full h-full object-cover transition-all duration-700 ${item.hoverImage ? 'absolute inset-0 group-hover:opacity-0' : ''}`}
                       alt={item.name}
                     />
                     {item.hoverImage && (
@@ -208,8 +208,8 @@ const CartPage = () => {
                               const [key, val] = part.split(':').map(s => s.trim());
                               if (!val) return <p key={pIdx} className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-widest">{part}</p>;
                               return (
-                                <p key={pIdx} className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-widest leading-none">
-                                  <span className="text-gray-300">{key}:</span> {val}
+                                <p key={pIdx} className=" text-gray-800 text-sm font-semibold  leading-none">
+                                  <span className="font-bold text-orange-600 mr-1">{key} : </span> {val}
                                 </p>
                               );
                             })}
@@ -273,10 +273,10 @@ const CartPage = () => {
             {/* ── Order Summary ── */}
             <div className="lg:col-span-1">
               <div className="sticky top-32 bg-gray-50 p-12 rounded-[2.5rem] space-y-10 border border-gray-100">
-                <h2 className="text-2xl font-black uppercase tracking-tighter pb-8 border-b border-gray-200">Order Summary</h2>
+                <h2 className="text-2xl font-black text-center pb-8 border-b border-gray-200">Order Summary</h2>
 
                 <div className="space-y-5">
-                  <div className="flex justify-between text-[0.75rem] font-black uppercase tracking-widest text-gray-400">
+                  <div className="flex justify-between  font-black text-gray-400">
                     <span>Subtotal ({totalQty} items)</span>
                     <span className={activeTier ? 'line-through text-gray-300' : 'text-gray-900'}>
                       ₹{subtotal.toFixed(2)}
@@ -287,21 +287,21 @@ const CartPage = () => {
                     <motion.div
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex justify-between text-[0.75rem] font-black uppercase tracking-widest"
+                      className="flex justify-between text-[0.75rem] font-black tracking-widest"
                     >
                       <span className="text-emerald-600">Bulk Offer ({activeTier.percent}% Off)</span>
                       <span className="text-emerald-600">− ₹{discountAmount.toFixed(2)}</span>
                     </motion.div>
                   )}
 
-                  <div className="flex justify-between text-[0.75rem] font-black uppercase tracking-widest text-gray-400">
+                  <div className="flex justify-between font-semibold text-sm text-gray-400">
                     <span>Estimated Shipping</span>
                     <span className="text-emerald-500">Standard Rates</span>
                   </div>
                 </div>
 
                 <div className="pt-10 border-t border-gray-200 space-y-8">
-                  <div className="flex justify-between text-3xl font-black uppercase tracking-tighter italic">
+                  <div className="flex justify-between text-2xl font-bold uppercase italic">
                     <span>Total</span>
                     <span>₹{finalTotal.toFixed(2)}</span>
                   </div>
@@ -319,14 +319,14 @@ const CartPage = () => {
 
                   <button
                     onClick={() => navigate('/checkout')}
-                    className="w-full bg-black text-white py-6 rounded-2xl text-[0.75rem] font-black uppercase tracking-[4px] flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all shadow-2xl shadow-black/20 group active:scale-95"
+                    className="px-4 mx-auto bg-black text-white py-4 rounded-full border border-orange-500 font-black  flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all shadow-2xl group active:scale-95"
                   >
                     Proceed to Checkout <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
                   </button>
 
-                  <p className="text-[0.6rem] text-center text-gray-400 font-bold uppercase tracking-widest leading-relaxed opacity-60">
+                  {/* <p className="text-sm text-center text-gray-400 font-bold  opacity-60">
                     Complimentary returns within 7 days.
-                  </p>
+                  </p> */}
                 </div>
               </div>
             </div>

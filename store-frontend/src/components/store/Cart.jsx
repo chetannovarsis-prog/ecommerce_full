@@ -178,17 +178,17 @@ const Cart = () => {
             {customer && displayCart.length > 0 && (
               <div className="p-10 bg-gray-50 space-y-8 shrink-0 border-t border-gray-100 rounded-t-[2.5rem] shadow-[0_-20px_50px_-12px_rgba(0,0,0,0.05)]">
                 <div className="space-y-3">
-                  <div className="flex justify-between text-[0.7rem] font-black uppercase tracking-widest text-gray-400">
+                  <div className="flex justify-between text-gray-400">
                     <span>Subtotal</span>
                     <span className="text-gray-900">₹{subtotal}</span>
                   </div>
-                  <div className="flex justify-between text-[0.7rem] font-black uppercase tracking-widest text-gray-400">
+                  <div className="flex justify-between text-gray-400">
                     <span>Shipping</span>
                     <span className="text-emerald-500 font-bold uppercase">Calculated in next step</span>
                   </div>
                 </div>
                 <div className="pt-8 border-t border-gray-200">
-                  <div className="flex justify-between text-2xl font-black uppercase tracking-tighter mb-8 italic">
+                  <div className="flex justify-between text-2xl mb-8 italic">
                     <span>Total</span>
                     <span>₹{subtotal}</span>
                   </div>
@@ -197,7 +197,7 @@ const Cart = () => {
                         setCartOpen(false);
                         navigate('/checkout');
                     }}
-                    className="w-full bg-black text-white py-5 rounded-2xl text-[0.75rem] font-black uppercase flex items-center justify-center gap-1 hover:bg-zinc-800 transition-all group active:scale-95 shadow-2xl shadow-black/20"
+                    className="w-full bg-black text-white py-5 rounded-2xl  flex items-center justify-center gap-1 hover:bg-zinc-800 transition-all group active:scale-95 shadow-2xl "
                   >
                     Proceed to Checkout <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
                   </button>
