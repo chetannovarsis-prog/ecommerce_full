@@ -33,8 +33,8 @@ const Login = () => {
       localStorage.setItem('adminEmail', email);
       setRequires2FA(false);
       navigate('/');
-    } catch (err) {
-      setError(err.message || 'Login failed');
+    } catch {
+      setError('ID or password is incorrect.');
     } finally {
       setLoading(false);
     }
