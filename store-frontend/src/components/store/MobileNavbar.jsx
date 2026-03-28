@@ -16,7 +16,7 @@ const MobileNavbar = () => {
           </>
         )}
       </NavLink>
-      <NavLink to="/shop" className={({isActive}) => `flex flex-col items-center gap-1.5 transition-all ${isActive ? 'text-black scale-110' : 'text-gray-400'}`}>
+      <NavLink to="/collections/all" className={({isActive}) => `flex flex-col items-center gap-1.5 transition-all ${isActive ? 'text-black scale-110' : 'text-gray-400'}`}>
         {({ isActive }) => (
           <>
             <Grid size={22} strokeWidth={isActive ? 2.5 : 2} />

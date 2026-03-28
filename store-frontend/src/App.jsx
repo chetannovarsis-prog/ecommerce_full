@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import api from './utils/api';
 import { useStore } from './services/useStore';
 
@@ -21,7 +21,6 @@ import OrderSuccess from './pages/store/OrderSuccess';
 import OrderDetail from './pages/store/OrderDetail';
 import Contact from './pages/store/Contact';
 
-import Shop from './pages/store/Shop';
 import NewArrivals from './pages/store/NewArrivals';
 import Login from './pages/store/Login';
 import Signup from './pages/store/Signup';
@@ -78,7 +77,7 @@ function App() {
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/products/:id" element={<ProductDetail />} />
               <Route path="/wishlist" element={<Wishlist />} />
-              <Route path="/shop" element={<Shop />} />
+              <Route path="/shop" element={<Navigate to="/collections/all" replace />} />
               <Route path="/collections" element={<CollectionsPage />} />
               <Route path="/order-success/:id" element={<OrderSuccess />} />
               <Route path="/orders/:id" element={<OrderDetail />} />

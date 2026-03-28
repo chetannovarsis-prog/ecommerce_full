@@ -7,6 +7,25 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+const normalizeAddressForSave = (shippingAddress = {}, customerName = '', customerEmail = '') => ({
+  id: shippingAddress.id || `addr_${Date.now()}`,
+  label: shippingAddress.label || 'Saved Address',
+  firstName: shippingAddress.firstName || '',
+  lastName: shippingAddress.lastName || '',
+  email: shippingAddress.email || customerEmail || '',
+  address: shippingAddress.address || '',
+  apartment: shippingAddress.apartment || '',
+  city: shippingAddress.city || '',
+  state: shippingAddress.state || '',
+  pinCode: shippingAddress.pinCode || '',
+  phone: shippingAddress.phone || '',
+  fullName:
+    shippingAddress.fullName ||
+    [shippingAddress.firstName, shippingAddress.lastName].filter(Boolean).join(' ') ||
+    customerName ||
+    null
+});
+
 export const createRazorpayOrder = async (req, res) => {
   const {
     amount,
@@ -89,6 +108,32 @@ export const createRazorpayOrder = async (req, res) => {
       }
     });
     console.log('Database Order Created:', order.id);
+
+    if (resolvedCustomerId && shippingAddress) {
+      const customer = await prisma.customer.findUnique({
+        where: { id: resolvedCustomerId },
+        select: { addresses: true }
+      });
+
+      const nextAddress = normalizeAddressForSave(shippingAddress, customerName, customerEmail);
+      const existingAddresses = Array.isArray(customer?.addresses) ? customer.addresses : [];
+      const alreadyExists = existingAddresses.some(address =>
+        address?.address === nextAddress.address &&
+        address?.city === nextAddress.city &&
+        address?.state === nextAddress.state &&
+        String(address?.pinCode || '') === String(nextAddress.pinCode || '') &&
+        String(address?.phone || '') === String(nextAddress.phone || '')
+      );
+
+      if (!alreadyExists) {
+        await prisma.customer.update({
+          where: { id: resolvedCustomerId },
+          data: {
+            addresses: [...existingAddresses, nextAddress]
+          }
+        });
+      }
+    }
 
     res.json({
       ...(razorpayOrder || {}),

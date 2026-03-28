@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
 }
 
 model Product {
@@ -31,6 +32,7 @@ model Product {
 
   @@index([price])
   @@index([createdAt])
+  @@schema("public")
 }
 
 model ProductVariant {
@@ -45,6 +47,8 @@ model ProductVariant {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@schema("public")
 }
 
 model Review {
@@ -56,6 +60,8 @@ model Review {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@schema("public")
 }
 
 model Category {
@@ -64,6 +70,8 @@ model Category {
   description String?
   createdAt   DateTime  @default(now())
   products    Product[]
+
+  @@schema("public")
 }
 
 model Collection {
@@ -78,6 +86,7 @@ model Collection {
   @@index([name])
   @@index([createdAt])
   @@index([order])
+  @@schema("public")
 }
 
 model Banner {
@@ -93,6 +102,7 @@ model Banner {
 
   @@index([isActive])
   @@index([createdAt])
+  @@schema("public")
 }
 
 
@@ -114,6 +124,8 @@ model Order {
 
   paymentMethod     String? // "razorpay" or "cod"
   shippingAddress   Json?   // Store full address as JSON for simplicity
+
+  @@schema("public")
 }
 
 
@@ -125,6 +137,8 @@ model OrderItem {
   orderId   String
   order     Order   @relation(fields: [orderId], references: [id])
   product   Product @relation(fields: [productId], references: [id])
+
+  @@schema("public")
 }
 
 model Customer {
@@ -133,11 +147,14 @@ model Customer {
   name      String?
   password  String?   // For local auth
   provider  String    @default("local") // local or google
+  addresses Json?
   otp       String?
   otpExpires DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   orders    Order[]
+
+  @@schema("public")
 }
 
 model Profile {
@@ -146,6 +163,8 @@ model Profile {
   role      String   @default("user") // "user" or "admin"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@schema("public")
 }
 
 model Admin {
@@ -157,6 +176,8 @@ model Admin {
   otpExpires    DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@schema("public")
 }
 
 model Sale {
@@ -167,6 +188,8 @@ model Sale {
   price     Float
   source    String   @default("Website") // "Website" or "Store"
   createdAt DateTime @default(now())
+
+  @@schema("public")
 }
 
 model ContactMessage {
@@ -177,6 +200,8 @@ model ContactMessage {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@schema("public")
 }
 
 
@@ -184,4 +209,6 @@ model GlobalSetting {
   id         String   @id @default("default")
   codEnabled Boolean  @default(false)
   updatedAt  DateTime @updatedAt
+
+  @@schema("public")
 }

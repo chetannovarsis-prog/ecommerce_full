@@ -12,6 +12,8 @@ const Checkout = () => {
   const [customer, setCustomer] = useState(null);  const [codEnabled, setCodEnabled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -44,19 +46,61 @@ const Checkout = () => {
     const savedCustomer = JSON.parse(localStorage.getItem('customer') || 'null');
     if (savedCustomer) {
       setCustomer(savedCustomer);
+      setSavedAddresses(savedCustomer.addresses || []);
       setFormData(prev => ({
         ...prev,
         email: savedCustomer.email || '',
         firstName: savedCustomer.name?.split(' ')[0] || '',
         lastName: savedCustomer.name?.split(' ').slice(1).join(' ') || ''
       }));
+
+      if (savedCustomer.id) {
+        fetchSavedAddresses(savedCustomer.id);
+      }
     }
   }, []);
+
+  const fetchSavedAddresses = async (customerId) => {
+    try {
+      const res = await api.get(`/auth/customer/${customerId}/profile`);
+      const nextCustomer = res.data.customer;
+      setSavedAddresses(nextCustomer.addresses || []);
+      setCustomer(prev => ({ ...prev, ...nextCustomer }));
+      localStorage.setItem('customer', JSON.stringify({
+        ...JSON.parse(localStorage.getItem('customer') || '{}'),
+        ...nextCustomer
+      }));
+    } catch (err) {
+      console.error('Failed to load saved addresses:', err);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
+  const handleSavedAddressSelect = (e) => {
+    const addressId = e.target.value;
+    setSelectedAddressId(addressId);
+
+    const selectedAddress = savedAddresses.find(address => address.id === addressId);
+    if (!selectedAddress) return;
+
+    setFormData(prev => ({
+      ...prev,
+      email: selectedAddress.email || prev.email || customer?.email || '',
+      firstName: selectedAddress.firstName || '',
+      lastName: selectedAddress.lastName || '',
+      address: selectedAddress.address || '',
+      apartment: selectedAddress.apartment || '',
+      city: selectedAddress.city || '',
+      state: selectedAddress.state || '',
+      pinCode: selectedAddress.pinCode || '',
+      phone: selectedAddress.phone || ''
+    }));
+    setErrors({});
   };
 
   const getInputClassName = (fieldName) =>
@@ -287,6 +331,23 @@ const Checkout = () => {
            <section className="space-y-6">
               <h2 className="text-lg font-black tracking-tight">Delivery</h2>
               <div className="space-y-4">
+                {savedAddresses.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-[0.7rem] font-black uppercase tracking-widest text-gray-500">Saved Addresses</label>
+                    <select
+                      value={selectedAddressId}
+                      onChange={handleSavedAddressSelect}
+                      className="w-full p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none bg-white"
+                    >
+                      <option value="">Choose a saved address</option>
+                      {savedAddresses.map(address => (
+                        <option key={address.id} value={address.id}>
+                          {address.label || 'Saved Address'} - {address.city}, {address.state}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <select className="w-full p-4 border border-gray-200 rounded-sm text-sm focus:ring-1 focus:ring-black outline-none bg-white">
                   <option>Country/Region: India</option>
                 </select>

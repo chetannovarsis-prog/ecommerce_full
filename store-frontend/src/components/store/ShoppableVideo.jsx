@@ -21,6 +21,7 @@ const ShoppableVideo = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isModalMuted, setIsModalMuted] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const { addToCart } = useStore();
 
   const [selectedSize, setSelectedSize] = useState('S');
@@ -70,7 +71,9 @@ const ShoppableVideo = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) setItemsToShow(2); // Grid 2x2 on mobile
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setItemsToShow(2);
       else if (window.innerWidth < 1024) setItemsToShow(3);
       else setItemsToShow(4); // Strictly 4 on desktop
     };
@@ -81,6 +84,8 @@ const ShoppableVideo = () => {
 
   // Intersection Observer for autoplay/pause on scroll
   useEffect(() => {
+    if (isMobile) return undefined;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -105,16 +110,34 @@ const ShoppableVideo = () => {
         if (video) observer.unobserve(video);
       });
     };
-  }, [loading, products]);
+  }, [loading, products, isMobile]);
 
-  const totalSlides = Math.ceil(videos.length / itemsToShow);
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const start = currentSlide;
+    const end = currentSlide + itemsToShow;
+
+    videoRefs.current.forEach((video, idx) => {
+      if (!video) return;
+
+      if (idx >= start && idx < end) {
+        const playPromise = video.play();
+        if (playPromise?.catch) {
+          playPromise.catch(() => {});
+        }
+      } else {
+        video.pause();
+      }
+    });
+  }, [currentSlide, isMobile, itemsToShow]);
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % videos.length);
+    setCurrentSlide((prev) => Math.min(prev + 1, videos.length - itemsToShow));
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + videos.length) % videos.length);
+    setCurrentSlide((prev) => Math.max(prev - 1, 0));
   };
 
   const openModal = (video, index) => {
@@ -184,6 +207,7 @@ const ShoppableVideo = () => {
 
   const variantOptions = getVariantOptions(selectedVideo?.product);
   const activeVariant = findMatchingVariant(selectedVideo?.product, selectedColor, selectedSize);
+  const visibleVideos = isMobile ? videos.slice(currentSlide, currentSlide + itemsToShow) : videos;
 
   return (
     <section ref={sectionRef} className="py-24 overflow-hidden relative">
@@ -213,15 +237,17 @@ const ShoppableVideo = () => {
 
         <div className="relative">
           <motion.div 
-            className={`flex gap-3 md:gap-4 ${window.innerWidth < 768 ? 'grid grid-cols-2' : ''}`}
-            animate={window.innerWidth >= 768 ? { x: -currentSlide * (100 / itemsToShow) + '%' } : {}}
+            className={`gap-3 md:gap-4 ${isMobile ? 'grid grid-cols-2' : 'flex'}`}
+            animate={!isMobile ? { x: -currentSlide * (100 / itemsToShow) + '%' } : {}}
             transition={{ type: 'spring', damping: 25, stiffness: 120 }}
           >
-            {videos.map((vid, idx) => (
+            {visibleVideos.map((vid) => {
+              const idx = videos.findIndex(item => item.id === vid.id);
+              return (
               <div 
                 key={vid.id}
                 className="flex-shrink-0 relative group cursor-pointer w-full"
-                style={window.innerWidth >= 768 ? { width: `calc((100% - ${(itemsToShow - 1) * 1}rem) / ${itemsToShow})` } : {}}
+                style={!isMobile ? { width: `calc((100% - ${(itemsToShow - 1) * 1}rem) / ${itemsToShow})` } : {}}
                 onClick={() => openModal(vid, idx)}
               >
                 <div className="rounded-xl overflow-hidden bg-black shadow-xl relative">
@@ -231,7 +257,17 @@ const ShoppableVideo = () => {
                     className="w-full h-full object-cover"
                     loop
                     muted
+                    autoPlay
                     playsInline
+                    preload="metadata"
+                    onLoadedData={(e) => {
+                      if (!isMobile) return;
+                      const video = e.currentTarget;
+                      const playPromise = video.play();
+                      if (playPromise?.catch) {
+                        playPromise.catch(() => {});
+                      }
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-90 transition-opacity"></div>
                   
@@ -246,7 +282,7 @@ const ShoppableVideo = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </motion.div>
         </div>
       </div>
