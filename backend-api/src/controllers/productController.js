@@ -179,8 +179,22 @@ export const updateProduct = async (req, res) => {
           set: (collectionIds || [collectionId]).filter(id => id && id !== 'none' && id !== '').map(id => ({ id }))
         } : undefined,
         variants: variants ? {
-          deleteMany: {},
-          create: variants.map(v => ({
+          deleteMany: {
+            id: {
+              notIn: variants.filter(v => v.id).map(v => v.id)
+            },
+            productId: req.params.id
+          },
+          update: variants.filter(v => v.id).map(v => ({
+            where: { id: v.id },
+            data: {
+              title: v.title,
+              price: (v.price === null || v.price === undefined || v.price === '') ? null : parseFloat(v.price),
+              stock: parseInt(v.stock) || 0,
+              images: v.images || []
+            }
+          })),
+          create: variants.filter(v => !v.id).map(v => ({
             title: v.title,
             price: (v.price === null || v.price === undefined || v.price === '') ? null : parseFloat(v.price),
             stock: parseInt(v.stock) || 0,
@@ -221,11 +235,23 @@ export const patchProduct = async (req, res) => {
       const variantsData = data.variants;
       delete data.variants; 
 
-      // Delete existing variants and recreate
-      await prisma.productVariant.deleteMany({ where: { productId: id } });
-      
       data.variants = {
-        create: variantsData.map(v => ({
+        deleteMany: {
+          id: {
+            notIn: variantsData.filter(v => v.id).map(v => v.id)
+          },
+          productId: id
+        },
+        update: variantsData.filter(v => v.id).map(v => ({
+          where: { id: v.id },
+          data: {
+            title: v.title,
+            price: (v.price === null || v.price === undefined || v.price === '') ? null : parseFloat(v.price),
+            stock: parseInt(v.stock) || 0,
+            images: v.images || []
+          }
+        })),
+        create: variantsData.filter(v => !v.id).map(v => ({
           title: v.title,
           price: (v.price === null || v.price === undefined || v.price === '') ? null : parseFloat(v.price),
           stock: parseInt(v.stock) || 0,

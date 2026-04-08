@@ -109,29 +109,39 @@ export const createRazorpayOrder = async (req, res) => {
     });
     console.log('Database Order Created:', order.id);
 
+    // Save address to customer profile relational table
     if (resolvedCustomerId && shippingAddress) {
-      const customer = await prisma.customer.findUnique({
-        where: { id: resolvedCustomerId },
-        select: { addresses: true }
-      });
+      try {
+        const nextAddress = {
+          name: [shippingAddress.firstName, shippingAddress.lastName].filter(Boolean).join(' ') || customerName || 'Default',
+          phone: shippingAddress.phone || '',
+          addressLine1: shippingAddress.address || '',
+          addressLine2: shippingAddress.apartment || '',
+          city: shippingAddress.city || '',
+          state: shippingAddress.state || '',
+          pincode: String(shippingAddress.pinCode || ''),
+        };
 
-      const nextAddress = normalizeAddressForSave(shippingAddress, customerName, customerEmail);
-      const existingAddresses = Array.isArray(customer?.addresses) ? customer.addresses : [];
-      const alreadyExists = existingAddresses.some(address =>
-        address?.address === nextAddress.address &&
-        address?.city === nextAddress.city &&
-        address?.state === nextAddress.state &&
-        String(address?.pinCode || '') === String(nextAddress.pinCode || '') &&
-        String(address?.phone || '') === String(nextAddress.phone || '')
-      );
-
-      if (!alreadyExists) {
-        await prisma.customer.update({
-          where: { id: resolvedCustomerId },
-          data: {
-            addresses: [...existingAddresses, nextAddress]
+        // Check if this exact address already exists for this customer
+        const existingAddress = await prisma.address.findFirst({
+          where: {
+            customerId: resolvedCustomerId,
+            addressLine1: nextAddress.addressLine1,
+            pincode: nextAddress.pincode,
           }
         });
+
+        if (!existingAddress) {
+          await prisma.address.create({
+            data: {
+              ...nextAddress,
+              customerId: resolvedCustomerId
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to save address to profile:', err.message);
+        // Don't fail the whole order if address saving fails
       }
     }
 

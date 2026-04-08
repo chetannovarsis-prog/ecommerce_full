@@ -3,35 +3,75 @@ import api from '../utils/api';
 import { X, Upload, Package, FileText, Tag as TagIcon, Plus, Trash2, ChevronRight, Image as ImageIcon, LayoutGrid, Layers, Settings, Search, Zap } from 'lucide-react';
 import BulkVariantModal from '../components/BulkVariantModal';
 
-const ProductForm = ({ onClose, onSave, product }) => {
-  const [formData, setFormData] = useState(product ? {
+const createInitialFormData = (product) => {
+  if (!product) {
+    return {
+      name: '',
+      subtitle: '',
+      handle: '',
+      description: '',
+      price: '',
+      stock: '',
+      categoryIds: [],
+      collectionIds: [],
+      images: [],
+      thumbnailUrl: '',
+      hoverThumbnailUrl: '',
+      variants: [],
+      isDiscountable: false,
+      discountPrice: '',
+      discountPercentage: '',
+    };
+  }
+
+  const basePrice = Number(product.price ?? 0);
+  const discountAmount = Number(product.discountPrice ?? 0);
+  const originalPrice = basePrice + discountAmount;
+  const discountPercentage =
+    product.isDiscountable && originalPrice > 0
+      ? String(Math.round((discountAmount / originalPrice) * 100))
+      : '';
+
+  return {
     ...product,
-    categoryIds: product.categories?.map(c => c.id) || [],
-    collectionIds: product.collections?.map(c => c.id) || [],
-    variants: product.variants?.map(v => {
-      const parts = v.title.split(', ');
-      const attributes = parts.map(p => {
-        const [n, val] = p.includes(': ') ? p.split(': ') : ['Option', p];
-        return { name: n, value: val };
-      });
-      return { ...v, attributes, useDefaultPrice: v.price === null };
-    }) || []
-  } : {
-    name: '',
-    subtitle: '',
-    handle: '',
-    description: '',
-    price: '',
-    stock: '',
-    categoryIds: [],
-    collectionIds: [],
-    images: [],
-    thumbnailUrl: '',
-    hoverThumbnailUrl: '',
-    variants: [],
-    isDiscountable: false,
-    discountPrice: ''
-  });
+    name: product.name ?? '',
+    subtitle: product.subtitle ?? '',
+    handle: product.handle ?? '',
+    description: product.description ?? '',
+    price: product.price ?? '',
+    stock: product.stock ?? '',
+    categoryIds: product.categories?.map((category) => category.id) || [],
+    collectionIds: product.collections?.map((collection) => collection.id) || [],
+    images: Array.isArray(product.images) ? product.images : [],
+    thumbnailUrl: product.thumbnailUrl ?? '',
+    hoverThumbnailUrl: product.hoverThumbnailUrl ?? '',
+    variants:
+      product.variants?.map((variant) => {
+        const titleParts = String(variant.title || '').split(', ').filter(Boolean);
+        const attributes = titleParts.length
+          ? titleParts.map((part) => {
+              const [name, value] = part.includes(': ') ? part.split(': ') : ['Option', part];
+              return { name: name ?? '', value: value ?? '' };
+            })
+          : [{ name: '', value: '' }];
+
+        return {
+          ...variant,
+          attributes,
+          useDefaultPrice: variant.price === null || variant.price === undefined,
+          price: variant.price ?? '',
+          stock: variant.stock ?? '',
+          images: Array.isArray(variant.images) ? variant.images : [],
+        };
+      }) || [],
+    isDiscountable: Boolean(product.isDiscountable),
+    discountPrice: product.discountPrice ?? '',
+    discountPercentage,
+  };
+};
+
+const ProductForm = ({ onClose, onSave, product }) => {
+  const [formData, setFormData] = useState(() => createInitialFormData(product));
 
   const [categories, setCategories] = useState([]);
   const [collections, setCollections] = useState([]);
@@ -68,6 +108,11 @@ const ProductForm = ({ onClose, onSave, product }) => {
   useEffect(() => {
     fetchMetadata();
   }, []);
+
+  useEffect(() => {
+    setFormData(createInitialFormData(product));
+    setStagedImages([]);
+  }, [product]);
 
   const fetchMetadata = async () => {
     try {

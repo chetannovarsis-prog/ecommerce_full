@@ -21,10 +21,115 @@ const OrderDetail = () => {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [shipment, setShipment] = useState(null);
+  const [shipLoading, setShipLoading] = useState(false);
+  const [labelLoading, setLabelLoading] = useState(false);
+  const [pickupLoading, setPickupLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   useEffect(() => {
     fetchOrder();
+    fetchShipment();
   }, [id]);
+
+  const fetchShipment = async () => {
+    try {
+      const res = await api.get(`/shipping/order/${id}`);
+      setShipment(res.data.shipment);
+    } catch {
+      setShipment(null);
+    }
+  };
+
+  const createShipment = async () => {
+    setShipLoading(true);
+    try {
+      const res = await api.post('/shipping/create', {
+        orderId: id,
+        address: {
+          name: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`,
+          phone: order.shippingAddress.phone,
+          line1: order.shippingAddress.address,
+          city: order.shippingAddress.city,
+          state: order.shippingAddress.state,
+          pincode: order.shippingAddress.pinCode,
+          country: 'IN'
+        },
+        items: order.items.map(i => ({ productId: i.productId, name: i.product?.name, quantity: i.quantity, price: i.price })),
+        totalAmount: order.totalAmount
+      });
+      setShipment(res.data.shipment);
+      alert('Shipment created successfully');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error creating shipment');
+    } finally {
+      setShipLoading(false);
+    }
+  };
+
+  const openLabel = async () => {
+    if (!shipment) return;
+
+    if (shipment.labelUrl) {
+      window.open(shipment.labelUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    setLabelLoading(true);
+    try {
+      const res = await api.get(`/shipping/label/${id}`);
+      const labelUrl = res.data.label_url || res.data.shipment?.labelUrl;
+
+      if (!labelUrl) {
+        throw new Error('Label URL is not available for this shipment');
+      }
+
+      setShipment(res.data.shipment || shipment);
+      window.open(labelUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      alert(error.response?.data?.message || error.message || 'Error downloading label');
+    } finally {
+      setLabelLoading(false);
+    }
+  };
+
+  const schedulePickup = async () => {
+    if (!shipment) return;
+
+    setPickupLoading(true);
+    try {
+      const res = await api.post('/shipping/schedule-pickup', {
+        orderId: id,
+        shipmentId: shipment.shipment_id,
+      });
+      setShipment(res.data.shipment || shipment);
+      alert('Pickup scheduled successfully');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error scheduling pickup');
+    } finally {
+      setPickupLoading(false);
+    }
+  };
+
+  const cancelShipment = async () => {
+    if (!shipment) return;
+
+    const confirmed = window.confirm('Cancel this shipment? This should only be used before pickup or dispatch.');
+    if (!confirmed) return;
+
+    setCancelLoading(true);
+    try {
+      await api.post('/shipping/cancel', {
+        shipmentId: shipment.shipment_id,
+      });
+      await fetchShipment();
+      alert('Shipment cancelled successfully');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error cancelling shipment');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   const fetchOrder = async () => {
     try {
@@ -68,13 +173,26 @@ const OrderDetail = () => {
     switch (status?.toLowerCase()) {
       case 'paid':
       case 'completed': return 'text-emerald-500 bg-emerald-500/10';
+      case 'awb_assigned':
+      case 'pickup_scheduled':
+      case 'picked':
+      case 'shipped': return 'text-blue-500 bg-blue-500/10';
       case 'pending':
       case 'processing': return 'text-amber-500 bg-amber-500/10';
       case 'cancelled':
       case 'failed': return 'text-red-500 bg-red-500/10';
+      case 'delivered': return 'text-emerald-600 bg-emerald-500/10';
       default: return 'text-gray-500 bg-gray-500/10';
     }
   };
+
+  const shipmentStatus = shipment?.status?.toUpperCase?.() || '';
+  const cancelDisabled =
+    !shipment ||
+    ['PICKED', 'SHIPPED', 'DELIVERED'].some((status) => shipmentStatus.includes(status)) ||
+    cancelLoading;
+  const orderStatusLabel = order?.status || 'PENDING';
+  const shippingStatusLabel = shipment?.status || 'NOT_CREATED';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pb-20">
@@ -89,17 +207,14 @@ const OrderDetail = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <select 
-            value={order.status}
-            onChange={(e) => updateStatus(e.target.value)}
-            className={`px-4 py-2 rounded-xl text-[0.6rem] font-black uppercase tracking-widest border-none focus:ring-2 focus:ring-black dark:focus:ring-white/20 transition-all ${getStatusColor(order.status)}`}
-          >
-            <option value="PENDING">Pending</option>
-            <option value="PAID">Paid</option>
-            <option value="SHIPPED">Shipped</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <span className={`px-4 py-2 rounded-xl text-[0.6rem] font-black uppercase tracking-widest ${getStatusColor(orderStatusLabel)}`}>
+              {orderStatusLabel}
+            </span>
+            <span className={`px-4 py-2 rounded-xl text-[0.6rem] font-black uppercase tracking-widest ${getStatusColor(shippingStatusLabel)}`}>
+              {shippingStatusLabel.replace(/_/g, ' ')}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -220,6 +335,78 @@ const OrderDetail = () => {
                   </div>
                </div>
             </div>
+          </div>
+
+          {/* Shipment Management Card */}
+          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl p-8 shadow-sm space-y-8">
+            <div className="flex items-center justify-between border-b dark:border-white/5 pb-4">
+              <h3 className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400">Shipping Management</h3>
+              <Truck size={16} className="text-gray-400" />
+            </div>
+
+            {shipment ? (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center bg-gray-50 dark:bg-white/5 p-4 rounded-2xl">
+                  <div>
+                    <p className="text-[0.55rem] text-gray-400 font-black uppercase tracking-widest leading-none mb-1">AWB / Tracking Number</p>
+                    <p className="text-sm font-black dark:text-white uppercase tracking-tighter">{shipment.awb}</p>
+                  </div>
+                  <span className="px-3 py-1 bg-blue-500/10 text-blue-500 text-[0.6rem] font-black rounded-lg uppercase tracking-widest">
+                    {shipment.status}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                   <p className="text-[0.55rem] text-gray-400 font-black uppercase tracking-widest ml-1">Courier Partner</p>
+                   <p className="text-xs font-bold dark:text-white ml-1">{shipment.courier || 'Standard Delivery'}</p>
+                </div>
+                <div className="grid gap-3">
+                  <button
+                    type="button"
+                    onClick={openLabel}
+                    disabled={labelLoading}
+                    className="block text-center py-3 bg-gray-100 dark:bg-white/5 dark:text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-all underline decoration-dotted underline-offset-4 disabled:opacity-50"
+                  >
+                    {labelLoading ? 'Preparing Label...' : 'Download Label'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={schedulePickup}
+                    disabled={pickupLoading}
+                    className="block text-center py-3 bg-blue-50 text-blue-600 rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-blue-100 transition-all disabled:opacity-50"
+                  >
+                    {pickupLoading ? 'Scheduling Pickup...' : 'Schedule Pickup'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelShipment}
+                    disabled={cancelDisabled}
+                    className="block text-center py-3 bg-red-50 text-red-600 rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {cancelLoading ? 'Cancelling Shipment...' : 'Cancel Shipment'}
+                  </button>
+                  {cancelDisabled && shipment && (
+                    <p className="text-[0.55rem] font-bold uppercase tracking-widest text-gray-400">
+                      Cancellation disabled after pickup, shipment, or delivery.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="p-6 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 rounded-2xl">
+                   <p className="text-[0.6rem] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-tight leading-relaxed">
+                     No shipment manifest found for this order. Generate a shipment to start tracking.
+                   </p>
+                </div>
+                <button 
+                  onClick={createShipment}
+                  disabled={shipLoading}
+                  className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50"
+                >
+                  {shipLoading ? 'Manifesting...' : 'Create Shipment'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Activity Timeline */}

@@ -101,18 +101,74 @@ export const useStore = create(
           ? allProducts.data
           : [];
 
-        const validIds = new Set(products.map((p) => String(p.id)));
+        const productMap = new Map(products.map((p) => [String(p.id), p]));
+        let changed = false;
 
-        const newCart = cart.filter((item) => validIds.has(String(item.id)));
-        const newWishlist = wishlist.filter((item) => validIds.has(String(item.id)));
+        // Sync Cart Items
+        const newCart = cart.map((item) => {
+          const latestProduct = productMap.get(String(item.id));
+          if (!latestProduct) {
+            changed = true;
+            return null; // Product no longer exists
+          }
 
-        if (newCart.length !== cart.length || newWishlist.length !== wishlist.length) {
+          let updatedItem = { ...item };
+          let itemChanged = false;
+
+          // Sync Name
+          if (item.name !== latestProduct.name) {
+            updatedItem.name = latestProduct.name;
+            itemChanged = true;
+          }
+
+          // Sync Variant and Price
+          const variants = latestProduct.variants || [];
+          let currentVariant = variants.find(v => String(v.id) === String(item.variantId));
+
+          // If variant ID not found, try matching by title (handles backend ID changes)
+          if (!currentVariant && item.variantTitle) {
+            const val = item.variantTitle;
+            currentVariant = variants.find(v => v.title === val);
+            if (currentVariant) {
+              updatedItem.variantId = currentVariant.id;
+              itemChanged = true;
+            }
+          }
+
+          const newPrice = currentVariant && currentVariant.price !== null && currentVariant.price !== undefined
+            ? currentVariant.price
+            : latestProduct.price;
+
+          if (Number(item.selectedPrice) !== Number(newPrice)) {
+            updatedItem.selectedPrice = newPrice;
+            itemChanged = true;
+          }
+
+          // Sync Images
+          const newSelectedImage = (currentVariant?.images?.[0]) || latestProduct.thumbnailUrl || latestProduct.images?.[0];
+          if (item.selectedImage !== newSelectedImage) {
+            updatedItem.selectedImage = newSelectedImage;
+            itemChanged = true;
+          }
+
+          if (itemChanged) {
+            changed = true;
+            return updatedItem;
+          }
+          return item;
+        }).filter(Boolean);
+
+        // Sync Wishlist (simplified, just check if product exists)
+        const newWishlist = wishlist.filter((item) => productMap.has(String(item.id)));
+        if (newWishlist.length !== wishlist.length) changed = true;
+
+        if (changed || newCart.length !== cart.length) {
           set({ cart: newCart, wishlist: newWishlist });
         }
       },
     }),
     {
-      name: 'vogue-store-storage',
+      name: 'gharofethnics-store-storage',
     }
   )
 );

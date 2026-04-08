@@ -81,9 +81,9 @@ export const Privacy = () => (
         personal information. This Privacy Policy explains how we collect, use, and safeguard your data when you
         visit our website or make a purchase.
       </p>
-      <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs">
+      {/* <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs">
         Effective Date: [Insert Date]
-      </p>
+      </p> */}
     </section>
 
     <section className="space-y-6">
@@ -162,7 +162,9 @@ export const Privacy = () => (
       <p className="text-gray-600 font-medium leading-relaxed">
         GHAR OF ETHNICS
       </p>
-      <p className="text-gray-600 font-medium leading-relaxed">Email: [Insert Email]</p>
+      <p className="text-gray-600 font-medium leading-relaxed">
+        Email: <a href="mailto:support@gharofethnics.com">support@gharofethnics.com</a>
+      </p>
       <p className="text-gray-600 font-medium leading-relaxed">Phone: +91 98456 34734</p>
       <p className="text-gray-600 font-medium leading-relaxed">
         Address: Ghar of Ethnics, 38, Booth no-127, 2nd Main Road, Ashwini Layout, Ejipura,

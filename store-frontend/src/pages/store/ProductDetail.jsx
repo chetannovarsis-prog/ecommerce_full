@@ -104,17 +104,20 @@ const ProductDetail = () => {
         const allProductsRes = await api.get('/products');
         const categoryIds = response.data.categoryIds || [];
 
-        const related = allProductsRes.data
-          .filter(p => (p.id !== response.data.id && (p.stock > 0 || p.quantity > 0)))
-          .sort((a, b) => {
-            const aInCat = a.categoryIds?.some(id => categoryIds.includes(id));
-            const bInCat = b.categoryIds?.some(id => categoryIds.includes(id));
-            if (aInCat && !bInCat) return -1;
-            if (!aInCat && bInCat) return 1;
-            return 0;
-          })
-          .slice(0, 4);
-        setRelatedProducts(related);
+        if (allProductsRes.data) {
+          const products = Array.isArray(allProductsRes.data) ? allProductsRes.data : (allProductsRes.data.data || []);
+          const related = products
+            .filter(p => (p.id !== response.data.id && (p.stock > 0 || p.quantity > 0)))
+            .sort((a, b) => {
+              const aInCat = a.categoryIds?.some(id => categoryIds.includes(id));
+              const bInCat = b.categoryIds?.some(id => categoryIds.includes(id));
+              if (aInCat && !bInCat) return -1;
+              if (!aInCat && bInCat) return 1;
+              return 0;
+            })
+            .slice(0, 4);
+          setRelatedProducts(related);
+        }
 
         // Fetch Reviews
         const reviewsRes = await api.get(`/reviews/product/${id}`);

@@ -9,19 +9,28 @@ const OrderSuccess = () => {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [shipment, setShipment] = useState(null);
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchData = async () => {
       try {
         const res = await api.get(`/orders/${id}`);
         setOrder(res.data);
+        
+        // Try fetching shipment
+        try {
+           const shipRes = await api.get(`/shipping/order/${id}`);
+           setShipment(shipRes.data.shipment);
+        } catch {
+           setShipment(null);
+        }
       } catch (err) {
         console.error('Error fetching order:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchOrder();
+    fetchData();
   }, [id]);
 
   if (loading) {
@@ -33,9 +42,12 @@ const OrderSuccess = () => {
   }
 
   const getStatusStep = () => {
-    switch (order?.status) {
+    const status = shipment?.status || order?.status;
+    switch (status) {
       case 'DELIVERED': return 3;
-      case 'SHIPPED': return 2;
+      case 'OUT_FOR_DELIVERY':
+      case 'SHIPPED': 
+      case 'IN_TRANSIT': return 2;
       default: return 1;
     }
   };

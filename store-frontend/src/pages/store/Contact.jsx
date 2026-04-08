@@ -48,26 +48,30 @@ const Contact = () => {
           {/* Info Side */}
           <div className="space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-              <div className="p-8 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-md">
-                <div className="w-12 h-12 bg-white mx-auto text-black rounded-full flex items-center justify-center shadow-xl">
-                  <Mail size={20} />
+              <a href="mailto:support@gharofethnics.com">
+                <div className="p-6 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-md">
+                  <div className="w-12 h-12 bg-white mx-auto text-black rounded-full flex items-center justify-center shadow-xl">
+                    <Mail size={20} />
+                  </div>
+                  <div className='text-center'>
+                    <h3 className="font-semibold text-gray-500">Email Us</h3>
+                    <p className="text-md font-semibold mt-1"> @gharofethnics.com</p>
+                  </div>
                 </div>
-                <div className='text-center'>
-                  <h3 className="font-semibold text-gray-500">Email Us</h3>
-                  <p className="text-md font-semibold mt-1">support@knittingknot.com</p>
+              </a>
+              <a href="tel:+919845634734" target="_blank" rel="noopener noreferrer">
+                <div className="p-6 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-md group">
+                  <div className="w-12 h-12 mx-auto bg-white text-black rounded-full flex items-center justify-center shadow-sm group-hover:shadow-xl group-hover:translate-y-[-1px] transition-all duration-700">
+                    <p ><Phone size={20} /></p>
+                  </div>
+                  <div className='flex-col items-center justify-center text-center gap-5'>
+                    <h3 className="font-semibold text-lg text-gray-500">Call Us....</h3>
+                    <p className="text-md font-semibold mt-1 inline-block h">
+                      +91 98456 34734
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="p-6 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-md group">
-                <div className="w-12 h-12 mx-auto bg-white text-black rounded-full flex items-center justify-center shadow-sm group-hover:shadow-xl group-hover:translate-y-[-1px] transition-all duration-700">
-                  <a href="tel:+919845634734" target="_blank" rel="noopener noreferrer"><Phone size={20} /></a>
-                </div>
-                <div className='flex-col items-center justify-center text-center gap-5'>
-                  <h3 className="font-semibold text-lg text-gray-500">Call Us....</h3>
-                  <a href="tel:+919845634734" target="_blank" rel="noopener noreferrer" className="text-md font-semibold mt-1 inline-block h">
-                    +91 98456 34734
-                  </a>
-                </div>
-              </div>
+              </a>
             </div>
 
             <div className="space-y-10">

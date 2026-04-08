@@ -148,7 +148,7 @@ const Profile = () => {
           {[
             { icon: <Package size={20} />, label: 'Order History', count: `${orders.length} Orders` },
             { icon: <MapPin size={20} />, label: 'Addresses', count: `${addresses.length} Saved` },
-            { icon: <Settings size={20} />, label: 'Preferences', count: 'Updated' }
+            // { icon: <Settings size={20} />, label: 'Preferences', count: 'Updated' }
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -166,8 +166,8 @@ const Profile = () => {
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-8">
           <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-black/5 overflow-hidden">
-            <div className="flex items-center justify-between p-10 pb-4 border-b">
-              <h2 className="text-xl font-black uppercase tracking-tight">Saved Addresses</h2>
+            <div className="flex items-center justify-center p-10 pb-4 border-b">
+              <h2 className=" text-lg font-bold  t">Saved Addresses</h2>
             </div>
 
             <div className="p-8 space-y-5">
@@ -197,14 +197,14 @@ const Profile = () => {
 
           <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-black/5 overflow-hidden">
             <div className="flex items-center justify-between p-10 pb-4 border-b">
-              <h2 className="text-xl font-black uppercase tracking-tight">Add Address</h2>
+              <h2 className="text-lg font-bold ">Add Address</h2>
               <button
                 type="button"
                 onClick={() => {
                   setShowAddressForm(prev => !prev);
                   setAddressMessage('');
                 }}
-                className="rounded-xl bg-black text-white px-5 py-3 text-[0.65rem] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all flex items-center gap-2"
+                className="rounded-full bg-black text-white px-5 py-3 text-sm font-semibold hover:bg-zinc-800 transition-all flex items-center gap-2"
               >
                 <Plus size={16} />
                 {showAddressForm ? 'Close' : 'Add Address'}
@@ -249,8 +249,8 @@ const Profile = () => {
         </div>
 
         <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-black/5 overflow-hidden">
-          <div className="flex items-center justify-between p-10 pb-4 border-b">
-            <h2 className="text-xl font-black uppercase tracking-tight">Recent Activity</h2>
+          <div className="flex items-center justify-center p-10 pb-4 border-b">
+            <h2 className="text-2xl font-bold">Recent Activity</h2>
           </div>
 
           <div className="divide-y divide-gray-50">
