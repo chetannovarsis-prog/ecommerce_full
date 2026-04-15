@@ -38,6 +38,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 function App() {
   const { syncStore } = useStore();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const whatsappMessage = encodeURIComponent('Hello, I would like to know more about your products.');
 
   if (!googleClientId) {
     console.warn("VITE_GOOGLE_CLIENT_ID is not defined in .env");
@@ -99,7 +100,7 @@ function App() {
 
           {/* WhatsApp Floating Button */}
           <a 
-            href="https://wa.me/919845634734" 
+            href={`https://wa.me/919845634734?text=${whatsappMessage}`} 
             target="_blank" 
             rel="noopener noreferrer"
             className="fixed bottom-28 md:bottom-10 right-6 md:right-10 z-[90] bg-[#25D366] text-white p-3.5 rounded-full shadow-[0_10px_40px_-10px_rgba(37,211,102,0.5)] hover:scale-110 transition-all duration-300 active:scale-95 group border-4 border-white"

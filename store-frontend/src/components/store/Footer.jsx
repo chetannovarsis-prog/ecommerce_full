@@ -14,6 +14,8 @@ const LotusMotif = ({ size = 14, color = '#e87825' }) => (
 );
 
 const Footer = () => {
+  const whatsappMessage = encodeURIComponent('Hello, I would like to know more about your products.');
+
   return (
     <footer
       className="relative overflow-hidden pt-20 pb-32 md:pb-10 bg-yellow-50"
@@ -112,7 +114,7 @@ const Footer = () => {
                 <TbBrandLinkedin size={16} className='group-hover/linkedin:rotate-[360deg] transition-all duration-500 '/>
               </a>
               <a
-                href="https://wa.me/919845634734"
+                href={`https://wa.me/919845634734?text=${whatsappMessage}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full flex items-center group/whatsapp justify-center border transition-all hover:scale-110"
