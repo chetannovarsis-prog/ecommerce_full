@@ -377,7 +377,7 @@ const SortableRow = ({ collection, index, onDelete, onNavigate }) => {
       </td>
       <td className="px-6 py-4 text-center">
         <span className="px-2 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[0.6rem] font-black rounded-lg">
-          {collection.products?.length || 0}
+          {collection.productsCount ?? collection.products?.length ?? 0}
         </span>
       </td>
       <td className="px-6 py-4 text-right">
