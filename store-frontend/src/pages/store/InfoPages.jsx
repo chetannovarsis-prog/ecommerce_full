@@ -98,7 +98,7 @@ export const Privacy = () => (
       <div className="space-y-4">
         <p className="text-gray-700 font-black uppercase tracking-wide">b. Non-Personal Information</p>
         <p className="text-gray-600 font-medium leading-relaxed">
-          Browser type, device information, IP address, and website usage data.
+          Browser type, device information, and website usage data.
         </p>
       </div>
     </section>
