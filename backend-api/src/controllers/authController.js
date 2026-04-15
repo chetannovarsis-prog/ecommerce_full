@@ -11,36 +11,28 @@ const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
 const sanitizeAddresses = (addresses) => {
   if (!Array.isArray(addresses)) return [];
 
-  return addresses
-    .map((address, index) => ({
-      id: address?.id || `addr_${Date.now()}_${index}`,
-      label: address?.label?.trim() || 'Saved Address',
-      firstName: address?.firstName?.trim() || '',
-      lastName: address?.lastName?.trim() || '',
-      email: address?.email?.trim()?.toLowerCase() || '',
-      address: address?.address?.trim() || '',
-      apartment: address?.apartment?.trim() || '',
-      city: address?.city?.trim() || '',
-      state: address?.state?.trim() || '',
-      pinCode: String(address?.pinCode || '').trim(),
-      phone: String(address?.phone || '').trim(),
-    }))
-    .filter(address =>
-      address.firstName &&
-      address.lastName &&
-      address.address &&
-      address.city &&
-      address.state &&
-      address.pinCode &&
-      address.phone
-    );
+  return addresses.map((addr) => ({
+    id: addr.id,
+    label: addr.label || 'Saved Address',
+    firstName: addr.name?.split(' ')[0] || '',
+    lastName: addr.name?.split(' ').slice(1).join(' ') || '',
+    name: addr.name,
+    address: addr.addressLine1, // For frontend compatibility if needed
+    addressLine1: addr.addressLine1,
+    addressLine2: addr.addressLine2,
+    city: addr.city,
+    state: addr.state,
+    pinCode: addr.pincode,
+    pincode: addr.pincode,
+    phone: addr.phone,
+  }));
 };
 
 const serializeCustomer = (customer) => ({
   id: customer.id,
   name: customer.name,
   email: customer.email,
-  addresses: sanitizeAddresses(customer.addresses)
+  addresses: sanitizeAddresses(customer.addresses || [])
 });
 // Setup nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -209,7 +201,8 @@ export const customerSignup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const customer = await prisma.customer.create({
-      data: { name, email, password: hashedPassword, provider: 'local' }
+      data: { name, email, password: hashedPassword, provider: 'local' },
+      include: { addresses: true }
     });
 
     res.status(201).json({ success: true, customer: serializeCustomer(customer) });
@@ -259,7 +252,8 @@ export const customerLogin = async (req, res) => {
     );
 
     const refreshedCustomer = await prisma.customer.findUnique({
-      where: { id: customer.id }
+      where: { id: customer.id },
+      include: { addresses: true }
     });
 
     res.json({ success: true, customer: serializeCustomer(refreshedCustomer || customer), token });
@@ -326,7 +320,14 @@ export const googleLogin = async (req, res) => {
           email,
           name: name || 'Google User',
           provider: 'google'
-        }
+        },
+        include: { addresses: true }
+      });
+    } else {
+      // Ensure addresses are included for returning customer
+      customer = await prisma.customer.findUnique({
+        where: { id: customer.id },
+        include: { addresses: true }
       });
     }
 
@@ -352,7 +353,8 @@ export const googleLogin = async (req, res) => {
 export const getCustomerProfile = async (req, res) => {
   try {
     const customer = await prisma.customer.findUnique({
-      where: { id: req.params.customerId }
+      where: { id: req.params.customerId },
+      include: { addresses: true }
     });
 
     if (!customer) {
@@ -366,20 +368,49 @@ export const getCustomerProfile = async (req, res) => {
 };
 
 export const updateCustomerAddresses = async (req, res) => {
-  try {
-    const sanitizedAddresses = sanitizeAddresses(req.body.addresses);
+  const { customerId } = req.params;
+  const { addresses } = req.body;
 
-    const customer = await prisma.customer.update({
-      where: { id: req.params.customerId },
-      data: { addresses: sanitizedAddresses }
+  try {
+    // We use a transaction to ensure atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Delete all existing addresses for this customer
+      await tx.address.deleteMany({
+        where: { customerId }
+      });
+
+      // 2. Create new addresses
+      if (Array.isArray(addresses) && addresses.length > 0) {
+        const dataToCreate = addresses.map(addr => ({
+          customerId,
+          name: addr.name || `${addr.firstName || ''} ${addr.lastName || ''}`.trim() || 'Saved Address',
+          phone: String(addr.phone || ''),
+          addressLine1: addr.address || addr.addressLine1 || '',
+          addressLine2: addr.apartment || addr.addressLine2 || '',
+          city: addr.city || '',
+          state: addr.state || '',
+          pincode: String(addr.pinCode || addr.pincode || ''),
+        }));
+
+        await tx.address.createMany({
+          data: dataToCreate
+        });
+      }
+
+      // 3. Return updated customer with addresses
+      return await tx.customer.findUnique({
+        where: { id: customerId },
+        include: { addresses: true }
+      });
     });
 
     return res.json({
       success: true,
-      customer: serializeCustomer(customer),
+      customer: serializeCustomer(result),
       message: 'Addresses updated successfully'
     });
   } catch (error) {
+    console.error('Update addresses error:', error);
     return res.status(500).json({ error: error.message });
   }
 };

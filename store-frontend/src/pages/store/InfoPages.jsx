@@ -165,7 +165,7 @@ export const Privacy = () => (
       <p className="text-gray-600 font-medium leading-relaxed">
         Email: <a href="mailto:support@gharofethnics.com">support@gharofethnics.com</a>
       </p>
-      <p className="text-gray-600 font-medium leading-relaxed">Phone: +91 98456 34734</p>
+      <p className="text-gray-600 font-medium leading-relaxed">Phone: <a href="tel:+919845634734">+91 98456 34734</a></p>
       <p className="text-gray-600 font-medium leading-relaxed">
         Address: Ghar of Ethnics, 38, Booth no-127, 2nd Main Road, Ashwini Layout, Ejipura,
         Koramangala, Bangalore-560047

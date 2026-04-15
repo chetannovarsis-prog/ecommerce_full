@@ -339,7 +339,12 @@ export const createShipment = async (orderData) => {
   const awb = awbData.awb_code || awbData.awb || null;
 
   if (!awb) {
-    const error = new Error('Shiprocket did not return an AWB after courier assignment');
+    const error = new Error(
+      awbResponse?.message ||
+        awbData?.awb_assign_error ||
+        awbResponse?.response?.message ||
+        'Shiprocket did not return an AWB after courier assignment'
+    );
     error.statusCode = 502;
     error.details = awbResponse;
     throw error;

@@ -19,7 +19,7 @@ import {
   LogOut,
   MoreVertical,
   TrendingUp,
-  Image as ImageIcon
+  TicketPercent,
 } from 'lucide-react';
 
 import { useTheme } from '../context/ThemeContext';
@@ -101,12 +101,6 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
           {!isCollapsed && <span className="text-[0.8rem] font-bold">Collections</span>}
         </NavLink>
 
-        <NavLink to="/banners" className={({isActive}) => `flex items-center p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl shadow-black/10 active:scale-95' : ''} ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-          <ImageIcon size={18} /> 
-          {!isCollapsed && <span className="text-[0.8rem] font-bold">Banners</span>}
-        </NavLink>
-
-        
         <NavLink to="/customers" className={({isActive}) => `flex items-center p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl shadow-black/10 active:scale-95' : ''} ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           <Users size={18} /> 
           {!isCollapsed && <span className="text-[0.8rem] font-bold">Customers</span>}
@@ -115,6 +109,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar }) => {
         <NavLink to="/messages" className={({isActive}) => `flex items-center p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl shadow-black/10 active:scale-95' : ''} ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           <Mail size={18} /> 
           {!isCollapsed && <span className="text-[0.8rem] font-bold">Messages</span>}
+        </NavLink>
+
+        <NavLink to="/coupons" className={({isActive}) => `flex items-center p-2.5 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl shadow-black/10 active:scale-95' : ''} ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+          <TicketPercent size={18} />
+          {!isCollapsed && <span className="text-[0.8rem] font-bold">Coupons</span>}
         </NavLink>
 
 

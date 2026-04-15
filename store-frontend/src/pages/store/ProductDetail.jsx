@@ -212,6 +212,10 @@ const ProductDetail = () => {
   const sellingPrice = (selectedVariant?.price !== null && selectedVariant?.price !== undefined) 
     ? selectedVariant.price 
     : (product.price || 0);
+  const stockCount = selectedVariant
+    ? Number(selectedVariant.stock ?? selectedVariant.quantity ?? 0)
+    : Number(product.stock ?? product.quantity ?? 0);
+  const isOutOfStock = stockCount <= 0;
 
   const handleNextImage = () => {
     const currentIdx = allImages.indexOf(activeImage);
@@ -352,20 +356,6 @@ const ProductDetail = () => {
                   />
                 </AnimatePresence>
                 
-                {/* Arrow Controls */}
-                <button 
-                  onClick={handlePrevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100 z-10"
-                >
-                  <LeftIcon size={20} />
-                </button>
-                <button 
-                  onClick={handleNextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all opacity-100 lg:opacity-0 lg:group-hover:opacity-100 z-10"
-                >
-                  <RightIcon size={20} />
-                </button>
-
                 <button 
                   onClick={() => setIsFullscreenOpen(true)}
                   className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all z-10"
@@ -424,26 +414,16 @@ const ProductDetail = () => {
 
               {/* Stock Meter */}
                <div className="space-y-3 pt-4">
-                 {(() => {
-                   const stockCount = selectedVariant 
-                     ? (parseFloat(selectedVariant.stock) || parseFloat(selectedVariant.quantity) || 0)
-                     : (parseFloat(product.stock) || parseFloat(product.quantity) || 0);
-                   
-                   return (
-                     <>
-                       <div className={`flex items-center gap-2 text-sm font-black italic ${stockCount > 0 ? 'text-[#22c55e]' : 'text-red-500'}`}>
-                         <Zap size={18} className="fill-current" />
-                         {stockCount > 0 ? `${stockCount} items left in stock` : 'Out of stock'}
-                       </div>
-                       <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all duration-1000 ${stockCount > 0 ? 'bg-[#22c55e]' : 'bg-red-500'}`} 
-                            style={{ width: `${Math.min((stockCount / 20) * 100, 100)}%` }}
-                          ></div>
-                       </div>
-                     </>
-                   );
-                 })()}
+                 <div className={`flex items-center gap-2 text-sm font-black italic ${stockCount > 0 ? 'text-[#22c55e]' : 'text-red-500'}`}>
+                   <Zap size={18} className="fill-current" />
+                   {stockCount > 0 ? `${stockCount} items left in stock` : 'Out of stock'}
+                 </div>
+                 <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-1000 ${stockCount > 0 ? 'bg-[#22c55e]' : 'bg-red-500'}`} 
+                      style={{ width: `${Math.min((stockCount / 20) * 100, 100)}%` }}
+                    ></div>
+                 </div>
                </div>
 
               <p className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-widest pt-2">Inclusive of all taxes</p>
@@ -547,23 +527,26 @@ const ProductDetail = () => {
             <div className="pt-8 space-y-4">
                <div className="flex gap-4">
                   <div className="flex items-center bg-white border border-black/10 rounded-lg overflow-hidden">
-                    <button onClick={() => quantity > 1 && setQuantity(prev => prev - 1)} className="p-4 hover:bg-gray-50"><Minus size={16} /></button>
+                    <button onClick={() => quantity > 1 && setQuantity(prev => prev - 1)} className="p-4 hover:bg-gray-50 disabled:opacity-40" disabled={quantity <= 1}><Minus size={16} /></button>
                     <span className="w-12 text-center font-black">{quantity}</span>
-                    <button onClick={() => setQuantity(prev => prev + 1)} className="p-4 hover:bg-gray-50"><Plus size={16} /></button>
+                    <button onClick={() => !isOutOfStock && quantity < stockCount && setQuantity(prev => prev + 1)} className="p-4 hover:bg-gray-50 disabled:opacity-40" disabled={isOutOfStock || quantity >= stockCount}><Plus size={16} /></button>
                   </div>
                   <button 
+                    disabled={isOutOfStock}
                     onClick={() => addToCart(product, selectedVariant, quantity)}
-                    className="flex-1 bg-[#1a1a1a] text-white py-5 rounded-lg text-sm font-black uppercase tracking-widest hover:bg-black transition-all active:scale-[0.98]"
+                    className={`flex-1 py-5 rounded-lg text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#1a1a1a] text-white hover:bg-black'}`}
                   >
-                    ADD TO CART
+                    {isOutOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}
                   </button>
                </div>
                <button 
+                disabled={isOutOfStock}
                 onClick={() => {
                   addToCart(product, selectedVariant, quantity);
+                  if (isOutOfStock) return;
                   navigate('/checkout');
                 }}
-                className="w-full bg-[#dab352] text-white py-5 rounded-lg text-sm font-black uppercase tracking-widest hover:bg-[#c9a241] transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                className={`w-full py-5 rounded-lg text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isOutOfStock ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#dab352] text-white hover:bg-[#c9a241]'}`}
               >
                 ORDER NOW <RightIcon size={18} />
               </button>

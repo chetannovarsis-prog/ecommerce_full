@@ -16,6 +16,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useParams } from 'react-router-dom';
 
+const isUuid = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+const formatCollectionTitle = (value = '') =>
+  value
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
 const Products = () => {
   const { id: collectionId } = useParams();
   const [products, setProducts] = useState([]);
@@ -44,7 +52,12 @@ const Products = () => {
       try {
         // Fetch products and optionally collection info
         const [prodRes, collRes] = await Promise.allSettled([
-          api.get('/products'),
+          api.get('/products', {
+            params: {
+              limit: 100,
+              ...(collectionId && collectionId !== 'all' ? { collectionId } : {})
+            }
+          }),
           collectionId && collectionId !== 'all' ? api.get(`/collections/${collectionId}`) : Promise.resolve({ data: null })
         ]);
 
@@ -59,12 +72,23 @@ const Products = () => {
         let collectionData = null;
 
         if (collectionId && collectionId !== 'all') {
-          filtered = allProducts.filter(p =>
-            p.collectionId === collectionId || p.collections?.some(c => c.id === collectionId)
-          );
           if (collRes.status === 'fulfilled') {
             collectionData = collRes.value.data;
           }
+
+          if (!collectionData?.name) {
+            const fallbackCollection = allProducts
+              .flatMap((product) => product.collections || [])
+              .find((item) => item?.id === collectionId);
+
+            if (fallbackCollection) {
+              collectionData = fallbackCollection;
+            }
+          }
+        }
+
+        if (!collectionData?.name && collectionId && collectionId !== 'all' && !isUuid(collectionId)) {
+          collectionData = { id: collectionId, name: formatCollectionTitle(collectionId) };
         }
 
         setCollection(collectionId && collectionId !== 'all' ? collectionData : null);

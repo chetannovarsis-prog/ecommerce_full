@@ -60,23 +60,54 @@ export const validateAddress = async (req, res) => {
 };
 
 export const saveAddress = async (req, res) => {
-    // This can be used for persistent storage after checkout completes 
-    // or when a user saves to profile
-    try {
-        const { id: customerId } = req.user; // Assuming auth middleware
-        const addressData = req.body;
+  try {
+    const { id: customerId } = req.user; // Assuming auth middleware
+    const { 
+      name, 
+      firstName, 
+      lastName, 
+      phone, 
+      address, 
+      addressLine1, 
+      apartment, 
+      addressLine2, 
+      city, 
+      state, 
+      pinCode, 
+      pincode 
+    } = req.body;
 
-        const address = await prisma.address.create({
-            data: {
-                ...addressData,
-                customerId,
-                city: normalizeString(addressData.city),
-                state: normalizeString(addressData.state),
-            }
-        });
+    const addressToSave = {
+      customerId,
+      name: name || `${firstName || ''} ${lastName || ''}`.trim() || 'Saved Address',
+      phone: String(phone || ''),
+      addressLine1: addressLine1 || address || '',
+      addressLine2: addressLine2 || apartment || '',
+      city: normalizeString(city || ''),
+      state: normalizeString(state || ''),
+      pincode: String(pincode || pinCode || ''),
+    };
 
-        res.status(201).json({ success: true, address });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    // Duplicate check
+    const existing = await prisma.address.findFirst({
+      where: {
+        customerId,
+        addressLine1: { equals: addressToSave.addressLine1, mode: 'insensitive' },
+        city: { equals: addressToSave.city, mode: 'insensitive' },
+        pincode: addressToSave.pincode
+      }
+    });
+
+    if (existing) {
+      return res.status(200).json({ success: true, message: 'Address already saved.', address: existing });
     }
-}
+
+    const addressResult = await prisma.address.create({
+      data: addressToSave
+    });
+
+    res.status(201).json({ success: true, address: addressResult });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

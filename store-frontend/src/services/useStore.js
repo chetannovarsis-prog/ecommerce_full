@@ -7,6 +7,7 @@ export const useStore = create(
       cart: [],
       wishlist: [],
       toast: null,
+      appliedCoupon: null,
 
       showToast: (message, type = 'success') => {
         set({ toast: { message, type, id: Date.now() } });
@@ -17,6 +18,14 @@ export const useStore = create(
       },
 
       addToCart: (product, variant = null, quantity = 1) => {
+        const availableStock =
+          variant?.stock ?? variant?.quantity ?? product?.stock ?? product?.quantity ?? 0;
+
+        if (Number(availableStock) <= 0) {
+          get().showToast('This product is out of stock', 'error');
+          return;
+        }
+
         const customer = localStorage.getItem('customer');
         if (!customer) {
           get().showToast('Please login to add to cart', 'error');
@@ -91,7 +100,11 @@ export const useStore = create(
         }
       },
 
-      clearCart: () => set({ cart: [] }),
+      applyCoupon: (coupon) => set({ appliedCoupon: coupon }),
+
+      clearCoupon: () => set({ appliedCoupon: null }),
+
+      clearCart: () => set({ cart: [], appliedCoupon: null }),
 
       syncStore: (allProducts) => {
         const { cart, wishlist } = get();

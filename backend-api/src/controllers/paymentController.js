@@ -1,6 +1,7 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
+import { logActivity } from '../services/activityService.js';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -27,6 +28,7 @@ const normalizeAddressForSave = (shippingAddress = {}, customerName = '', custom
 });
 
 export const createRazorpayOrder = async (req, res) => {
+  console.log("BODY:", req.body);
   const {
     amount,
     currency = 'INR',
@@ -38,7 +40,7 @@ export const createRazorpayOrder = async (req, res) => {
     paymentMethod,
     shippingAddress
   } = req.body;
-  
+
   console.log('--- CREATING ORDER ---');
   console.log('Body:', { amount, currency, receipt, customerId, customerEmail, paymentMethod });
   console.log('Items Count:', items?.length);
@@ -46,7 +48,7 @@ export const createRazorpayOrder = async (req, res) => {
   try {
     let razorpayOrder = null;
     let resolvedCustomerId = null;
-    
+
     // Only create Razorpay order if it's not COD
     if (paymentMethod !== 'cod') {
       const options = {
@@ -86,7 +88,9 @@ export const createRazorpayOrder = async (req, res) => {
       data: {
         totalAmount: amount,
         status: paymentMethod === 'cod' ? 'COD_PENDING' : 'PENDING',
-        customerId: resolvedCustomerId,
+        customer: resolvedCustomerId
+          ? { connect: { id: resolvedCustomerId } }
+          : undefined,
         razorpayOrderId: razorpayOrder ? razorpayOrder.id : null,
         paymentMethod: paymentMethod,
         shippingAddress: {
@@ -109,35 +113,54 @@ export const createRazorpayOrder = async (req, res) => {
     });
     console.log('Database Order Created:', order.id);
 
-    // Save address to customer profile relational table
+    // Log activity
+    // Log activity
+    await logActivity(
+      order.id,
+      paymentMethod === 'cod' ? 'ORDER_PLACED_COD' : 'ORDER_PLACED_PENDING',
+      `Order placed successfully via ${paymentMethod.toUpperCase()}.`
+    );
+
+    // Save address to customer profile relational table if user is logged in
     if (resolvedCustomerId && shippingAddress) {
       try {
-        const nextAddress = {
-          name: [shippingAddress.firstName, shippingAddress.lastName].filter(Boolean).join(' ') || customerName || 'Default',
-          phone: shippingAddress.phone || '',
-          addressLine1: shippingAddress.address || '',
-          addressLine2: shippingAddress.apartment || '',
+        const addressToSave = {
+          name: shippingAddress.fullName ||
+            [shippingAddress.firstName, shippingAddress.lastName].filter(Boolean).join(' ') ||
+            customerName || 'Default Name',
+          phone: String(shippingAddress.phone || ''),
+          addressLine1: shippingAddress.address || shippingAddress.addressLine1 || '',
+          addressLine2: shippingAddress.apartment || shippingAddress.addressLine2 || '',
           city: shippingAddress.city || '',
           state: shippingAddress.state || '',
-          pincode: String(shippingAddress.pinCode || ''),
+          pincode: String(shippingAddress.pinCode || shippingAddress.pincode || ''),
         };
 
-        // Check if this exact address already exists for this customer
-        const existingAddress = await prisma.address.findFirst({
-          where: {
-            customerId: resolvedCustomerId,
-            addressLine1: nextAddress.addressLine1,
-            pincode: nextAddress.pincode,
-          }
-        });
-
-        if (!existingAddress) {
-          await prisma.address.create({
-            data: {
-              ...nextAddress,
-              customerId: resolvedCustomerId
+        // Validate minimal required fields before attempting save
+        if (addressToSave.addressLine1 && addressToSave.city && addressToSave.pincode) {
+          // Check if this exact address already exists for this customer to avoid duplicates
+          const existingAddress = await prisma.address.findFirst({
+            where: {
+              customerId: resolvedCustomerId,
+              addressLine1: { equals: addressToSave.addressLine1, mode: 'insensitive' },
+              city: { equals: addressToSave.city, mode: 'insensitive' },
+              pincode: addressToSave.pincode,
             }
           });
+
+          if (!existingAddress) {
+            console.log(`Saving new address for customer ${resolvedCustomerId}: ${addressToSave.addressLine1}`);
+            await prisma.address.create({
+              data: {
+                ...addressToSave,
+                customerId: resolvedCustomerId
+              }
+            });
+          } else {
+            console.log(`Address already exists for customer ${resolvedCustomerId}, skipping save.`);
+          }
+        } else {
+          console.warn('Skipping address save: missing required fields', addressToSave);
         }
       } catch (err) {
         console.error('Failed to save address to profile:', err.message);
@@ -178,12 +201,18 @@ export const verifyPayment = async (req, res) => {
         }
       });
 
+      await logActivity(
+        order.id,
+        'ORDER_PLACED',
+        'Order placed successfully'
+      );
+
       // Track the sale
       const orderItems = await prisma.orderItem.findMany({
         where: { orderId: order.id }
       });
 
-      await Promise.all(orderItems.map(item => 
+      await Promise.all(orderItems.map(item =>
         prisma.sale.create({
           data: {
             productId: item.productId,

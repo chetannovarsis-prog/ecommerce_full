@@ -411,29 +411,33 @@ const OrderDetail = () => {
 
           {/* Activity Timeline */}
           <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl p-8 shadow-sm">
-             <h3 className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400 border-b dark:border-white/5 pb-4 mb-8">Activity</h3>
+             <h3 className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400 border-b dark:border-white/5 pb-4 mb-8">Activity Log</h3>
              <div className="space-y-10 relative">
-                <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-100 dark:bg-white/5"></div>
-                
-                <div className="relative flex gap-6">
-                   <div className="w-8 h-8 rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/20 flex items-center justify-center shrink-0 z-10">
-                      <CheckCircle2 size={16} className="text-white" />
-                   </div>
-                   <div className="space-y-1">
-                      <p className="text-xs font-black dark:text-white uppercase tracking-tight">{order.status}</p>
-                      <p className="text-[0.55rem] text-gray-400 font-bold uppercase tracking-widest">Recently updated</p>
-                   </div>
-                </div>
-
-                <div className="relative flex gap-6">
-                   <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center shrink-0 z-10">
-                      <Clock size={16} className="text-gray-400" />
-                   </div>
-                   <div className="space-y-1">
-                      <p className="text-xs font-black dark:text-white uppercase tracking-tight">Order Placed</p>
-                      <p className="text-[0.55rem] text-gray-400 font-bold uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString()}</p>
-                   </div>
-                </div>
+                {(order.activities && order.activities.length > 0) ? (
+                  <>
+                    <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-100 dark:bg-white/5"></div>
+                    {order.activities.map((activity, idx) => (
+                      <div key={activity.id} className="relative flex gap-6">
+                        <div className={`w-8 h-8 rounded-full ${idx === 0 ? 'bg-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-gray-100 dark:bg-white/5'} flex items-center justify-center shrink-0 z-10 transition-transform hover:scale-110`}>
+                          {idx === 0 ? (
+                            <CheckCircle2 size={16} className="text-white" />
+                          ) : (
+                            <Clock size={16} className="text-gray-400" />
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs font-black dark:text-white uppercase tracking-tight">{activity.status.replace(/_/g, ' ')}</p>
+                          <p className="text-[0.6rem] text-gray-500 dark:text-gray-400 leading-relaxed font-bold">{activity.message}</p>
+                          <p className="text-[0.5rem] text-gray-400 font-bold uppercase tracking-widest">{new Date(activity.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest">No detailed activity found</p>
+                  </div>
+                )}
              </div>
           </div>
         </div>

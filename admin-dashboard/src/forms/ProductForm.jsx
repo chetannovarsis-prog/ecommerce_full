@@ -12,6 +12,10 @@ const createInitialFormData = (product) => {
       description: '',
       price: '',
       stock: '',
+      weight: '',
+      length: '',
+      breadth: '',
+      height: '',
       categoryIds: [],
       collectionIds: [],
       images: [],
@@ -40,6 +44,10 @@ const createInitialFormData = (product) => {
     description: product.description ?? '',
     price: product.price ?? '',
     stock: product.stock ?? '',
+    weight: product.weight ?? '',
+    length: product.length ?? '',
+    breadth: product.breadth ?? '',
+    height: product.height ?? '',
     categoryIds: product.categories?.map((category) => category.id) || [],
     collectionIds: product.collections?.map((collection) => collection.id) || [],
     images: Array.isArray(product.images) ? product.images : [],
@@ -492,6 +500,56 @@ const ProductForm = ({ onClose, onSave, product }) => {
                   </div>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gray-100 text-gray-700 rounded-lg shadow-sm">
+                  <Package size={16} />
+                </div>
+                <h3 className="text-sm font-black text-zinc-900 uppercase tracking-widest">Shipping Details</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Weight (kg)"
+                  className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
+                  value={formData.weight}
+                  onChange={e => setFormData({ ...formData, weight: e.target.value })}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Length (cm)"
+                  className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
+                  value={formData.length}
+                  onChange={e => setFormData({ ...formData, length: e.target.value })}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Breadth (cm)"
+                  className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
+                  value={formData.breadth}
+                  onChange={e => setFormData({ ...formData, breadth: e.target.value })}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Height (cm)"
+                  className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all"
+                  value={formData.height}
+                  onChange={e => setFormData({ ...formData, height: e.target.value })}
+                />
+              </div>
+              <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest">
+                Optional values used for shipping and courier calculations.
+              </p>
             </div>
 
             <div className="space-y-2">

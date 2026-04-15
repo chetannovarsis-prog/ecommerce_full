@@ -281,7 +281,7 @@ const BulkVariantModal = ({ product, mediaAssets, onClose, onGenerate, mode = 'c
                                  <input 
                                    type="number" 
                                    min="0"
-                                   value={colorPrices[color.name]?.price || ''}
+                                   value={colorPrices[color.name]?.price ?? ''}
                                    onChange={(e) => {
                                      setColorPrices({
                                        ...colorPrices,
@@ -347,7 +347,7 @@ const BulkVariantModal = ({ product, mediaAssets, onClose, onGenerate, mode = 'c
                               <input 
                                 type="number" 
                                 min="0"
-                                value={variantMatrix[`${color.name}-${size}`] || ''}
+                                value={variantMatrix[`${color.name}-${size}`] ?? ''}
                                 onChange={(e) => handleStockChange(color.name, size, e.target.value)}
                                 className="w-full bg-gray-50/50 border border-transparent rounded-xl px-4 py-3 text-xs font-black text-center focus:bg-white focus:border-black focus:shadow-lg transition-all outline-none"
                               />

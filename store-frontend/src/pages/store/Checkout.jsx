@@ -4,9 +4,8 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
 import api from '../../utils/api';
-
 import { useStore } from '../../services/useStore';
-import { ChevronLeft, Info, Truck, CreditCard, CheckCircle2, Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 
 const normalizeIndianPhone = (value = '') => {
   const digits = String(value).replace(/\D/g, '');
@@ -16,7 +15,6 @@ const normalizeIndianPhone = (value = '') => {
   return digits;
 };
 
-// --- Validation Schema ---
 const validationSchema = Yup.object({
   email: Yup.string().email('Invalid email format').required('Email is required'),
   firstName: Yup.string().min(3, 'First name too short').required('First name is required'),
@@ -47,7 +45,7 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
         try {
           const response = await axios.get(`https://api.postalpincode.in/pincode/${pinCode}`);
           const data = response.data?.[0];
-          
+
           if (data && data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
             const { District, State } = data.PostOffice[0];
             setFieldValue('city', District);
@@ -75,16 +73,17 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
 };
 
 const Checkout = () => {
-  const { cart, clearCart } = useStore();
+  const { cart, clearCart, appliedCoupon } = useStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(null);
   const [codEnabled, setCodEnabled] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
-  const [selectedAddressId, setSelectedAddressId] = useState('');
 
-  const subtotal = cart.reduce((acc, item) => acc + (item.selectedPrice * item.quantity), 0);
+  const subtotal = cart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0);
+  const couponDiscount = appliedCoupon ? Math.round((subtotal * appliedCoupon.percentage) * 100) / 10000 : 0;
+  const discountedSubtotal = subtotal - couponDiscount;
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -95,6 +94,7 @@ const Checkout = () => {
         console.error('Failed to fetch settings:', err);
       }
     };
+
     fetchSettings();
 
     const savedCustomer = JSON.parse(localStorage.getItem('customer') || 'null');
@@ -115,15 +115,14 @@ const Checkout = () => {
     }
   };
 
-  const loadScript = (src) => {
-    return new Promise((resolve) => {
+  const loadScript = (src) =>
+    new Promise((resolve) => {
       const script = document.createElement('script');
       script.src = src;
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
     });
-  };
 
   const handlePayment = async (values) => {
     setLoading(true);
@@ -131,7 +130,6 @@ const Checkout = () => {
     try {
       const normalizedPhone = normalizeIndianPhone(values.phone);
 
-      // 1. Backend Validation
       const backendVal = await api.post('/address/validate', {
         ...values,
         phone: normalizedPhone,
@@ -148,13 +146,13 @@ const Checkout = () => {
       }
 
       const shippingCharge = values.paymentMethod === 'cod' ? 70 : 0;
-      const totalAmount = subtotal + shippingCharge;
+      const totalAmount = discountedSubtotal + shippingCharge;
 
       const orderData = {
         amount: totalAmount,
         currency: 'INR',
         receipt: `receipt_${Date.now()}`,
-        items: cart.map(item => ({
+        items: cart.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
           price: item.selectedPrice
@@ -163,9 +161,11 @@ const Checkout = () => {
         customerEmail: values.email || customer?.email || '',
         customerName: `${values.firstName} ${values.lastName}`.trim() || customer?.name || '',
         paymentMethod: values.paymentMethod,
+        couponCode: appliedCoupon?.code || null,
+        couponDiscount,
         shippingAddress: {
           ...values,
-          phone: normalizedPhone,
+          phone: normalizedPhone
         }
       };
 
@@ -197,7 +197,7 @@ const Checkout = () => {
             await api.post('/payments/verify', {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
+              razorpay_signature: response.razorpay_signature
             });
             clearCart();
             navigate(`/order-success/${order.orderId}`);
@@ -211,7 +211,7 @@ const Checkout = () => {
           email: values.email,
           contact: normalizedPhone
         },
-        theme: { color: '#1a2d5a' },
+        theme: { color: '#1a2d5a' }
       };
 
       const paymentObject = new window.Razorpay(options);
@@ -259,9 +259,10 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen italic-none pt-32 pb-20 relative overflow-hidden" 
-      style={{ background: 'linear-gradient(135deg, #fdf7f0 0%, #fef9f4 50%, #fdf0e8 100%)' }}>
-      
+    <div
+      className="min-h-screen italic-none pt-32 pb-20 relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #fdf7f0 0%, #fef9f4 50%, #fdf0e8 100%)' }}
+    >
       <Formik
         initialValues={initialValues}
         validationSchema={validationSchema}
@@ -282,30 +283,28 @@ const Checkout = () => {
                   </nav>
                 </header>
 
-                {/* Contact Section */}
                 <section className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h2 className="text-lg font-black tracking-tight">Contact</h2>
                     {!customer && <button onClick={() => navigate('/login')} className="text-[0.65rem] font-bold underline">Sign in</button>}
                   </div>
                   <div className="space-y-2">
-                    <Field 
-                      name="email" 
-                      placeholder="Email" 
-                      className={`w-full p-4 border rounded-sm text-sm outline-none ${touched.email && errors.email ? 'border-red-500 bg-red-50/40' : 'border-gray-200'}`} 
+                    <Field
+                      name="email"
+                      placeholder="Email"
+                      className={`w-full p-4 border rounded-sm text-sm outline-none ${touched.email && errors.email ? 'border-red-500 bg-red-50/40' : 'border-gray-200'}`}
                     />
                     <ErrorMessage name="email" component="p" className="text-[0.65rem] text-red-600 font-bold uppercase" />
                   </div>
                 </section>
 
-                {/* Delivery Section */}
                 <section className="space-y-6">
                   <h2 className="text-lg font-black tracking-tight">Delivery</h2>
                   <div className="space-y-4">
                     {savedAddresses.length > 0 && (
-                      <select 
+                      <select
                         onChange={(e) => {
-                          const addr = savedAddresses.find(a => a.id === e.target.value);
+                          const addr = savedAddresses.find((a) => a.id === e.target.value);
                           if (addr) {
                             setFieldValue('firstName', addr.name?.split(' ')[0] || '');
                             setFieldValue('lastName', addr.name?.split(' ').slice(1).join(' ') || '');
@@ -319,7 +318,7 @@ const Checkout = () => {
                         className="w-full p-4 border border-gray-200 rounded-sm text-sm"
                       >
                         <option value="">Use a saved address</option>
-                        {savedAddresses.map(a => <option key={a.id} value={a.id}>{a.addressLine1}, {a.city}</option>)}
+                        {savedAddresses.map((a) => <option key={a.id} value={a.id}>{a.addressLine1}, {a.city}</option>)}
                       </select>
                     )}
 
@@ -343,16 +342,16 @@ const Checkout = () => {
 
                     <div className="grid grid-cols-3 gap-4">
                       <div className="relative col-span-1">
-                        <Field 
-                          name="pinCode" 
-                          placeholder="Pincode" 
-                          className={`w-full p-4 border rounded-sm text-sm ${touched.pinCode && errors.pinCode ? 'border-red-500' : 'border-gray-200'}`} 
+                        <Field
+                          name="pinCode"
+                          placeholder="Pincode"
+                          className={`w-full p-4 border rounded-sm text-sm ${touched.pinCode && errors.pinCode ? 'border-red-500' : 'border-gray-200'}`}
                         />
-                        <PincodeLookup 
-                          pinCode={values.pinCode} 
-                          setFieldValue={setFieldValue} 
-                          setFieldError={setFieldError} 
-                          setFieldTouched={setFieldTouched} 
+                        <PincodeLookup
+                          pinCode={values.pinCode}
+                          setFieldValue={setFieldValue}
+                          setFieldError={setFieldError}
+                          setFieldTouched={setFieldTouched}
                         />
                         <ErrorMessage name="pinCode" component="p" className="text-[0.65rem] text-red-600 font-bold uppercase mt-1" />
                       </div>
@@ -371,7 +370,6 @@ const Checkout = () => {
                   </div>
                 </section>
 
-                {/* Payment Section */}
                 <section className="space-y-6">
                   <h2 className="text-lg font-black tracking-tight">Payment</h2>
                   <div className="border border-gray-200 rounded-sm">
@@ -392,12 +390,12 @@ const Checkout = () => {
                   </div>
                 </section>
 
-                <button 
+                <button
                   type="submit"
                   disabled={loading}
                   className="w-full bg-blue-600 text-white py-5 rounded-md text-[0.75rem] font-black uppercase tracking-[2px] transition-all hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="animate-spin mx-auto" /> : values.paymentMethod === 'razorpay' ? `Pay ₹${subtotal}` : 'Complete Order'}
+                  {loading ? <Loader2 className="animate-spin mx-auto" /> : values.paymentMethod === 'razorpay' ? `Pay ₹${discountedSubtotal + (values.paymentMethod === 'cod' ? 70 : 0)}` : 'Complete Order'}
                 </button>
 
                 <footer className="pt-10 border-t border-gray-50 flex flex-wrap gap-6 text-[0.65rem] text-blue-600 font-bold underline">
@@ -405,7 +403,6 @@ const Checkout = () => {
                 </footer>
               </div>
 
-              {/* Right Column - Summary */}
               <div className="bg-gray-50/50 p-10 lg:p-20">
                 <div className="sticky top-20 space-y-10">
                   <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 no-scrollbar">
@@ -413,7 +410,7 @@ const Checkout = () => {
                       <div key={idx} className="flex items-center justify-between gap-6">
                         <div className="flex items-center gap-4 relative">
                           <div className="w-16 h-20 bg-white border border-gray-100 rounded-md overflow-hidden flex-shrink-0">
-                            <img src={item.selectedImage} className="w-full h-full object-cover" />
+                            <img src={item.selectedImage} className="w-full h-full object-cover" alt={item.name} />
                             <span className="absolute -top-2 -right-2 w-5 h-5 bg-gray-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">{item.quantity}</span>
                           </div>
                           <p className="text-[0.75rem] font-black uppercase">{item.name}</p>
@@ -424,13 +421,22 @@ const Checkout = () => {
                   </div>
                   <div className="space-y-4 pt-10 border-t border-gray-100">
                     <div className="flex justify-between text-[0.7rem] font-black uppercase text-gray-500">
-                      <span>Subtotal</span> <span>₹{subtotal}</span>
+                      <span>Subtotal</span>
+                      <span className={appliedCoupon ? 'line-through text-gray-300' : ''}>₹{subtotal}</span>
                     </div>
+                    {appliedCoupon && (
+                      <div className="flex justify-between text-[0.7rem] font-black uppercase text-emerald-600">
+                        <span>Coupon ({appliedCoupon.code})</span>
+                        <span>− ₹{couponDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-[0.7rem] font-black uppercase text-gray-500">
-                      <span>Shipping</span> <span>{values.paymentMethod === 'cod' ? '₹70.00' : 'FREE'}</span>
+                      <span>Shipping</span>
+                      <span>{values.paymentMethod === 'cod' ? '₹70.00' : 'FREE'}</span>
                     </div>
                     <div className="flex justify-between text-xl font-black uppercase pt-4 border-t">
-                      <span>Total</span> <span>₹{subtotal + (values.paymentMethod === 'cod' ? 70 : 0)}</span>
+                      <span>Total</span>
+                      <span>₹{discountedSubtotal + (values.paymentMethod === 'cod' ? 70 : 0)}</span>
                     </div>
                   </div>
                 </div>

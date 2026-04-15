@@ -9,6 +9,9 @@ import ShoppableVideo from '../../components/store/ShoppableVideo';
 import { ProductSkeleton, CircularCollectionSkeleton } from '../../components/store/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const toCollectionSlug = (name = '') =>
+  name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
 // Lotus SVG motif — matches the orange lotus inside the GharOfEthnics logo
 const LotusMotif = ({ size = 14, color = '#e87825' }) => (
   <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -92,7 +95,7 @@ const Home = () => {
               {collections.slice(0, 3).map((collection) => (
                 <Link
                   key={collection.id}
-                  to={`/collections/${collection.id}`}
+                  to={`/collections/${toCollectionSlug(collection.name)}`}
                   className="group relative cursor-pointer block mr-16"
                 >
                   {/* Decorative Premium Corner Bracket */}
@@ -205,7 +208,7 @@ const Home = () => {
 
           <div className="text-center mt-20">
             <Link
-              to="/collections/25a1dc7c-029e-44b9-b64b-e25e1525a4de"
+              to="/collections/all"
               className="inline-flex items-center gap-3 bg-white text-black border border-black px-12 py-4 rounded-full text-[0.65rem] font-black uppercase tracking-widest hover:bg-black hover:text-white hover:border-orange-600 transition-all shadow-xl active:scale-95 duration-300"
             >
               View all <ChevronRight size={14} />

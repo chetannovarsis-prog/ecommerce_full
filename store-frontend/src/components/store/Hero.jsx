@@ -1,8 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../utils/api';
-
-
-
 import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -11,8 +7,6 @@ import { HeroSkeleton } from './Skeleton';
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [banners, setBanners] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const dragX = useMotionValue(0);
 
@@ -22,77 +16,14 @@ const Hero = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    const fetchBanners = async () => {
-      try {
-        const response = await api.get('/banners');
-        const list = Array.isArray(response.data) ? response.data : response.data?.data || [];
-        // Normalize type and order before render
-        const normalized = list.map((b) => ({
-          ...b,
-          type: (b.type || 'DESKTOP').toUpperCase(),
-          order: Number.isInteger(b.order) ? b.order : 0,
-          imageUrl: b.imageUrl || b.img || ''
-        }));
-
-        const sorted = normalized.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
-        setBanners(sorted);
-
-      } catch (error) {
-        console.error('Error fetching banners:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBanners();
-  }, []);
-
-
-
-  const defaultSlides = [
+  const slides = [
     {
-      type: 'fashion',
-      content: (
-        <section className="relative h-[80vh] flex items-center justify-center bg-[#f7f3f0] overflow-hidden">
-          <div className="absolute inset-0 w-full h-full pointer-events-none">
-            <div className="absolute top-[10%] left-[15%] w-[300px] h-[450px] overflow-hidden shadow-2xl transition-transform duration-500 -rotate-3 hover:rotate-0 z-10">
-              <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800" alt="Fashion 1" className="w-full h-full object-cover shadow-2xl" />
-            </div>
-            <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[300px] h-[450px] overflow-hidden shadow-2xl transition-transform duration-500 rotate-1 hover:rotate-0 z-30">
-              <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800" alt="Fashion 2" className="w-full h-full object-cover shadow-2xl" />
-            </div>
-            <div className="absolute top-[15%] right-[15%] w-[300px] h-[450px] overflow-hidden shadow-2xl transition-transform duration-500 rotate-3 hover:rotate-0 z-10">
-              <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=800" alt="Fashion 3" className="w-full h-full object-cover shadow-2xl" />
-            </div>
-          </div>
-          <div className="relative z-20 text-center select-none flex flex-col items-center">
-            <h1 className="text-[10rem] md:text-[15rem] font-black text-[#111] tracking-tighter leading-[0.8] uppercase opacity-90">
-              FASHION
-            </h1>
-            <button
-              onClick={() => document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' })}
-              className="mt-10 px-12 py-5 bg-black text-white text-[0.7rem] font-black uppercase tracking-[4px] hover:bg-zinc-800 transition-all active:scale-95 shadow-2xl shadow-black/20 pointer-events-auto"
-            >
-              Explore Collection
-            </button>
-          </div>
-        </section>
-      )
+      type: 'image',
+      src: isMobile ? '/images/banner.png' : '/images/banner.png',
+      link: '/collections/all',
+      alt: 'Store banner'
     }
   ];
-
-  const activeBanners = banners
-    .filter(b => b.type === (isMobile ? 'MOBILE' : 'DESKTOP'))
-    .map(b => ({
-      type: 'image',
-      src: b.imageUrl,
-      link: b.linkUrl,
-
-      alt: b.altText || 'Banner'
-    }));
-
-  const slides = activeBanners.length > 0 ? activeBanners : defaultSlides;
-
 
   useEffect(() => {
     if (slides.length === 0) return;
@@ -101,8 +32,6 @@ const Hero = () => {
     }, 5000);
     return () => clearInterval(timer);
   }, [slides.length]);
-
-  if (loading) return <HeroSkeleton />;
 
   const onDragEnd = () => {
     const x = dragX.get();
@@ -214,4 +143,3 @@ const Hero = () => {
 };
 
 export default Hero;
-

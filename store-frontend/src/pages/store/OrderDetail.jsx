@@ -182,6 +182,36 @@ const OrderDetail = () => {
               </div>
             ))}
           </div>
+
+          {/* Activity Timeline */}
+          {order.activities && order.activities.length > 0 && (
+            <div className="mt-12 pt-10 border-t border-gray-50 space-y-8">
+              <h3 className="text-[0.6rem] text-gray-400 font-black uppercase tracking-[3px]">Tracking Details</h3>
+              <div className="space-y-8 relative">
+                <div className="absolute left-3 top-0 bottom-0 w-[1px] bg-gray-100" />
+                {order.activities.map((activity, idx) => (
+                  <div key={activity.id} className="relative flex gap-6">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                      idx === 0 ? 'bg-emerald-500 shadow-lg shadow-emerald-100' : 'bg-gray-100'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-white' : 'bg-gray-300'}`} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className={`text-[0.7rem] font-black uppercase tracking-tight ${idx === 0 ? 'text-gray-900' : 'text-gray-400'}`}>
+                        {activity.status.replace(/_/g, ' ')}
+                      </p>
+                      <p className="text-[0.65rem] text-gray-500 font-medium leading-relaxed italic-none">
+                        {activity.message}
+                      </p>
+                      <p className="text-[0.55rem] text-gray-400 font-bold uppercase tracking-widest pt-1">
+                        {new Date(activity.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* Items */}

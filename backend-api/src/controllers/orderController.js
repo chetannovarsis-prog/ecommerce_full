@@ -47,6 +47,9 @@ export const getOrderById = async (req, res) => {
           include: {
             product: true
           }
+        },
+        activities: {
+          orderBy: { createdAt: 'desc' }
         }
       }
     });

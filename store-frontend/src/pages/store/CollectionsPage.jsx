@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const toCollectionSlug = (name = '') =>
+  name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
 const CollectionsPage = () => {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +59,7 @@ const CollectionsPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   key={c.id}
-                  onClick={() => navigate(`/collections/${c.id}`)}
+                  onClick={() => navigate(`/collections/${toCollectionSlug(c.name)}`)}
                   className="group relative cursor-pointer"
                 >
                   {/* Decorative Premium Corner Bracket */}

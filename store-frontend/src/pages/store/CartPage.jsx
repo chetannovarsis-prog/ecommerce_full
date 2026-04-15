@@ -1,137 +1,69 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ChevronLeft, Heart } from 'lucide-react';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ChevronLeft, Heart, TicketPercent, X } from 'lucide-react';
 import { useStore } from '../../services/useStore';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import api from '../../utils/api';
 
-// --- Bulk Discount Tiers ---
-const DISCOUNT_TIERS = [
-  { minItems: 3, percent: 10, label: '3 Items' },
-  { minItems: 6, percent: 15, label: '6 Items' },
-  { minItems: 9, percent: 20, label: '9 Items' },
-];
-
-function getBulkDiscount(totalQty) {
-  let activeTier = null;
-  for (const tier of DISCOUNT_TIERS) {
-    if (totalQty >= tier.minItems) activeTier = tier;
-  }
-  return activeTier;
-}
-
-function getNextTier(totalQty) {
-  return DISCOUNT_TIERS.find(t => t.minItems > totalQty) || null;
-}
-
-// ─────────────────────────────────────────────
-// Offer Banner
-// ─────────────────────────────────────────────
-const BulkOfferBanner = ({ totalQty }) => {
-  const activeTier = getBulkDiscount(totalQty);
-  const nextTier   = getNextTier(totalQty);
-  const itemsNeeded = nextTier ? nextTier.minItems - totalQty : 0;
-
-  return (
-    <div className="rounded-3xl border-2 border-dashed border-amber-300 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 p-6 sm:p-8 space-y-6">
-
-
-
-      {/* Tier Cards */}
-      <div className="grid grid-cols-3 gap-3">
-        {DISCOUNT_TIERS.map((tier) => {
-          const isPassed = activeTier && tier.minItems <= activeTier.minItems;
-          const isActive = activeTier?.minItems === tier.minItems;
-          const isNext   = nextTier?.minItems === tier.minItems;
-
-          return (
-            <motion.div
-              key={tier.minItems}
-              animate={isActive ? { scale: [1, 1.05, 1] } : { scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className={`relative rounded-2xl p-4 text-center border-2 transition-all duration-300 ${
-                isPassed
-                  ? 'bg-emerald-500 border-emerald-400 shadow-lg shadow-emerald-100'
-                  : isNext
-                  ? 'bg-white border-amber-400 shadow-md shadow-amber-100'
-                  : 'bg-white/60 border-gray-200'
-              }`}
-            >
-              {/* Checkmark for passed tiers */}
-              {isPassed && (
-                <div className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md border border-emerald-100">
-                  <span className="text-emerald-500 text-xs font-black">✓</span>
-                </div>
-              )}
-
-              <p className={`text-2xl font-black leading-none ${
-                isPassed ? 'text-white' : isNext ? 'text-amber-500' : 'text-gray-300'
-              }`}>
-                {tier.percent}%
-              </p>
-              <p className={`text-[0.6rem] font-black uppercase tracking-widest mt-0.5 ${
-                isPassed ? 'text-emerald-100' : isNext ? 'text-amber-400' : 'text-gray-300'
-              }`}>
-                OFF
-              </p>
-              <div className={`mt-2 text-[0.65rem] font-black uppercase tracking-widest ${
-                isPassed ? 'text-white/80' : isNext ? 'text-gray-700' : 'text-gray-300'
-              }`}>
-                {tier.label}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Progress Bar (only shown if max tier not yet reached) */}
-      {nextTier && (
-        <div className="space-y-2">
-          <div className="w-full bg-amber-100 rounded-full h-2.5 overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min(100, (totalQty / nextTier.minItems) * 100)}%` }}
-              transition={{ duration: 0.7, ease: 'easeOut' }}
-            />
-          </div>
-          <p className="text-[0.62rem] text-amber-600 font-bold uppercase tracking-widest text-right">
-            {totalQty} / {nextTier.minItems} items
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────
-// Main Cart Page
-// ─────────────────────────────────────────────
 const CartPage = () => {
-  const { cart, removeFromCart, updateCartQuantity } = useStore();
+  const {
+    cart,
+    removeFromCart,
+    updateCartQuantity,
+    appliedCoupon,
+    applyCoupon,
+    clearCoupon,
+    showToast
+  } = useStore();
   const navigate = useNavigate();
   const customer = localStorage.getItem('customer');
+  const [couponCode, setCouponCode] = useState(appliedCoupon?.code || '');
+  const [couponError, setCouponError] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
-  // De-duplicate by product+variant
   const groupedCart = cart.reduce((acc, item) => {
     const key = `${item.id}-${item.variantId || ''}`;
     if (!acc[key]) acc[key] = { ...item };
     else acc[key].quantity += item.quantity;
     return acc;
   }, {});
-  const displayCart = Object.values(groupedCart);
 
-  const totalQty   = displayCart.reduce((acc, item) => acc + item.quantity, 0);
-  const subtotal   = displayCart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0);
-  const activeTier = getBulkDiscount(totalQty);
-  const discountAmount = activeTier ? Math.round(subtotal * activeTier.percent / 100 * 100) / 100 : 0;
+  const displayCart = Object.values(groupedCart);
+  const totalQty = displayCart.reduce((acc, item) => acc + item.quantity, 0);
+  const subtotal = displayCart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0);
+  const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.percentage) * 100) / 10000 : 0;
   const finalTotal = subtotal - discountAmount;
+
+  const handleApplyCoupon = async () => {
+    const normalizedCode = couponCode.trim().toUpperCase();
+    if (!normalizedCode) {
+      setCouponError('Enter a coupon code.');
+      return;
+    }
+
+    setApplyingCoupon(true);
+    setCouponError('');
+
+    try {
+      const { data } = await api.post('/coupons/validate', { code: normalizedCode });
+      applyCoupon({
+        id: data.id,
+        code: data.code,
+        percentage: Number(data.percentage)
+      });
+      setCouponCode(data.code);
+      showToast(`Coupon ${data.code} applied`, 'success');
+    } catch (error) {
+      clearCoupon();
+      setCouponError(error.response?.data?.error || 'Invalid coupon code.');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
 
   return (
     <div className="min-h-screen pb-20 pt-12 sm:pt-20 italic-none">
       <div className="max-w-[1400px] mx-auto px-6 sm:px-10">
-
-        {/* Header */}
         <header className="flex flex-col gap-4 mb-16">
           <button
             onClick={() => navigate('/')}
@@ -142,7 +74,6 @@ const CartPage = () => {
           <h1 className="text-5xl font-black uppercase tracking-tighter italic">Shopping Bag</h1>
         </header>
 
-        {/* Not logged in */}
         {!customer ? (
           <div className="py-40 flex flex-col items-center justify-center space-y-12 text-center">
             <div className="w-40 h-40 bg-gray-50 rounded-full flex items-center justify-center shadow-inner">
@@ -150,7 +81,7 @@ const CartPage = () => {
             </div>
             <div>
               <p className="text-3xl font-black uppercase tracking-tighter">Login to see your bag</p>
-              <p className="text-gray-400 font-medium mt-4 text-[0.9rem]">Sign in to view items you've added to your cart.</p>
+              <p className="text-gray-400 font-medium mt-4 text-[0.9rem]">Sign in to view items you&apos;ve added to your cart.</p>
             </div>
             <button
               onClick={() => navigate('/login')}
@@ -159,16 +90,63 @@ const CartPage = () => {
               Sign In Now
             </button>
           </div>
-
         ) : displayCart.length > 0 ? (
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-24">
-
-            {/* ── Cart Items ── */}
             <div className="lg:col-span-2 space-y-12">
+              <div className="rounded-3xl border border-gray-200 bg-white p-6 sm:p-8 space-y-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
+                    <TicketPercent size={22} className="text-gray-700" />
+                  </div>
+                  <div>
+                    <p className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400">Apply Coupon</p>
+                    <p className="text-sm font-bold text-gray-800">Enter coupon code to get discount</p>
+                  </div>
+                </div>
 
-              {/* Offer Banner */}
-              <BulkOfferBanner totalQty={totalQty} />
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    placeholder="Enter coupon code"
+                    value={couponCode}
+                    onChange={(e) => {
+                      setCouponCode(e.target.value.toUpperCase());
+                      if (couponError) setCouponError('');
+                    }}
+                    className={`flex-1 px-5 py-4 border rounded-2xl text-sm font-bold uppercase tracking-wider outline-none ${couponError ? 'border-red-400 bg-red-50/50' : 'border-gray-200 bg-gray-50'}`}
+                  />
+                  <button
+                    onClick={handleApplyCoupon}
+                    type="button"
+                    disabled={applyingCoupon}
+                    className="px-6 py-4 bg-black text-white rounded-2xl text-[0.7rem] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all disabled:opacity-50"
+                  >
+                    {applyingCoupon ? 'Applying...' : 'Apply'}
+                  </button>
+                </div>
+
+                {couponError && <p className="text-[0.7rem] font-bold text-red-500">{couponError}</p>}
+
+                {appliedCoupon && (
+                  <div className="flex items-center justify-between rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4">
+                    <div>
+                      <p className="text-[0.65rem] font-black uppercase tracking-widest text-emerald-600">Applied Coupon</p>
+                      <p className="text-sm font-bold text-emerald-700">{appliedCoupon.code} ({appliedCoupon.percentage}% OFF)</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearCoupon();
+                        setCouponCode('');
+                        setCouponError('');
+                      }}
+                      className="p-2 text-emerald-700 hover:text-red-500 transition-colors"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {displayCart.map((item, idx) => (
                 <motion.div
@@ -205,11 +183,11 @@ const CartPage = () => {
                           </h3>
                           <div className="space-y-1 mt-3">
                             {item.variantTitle?.split(',').map((part, pIdx) => {
-                              const [key, val] = part.split(':').map(s => s.trim());
+                              const [key, val] = part.split(':').map((s) => s.trim());
                               if (!val) return <p key={pIdx} className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-widest">{part}</p>;
                               return (
                                 <p key={pIdx} className=" text-gray-800 text-sm font-semibold  leading-none">
-                                  <span className="font-bold text-orange-600 mr-1">{key} : </span> {val}
+                                  <span className="font-bold text-orange-600 mr-1">{key} :</span> {val}
                                 </p>
                               );
                             })}
@@ -217,20 +195,16 @@ const CartPage = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          {/* Original price (always shown, struck through when discount applies) */}
-                          <p className={`text-2xl font-black ${
-                            activeTier ? 'line-through text-gray-300' : 'text-gray-900'
-                          }`}>
+                          <p className={`text-2xl font-black ${appliedCoupon ? 'line-through text-gray-300' : 'text-gray-900'}`}>
                             ₹{(item.selectedPrice * item.quantity).toFixed(2)}
                           </p>
-                          {/* Discounted price */}
-                          {activeTier && (
+                          {appliedCoupon && (
                             <motion.p
                               initial={{ opacity: 0, y: -4 }}
                               animate={{ opacity: 1, y: 0 }}
                               className="text-2xl font-black text-gray-900 mt-1"
                             >
-                              ₹{(item.selectedPrice * item.quantity * (1 - activeTier.percent / 100)).toFixed(2)}
+                              ₹{(item.selectedPrice * item.quantity * (1 - appliedCoupon.percentage / 100)).toFixed(2)}
                             </motion.p>
                           )}
                           {item.quantity > 1 && (
@@ -270,26 +244,25 @@ const CartPage = () => {
               ))}
             </div>
 
-            {/* ── Order Summary ── */}
             <div className="lg:col-span-1">
               <div className="sticky top-32 bg-gray-50 p-12 rounded-[2.5rem] space-y-10 border border-gray-100">
                 <h2 className="text-2xl font-black text-center pb-8 border-b border-gray-200">Order Summary</h2>
 
                 <div className="space-y-5">
-                  <div className="flex justify-between  font-black text-gray-400">
+                  <div className="flex justify-between font-black text-gray-400">
                     <span>Subtotal ({totalQty} items)</span>
-                    <span className={activeTier ? 'line-through text-gray-300' : 'text-gray-900'}>
+                    <span className={appliedCoupon ? 'line-through text-gray-300' : 'text-gray-900'}>
                       ₹{subtotal.toFixed(2)}
                     </span>
                   </div>
 
-                  {activeTier && (
+                  {appliedCoupon && (
                     <motion.div
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="flex justify-between text-[0.75rem] font-black tracking-widest"
                     >
-                      <span className="text-emerald-600">Bulk Offer ({activeTier.percent}% Off)</span>
+                      <span className="text-emerald-600">Coupon ({appliedCoupon.code})</span>
                       <span className="text-emerald-600">− ₹{discountAmount.toFixed(2)}</span>
                     </motion.div>
                   )}
@@ -306,34 +279,28 @@ const CartPage = () => {
                     <span>₹{finalTotal.toFixed(2)}</span>
                   </div>
 
-                  {activeTier && (
+                  {appliedCoupon && (
                     <motion.div
                       initial={{ scale: 0.95, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       className="bg-emerald-50 border border-emerald-100 rounded-2xl px-6 py-4 flex items-center justify-between"
                     >
-                      <span className="text-[0.65rem] font-black uppercase tracking-widest text-emerald-700">🎉 You're saving</span>
+                      <span className="text-[0.65rem] font-black uppercase tracking-widest text-emerald-700">You&apos;re saving</span>
                       <span className="text-lg font-black text-emerald-600">₹{discountAmount.toFixed(2)}</span>
                     </motion.div>
                   )}
 
                   <button
                     onClick={() => navigate('/checkout')}
-                    className="px-4 mx-auto bg-black text-white py-4 rounded-full border border-orange-500 font-black  flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all shadow-2xl group active:scale-95"
+                    className="px-4 mx-auto bg-black text-white py-4 rounded-full border border-orange-500 font-black flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all shadow-2xl group active:scale-95"
                   >
                     Proceed to Checkout <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
                   </button>
-
-                  {/* <p className="text-sm text-center text-gray-400 font-bold  opacity-60">
-                    Complimentary returns within 7 days.
-                  </p> */}
                 </div>
               </div>
             </div>
           </div>
-
         ) : (
-          /* Empty cart */
           <div className="py-40 flex flex-col items-center justify-center space-y-12 text-center">
             <div className="w-40 h-40 bg-gray-50 rounded-full flex items-center justify-center shadow-inner">
               <ShoppingBag size={80} strokeWidth={1} className="text-gray-200" />

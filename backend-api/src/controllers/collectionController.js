@@ -1,5 +1,8 @@
 import prisma from '../utils/prisma.js';
 
+const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+const slugify = (value = '') => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
 export const getCollections = async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
@@ -131,8 +134,9 @@ export const updateCollection = async (req, res) => {
 
 export const getCollectionById = async (req, res) => {
   try {
+    const lookup = req.params.id;
     const collection = await prisma.collection.findUnique({
-      where: { id: req.params.id },
+      where: isUuid(lookup) ? { id: lookup } : undefined,
       include: {
         products: {
           select: {
@@ -144,8 +148,63 @@ export const getCollectionById = async (req, res) => {
         }
       }
     });
-    if (!collection) return res.status(404).json({ message: 'Collection not found' });
-    res.json(collection);
+
+    if (collection) {
+      return res.json(collection);
+    }
+
+    const slugMatch = await prisma.collection.findFirst({
+      where: {
+        name: {
+          in: [lookup, lookup.replace(/-/g, ' ')],
+          mode: 'insensitive'
+        }
+      },
+      include: {
+        products: {
+          select: {
+            id: true,
+            name: true,
+            subtitle: true,
+            thumbnailUrl: true
+          }
+        }
+      }
+    });
+
+    if (slugMatch) {
+      return res.json(slugMatch);
+    }
+
+    const allCollections = await prisma.collection.findMany({
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        imageUrl: true
+      }
+    });
+
+    const normalizedMatch = allCollections.find((item) => slugify(item.name) === slugify(lookup));
+    if (!normalizedMatch) {
+      return res.status(404).json({ message: 'Collection not found' });
+    }
+
+    const resolvedCollection = await prisma.collection.findUnique({
+      where: { id: normalizedMatch.id },
+      include: {
+        products: {
+          select: {
+            id: true,
+            name: true,
+            subtitle: true,
+            thumbnailUrl: true
+          }
+        }
+      }
+    });
+
+    return res.json(resolvedCollection);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

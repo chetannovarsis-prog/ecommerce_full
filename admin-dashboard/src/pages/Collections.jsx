@@ -29,6 +29,7 @@ const Collections = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [orderDirty, setOrderDirty] = useState(false);
+  const [nameError, setNameError] = useState('');
   const navigate = useNavigate();
 
   const sensors = useSensors(
@@ -84,7 +85,12 @@ const Collections = () => {
 
   const handleAddCollection = async (e) => {
     e.preventDefault();
-    if (!newCollection.name.trim()) return;
+    if (!newCollection.name.trim()) {
+      setNameError('Collection name is required.');
+      return;
+    }
+
+    setNameError('');
 
     setUploading(true);
     try {
@@ -101,6 +107,7 @@ const Collections = () => {
       setNewCollection({ name: '', description: '' });
       setSelectedImage(null);
       setImagePreview(null);
+      setNameError('');
     } catch (error) {
       console.error('Error adding collection:', error);
       const errorMsg = error.response?.data?.message || error.response?.data?.error || 'Error adding collection';
@@ -179,10 +186,20 @@ const Collections = () => {
                  <input 
                    type="text" 
                    placeholder="Collection Name (e.g. Winter Sale)" 
-                   className="w-full px-5 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 transition-all text-gray-900 dark:text-white"
+                   className={`w-full px-5 py-3 bg-gray-50 dark:bg-white/5 border rounded-xl text-sm font-bold focus:outline-none focus:ring-4 dark:focus:ring-white/5 transition-all text-gray-900 dark:text-white ${nameError ? 'border-red-400 focus:ring-red-500/10 focus:border-red-500' : 'border-gray-200 dark:border-white/5 focus:ring-black/5'}`}
                    value={newCollection.name}
-                   onChange={e => setNewCollection({...newCollection, name: e.target.value})}
+                   onChange={e => {
+                     setNewCollection({...newCollection, name: e.target.value});
+                     if (e.target.value.trim()) {
+                       setNameError('');
+                     }
+                   }}
                  />
+                 {nameError && (
+                   <p className="mt-[-0.35rem] ml-1 text-[0.7rem] font-bold text-red-500">
+                     {nameError}
+                   </p>
+                 )}
                  <input 
                    type="text" 
                    placeholder="Short Description" 
@@ -379,4 +396,3 @@ const SortableRow = ({ collection, index, onDelete, onNavigate }) => {
 };
 
 export default Collections;
-

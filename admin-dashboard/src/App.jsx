@@ -16,7 +16,7 @@ import Sales from './pages/Sales';
 import ColorVariants from './pages/ColorVariants';
 import Login from './pages/Login';
 import Messages from './pages/Messages';
-import Banners from './pages/Banners';
+import Coupons from './pages/Coupons';
 import api from './utils/api';
 
 
@@ -360,7 +360,7 @@ function App() {
         <Route path="/sales" element={<ProtectedRoute><Layout><Sales /></Layout></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><Layout><Customers /></Layout></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
-        <Route path="/banners" element={<ProtectedRoute><Layout><Banners /></Layout></ProtectedRoute>} />
+        <Route path="/coupons" element={<ProtectedRoute><Layout><Coupons /></Layout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
 
 

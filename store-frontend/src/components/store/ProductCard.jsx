@@ -25,6 +25,8 @@ const ProductCard = ({ product, isListView = false }) => {
   const currentPrice = (selectedVariant?.price !== null && selectedVariant?.price !== undefined) ? selectedVariant.price : (price || 0);
   const hasDiscount = isDiscountable && discountPrice > 0;
   const originalPrice = hasDiscount ? (currentPrice + parseFloat(discountPrice)) : null;
+  const availableStock = Number(selectedVariant?.stock ?? selectedVariant?.quantity ?? product.stock ?? product.quantity ?? 0);
+  const isOutOfStock = availableStock <= 0;
 
   // Extract colors
   // Deduplicate colors by case-insensitive matching
@@ -89,9 +91,10 @@ const ProductCard = ({ product, isListView = false }) => {
           <div className="flex items-center gap-6">
             <button
               onClick={(e) => { e.stopPropagation(); addToCart(product, selectedVariant); }}
-              className="px-8 py-3.5 bg-black text-white text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm hover:bg-zinc-800 transition-all flex items-center gap-2"
+              disabled={isOutOfStock}
+              className={`px-8 py-3.5 text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm transition-all flex items-center gap-2 ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:bg-zinc-800'}`}
             >
-              Add to Bag <ShoppingBag size={14} />
+              {isOutOfStock ? 'Out of Stock' : 'Add to Bag'} <ShoppingBag size={14} />
             </button>
             <button className="text-[0.65rem] font-black uppercase tracking-[3px] flex items-center gap-2 group-hover:gap-4 transition-all">
               View Details <ArrowRight size={14} />
@@ -164,9 +167,10 @@ const ProductCard = ({ product, isListView = false }) => {
               e.stopPropagation();
               addToCart(product, selectedVariant);
             }}
-            className="w-full bg-white/90 backdrop-blur-md text-black py-3 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] hover:bg-black hover:text-white transition-all flex items-center justify-center gap-2 active:scale-95 shadow-2xl"
+            disabled={isOutOfStock}
+            className={`w-full backdrop-blur-md py-3 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] transition-all flex items-center justify-center gap-2 active:scale-95 shadow-2xl ${isOutOfStock ? 'bg-white/90 text-gray-400 cursor-not-allowed' : 'bg-white/90 text-black hover:bg-black hover:text-white'}`}
           >
-            Add to Bag <ShoppingBag size={14} />
+            {isOutOfStock ? 'Out of Stock' : 'Add to Bag'} <ShoppingBag size={14} />
           </button>
         </div>
       </div>

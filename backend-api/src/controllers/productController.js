@@ -1,5 +1,14 @@
 import prisma from '../utils/prisma.js';
 
+const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+const slugify = (value = '') => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+const parseOptionalFloat = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = parseFloat(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 export const getAllProducts = async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(5, parseInt(req.query.limit, 10) || 20));
@@ -9,7 +18,15 @@ export const getAllProducts = async (req, res) => {
   try {
     const where = {};
     if (collectionId) {
-      where.collections = { some: { id: collectionId } };
+      if (isUuid(collectionId)) {
+        where.collections = { some: { id: collectionId } };
+      } else {
+        const collections = await prisma.collection.findMany({
+          select: { id: true, name: true }
+        });
+        const matchedCollection = collections.find((item) => slugify(item.name) === slugify(collectionId));
+        where.collections = { some: matchedCollection ? { id: matchedCollection.id } : { id: '__no_collection_match__' } };
+      }
     }
     if (categoryId) {
       where.categories = { some: { id: categoryId } };
@@ -49,10 +66,10 @@ export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
     // Check if it's a UUID or a handle
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const productIsUuid = isUuid(id);
     
     const product = await prisma.product.findUnique({
-      where: isUuid ? { id } : { handle: id },
+      where: productIsUuid ? { id } : { handle: id },
       include: {
         categories: true,
         collections: true,
@@ -72,7 +89,8 @@ export const createProduct = async (req, res) => {
     const {
       name, subtitle, handle, description, price, images,
       categoryId, categoryIds, collectionId, collectionIds, stock, isDiscountable,
-      discountPrice, thumbnailUrl, hoverThumbnailUrl, variants
+      discountPrice, thumbnailUrl, hoverThumbnailUrl, variants,
+      weight, length, breadth, height
     } = req.body;
 
     // Ensure unique name
@@ -88,6 +106,10 @@ export const createProduct = async (req, res) => {
     const sanitizedPrice = isNaN(parseFloat(price)) ? 0 : parseFloat(price);
     const sanitizedStock = isNaN(parseInt(stock)) ? 0 : parseInt(stock);
     const sanitizedDiscountPrice = isDiscountable ? (isNaN(parseFloat(discountPrice)) ? 0 : parseFloat(discountPrice)) : null;
+    const sanitizedWeight = parseOptionalFloat(weight);
+    const sanitizedLength = parseOptionalFloat(length);
+    const sanitizedBreadth = parseOptionalFloat(breadth);
+    const sanitizedHeight = parseOptionalFloat(height);
 
     const productHandle = handle || name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -101,6 +123,10 @@ export const createProduct = async (req, res) => {
         images,
         thumbnailUrl,
         hoverThumbnailUrl,
+        weight: sanitizedWeight,
+        length: sanitizedLength,
+        breadth: sanitizedBreadth,
+        height: sanitizedHeight,
         categories: (categoryIds || (categoryId ? [categoryId] : null)) ? {
           connect: (categoryIds || [categoryId]).filter(id => id && id !== 'none' && id !== '').map(id => ({ id }))
         } : undefined,
@@ -133,7 +159,8 @@ export const updateProduct = async (req, res) => {
     const {
       name, subtitle, handle, description, price, images,
       categoryId, categoryIds, collectionId, collectionIds, stock, isDiscountable,
-      discountPrice, thumbnailUrl, hoverThumbnailUrl, variants
+      discountPrice, thumbnailUrl, hoverThumbnailUrl, variants,
+      weight, length, breadth, height
     } = req.body;
 
     if (name) {
@@ -151,6 +178,10 @@ export const updateProduct = async (req, res) => {
     const sanitizedPrice = isNaN(parseFloat(price)) ? undefined : parseFloat(price);
     const sanitizedStock = isNaN(parseInt(stock)) ? undefined : parseInt(stock);
     const sanitizedDiscountPrice = isDiscountable ? (isNaN(parseFloat(discountPrice)) ? 0 : parseFloat(discountPrice)) : null;
+    const sanitizedWeight = weight === undefined ? undefined : parseOptionalFloat(weight);
+    const sanitizedLength = length === undefined ? undefined : parseOptionalFloat(length);
+    const sanitizedBreadth = breadth === undefined ? undefined : parseOptionalFloat(breadth);
+    const sanitizedHeight = height === undefined ? undefined : parseOptionalFloat(height);
 
     // Resolve handle
     let productHandle = handle;
@@ -169,6 +200,10 @@ export const updateProduct = async (req, res) => {
         images,
         thumbnailUrl,
         hoverThumbnailUrl,
+        weight: sanitizedWeight,
+        length: sanitizedLength,
+        breadth: sanitizedBreadth,
+        height: sanitizedHeight,
         stock: sanitizedStock,
         isDiscountable: !!isDiscountable,
         discountPrice: sanitizedDiscountPrice,
@@ -226,6 +261,10 @@ export const patchProduct = async (req, res) => {
     // Convert numeric fields if present, handling 0 correctly
     if (data.price !== undefined) data.price = parseFloat(data.price);
     if (data.stock !== undefined) data.stock = parseInt(data.stock);
+    if (data.weight !== undefined) data.weight = parseOptionalFloat(data.weight);
+    if (data.length !== undefined) data.length = parseOptionalFloat(data.length);
+    if (data.breadth !== undefined) data.breadth = parseOptionalFloat(data.breadth);
+    if (data.height !== undefined) data.height = parseOptionalFloat(data.height);
     if (data.name && !data.handle) {
       data.handle = data.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     }
@@ -293,14 +332,31 @@ export const patchProduct = async (req, res) => {
 
 export const getBestSellers = async (req, res) => {
   try {
-    // Fetch products from the "Best sellers" collection
-    const bestSellersCollection = await prisma.collection.findFirst({
-      where: {
-        name: {
-          contains: 'Best sellers',
-          mode: 'insensitive'
-        }
-      },
+    const bestSellerSlugs = new Set([
+      'best-sellers',
+      'best-seller',
+      'bestsellers',
+      'bestseller'
+    ]);
+
+    const collections = await prisma.collection.findMany({
+      select: {
+        id: true,
+        name: true
+      }
+    });
+
+    const matchedCollection = collections.find((collection) => {
+      const slug = slugify(collection.name);
+      return bestSellerSlugs.has(slug) || slug.includes('best-seller') || slug.includes('bestseller');
+    });
+
+    if (!matchedCollection) {
+      return res.json([]);
+    }
+
+    const bestSellersCollection = await prisma.collection.findUnique({
+      where: { id: matchedCollection.id },
       include: {
         products: {
           take: 8,

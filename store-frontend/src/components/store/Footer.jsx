@@ -1,4 +1,4 @@
-import { Facebook, MapPin, Phone } from 'lucide-react';
+import { Facebook, Mail, MapPin, Phone } from 'lucide-react';
 import { TbBrandLinkedin, TbBrandThreads, TbBrandWhatsapp, TbBrandYoutube } from 'react-icons/tb';
 import { Link } from 'react-router-dom';
 
@@ -16,8 +16,8 @@ const LotusMotif = ({ size = 14, color = '#e87825' }) => (
 const Footer = () => {
   return (
     <footer
-      className="relative overflow-hidden pt-20 pb-32 md:pb-10"
-      style={{ background: 'linear-gradient(160deg, #1a2d5a 0%, #0f1c3a 60%, #0a1228 100%)' }}
+      className="relative overflow-hidden pt-20 pb-32 md:pb-10 bg-yellow-50"
+    // style={{ background: 'linear-gradient(160deg, #1a2d5a 0%, #0f1c3a 60%, #0a1228 100%)' }}
     >
       <img
         src="/images/logo3.png"
@@ -41,32 +41,36 @@ const Footer = () => {
           <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, #e8782540)' }} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 md:gap-16 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-16 mb-16">
           <div className="md:col-span-2 lg:col-span-2">
             <Link to="/" className="mb-6 block w-[150px]">
-              <img src="/images/footer-logo.png" alt="Ghar of Ethnics" className="w-full" />
+              <img src="/images/logo3.png" alt="Ghar of Ethnics" className="w-full" />
             </Link>
-            <p className="text-[0.8rem] leading-7 max-w-xs" style={{ color: '#c9b99a' }}>
+            <p className="text-[0.8rem] leading-7 max-w-xs font-medium" style={{ color: '#b75a14' }}>
               Rooted in tradition. Crafted for today. Discover ethnic fashion that celebrates India&apos;s timeless heritage.
             </p>
 
             <div className="mt-8 space-y-3">
-              <a
-                href="https://www.google.com/maps/search/Ghar+of+Ethnics+Koramangala+Bangalore"
-                target="_blank"
-                rel="noopener noreferrer"
+              <div
+                // href="https://www.google.com/maps/search/Ghar+of+Ethnics+Koramangala+Bangalore"
+                // target="_blank"
+                // rel="noopener noreferrer"
                 className="flex items-start gap-3 group"
               >
                 <MapPin size={14} className="mt-0.5 flex-shrink-0" style={{ color: '#e87825' }} />
-                <span className="text-[0.72rem] leading-5" style={{ color: '#c9b99a' }}>
+                <span className="text-[0.72rem] leading-5" style={{ color: '#b75a14' }}>
                   38, Booth no-127, 2nd Main Road, Ashwini Layout,
                   <br />
                   Ejipura, Koramangala, Bangalore - 560047
                 </span>
-              </a>
+              </div>
               <a href="tel:+919845634734" className="flex items-center gap-3">
-                <Phone size={13} style={{ color: '#e87825' }} />
-                <span className="text-[0.72rem]" style={{ color: '#c9b99a' }}>+91 98456 34734</span>
+                <Phone size={14} style={{ color: '#e87825' }} />
+                <span className="text-[0.72rem]" style={{ color: '#b75a14' }}>+91 98456 34734</span>
+              </a>
+              <a href="mailto:support@gharofethenics.com" className="flex items-center gap-3">
+                <Mail size={14} style={{ color: '#e87825' }} />
+                <span className="text-[0.72rem]" style={{ color: '#b75a14' }}>support@gharofethenics.com</span>
               </a>
             </div>
 
@@ -75,98 +79,76 @@ const Footer = () => {
                 href="https://www.facebook.com/share/1DrpmWT9hW/?mibextid=wwXIfr"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
+                className="w-9 h-9 rounded-full group/facebook flex items-center justify-center border transition-all hover:scale-110"
                 style={{ borderColor: '#e87825', color: '#e87825' }}
               >
-                <Facebook size={16} />
+                <Facebook size={16} className='group-hover/facebook:rotate-[360deg] transition-all duration-500 ' />
               </a>
               <a
                 href="https://youtube.com/@gharofethnics?si=0PHrceQJ-U73T_lk"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
+                className="w-9 h-9 rounded-full group/youtube flex items-center justify-center border transition-all hover:scale-110"
                 style={{ borderColor: '#e87825', color: '#e87825' }}
               >
-                <TbBrandYoutube size={16} />
+                <TbBrandYoutube size={16} className='group-hover/youtube:rotate-[360deg] transition-all duration-500 ' />
               </a>
               <a
                 href="https://www.threads.com/@gharofethnics?igshid=NTc4MTIwNjQ2YQ=="
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
+                className="w-9 h-9 rounded-full group/threads flex items-center justify-center border transition-all hover:scale-110"
                 style={{ borderColor: '#e87825', color: '#e87825' }}
               >
-                <TbBrandThreads size={16} />
+                <TbBrandThreads size={16} className='group-hover/threads:rotate-[360deg] transition-all duration-500 '/>
               </a>
               <a
                 href="https://in.linkedin.com/in/ghar-of-ethnics-2787813ba"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
+                className="w-9 h-9 rounded-full flex items-center group/linkedin justify-center border transition-all hover:scale-110"
                 style={{ borderColor: '#e87825', color: '#e87825' }}
               >
-                <TbBrandLinkedin size={16} />
+                <TbBrandLinkedin size={16} className='group-hover/linkedin:rotate-[360deg] transition-all duration-500 '/>
               </a>
               <a
                 href="https://wa.me/919845634734"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full flex items-center justify-center border transition-all hover:scale-110"
+                className="w-9 h-9 rounded-full flex items-center group/whatsapp justify-center border transition-all hover:scale-110"
                 style={{ borderColor: '#e87825', color: '#e87825' }}
               >
-                <TbBrandWhatsapp size={16} />
+                <TbBrandWhatsapp size={16} className='group-hover/whatsapp:rotate-[360deg] transition-all duration-500 ' />
               </a>
             </div>
           </div>
 
           <div className="md:col-start-1 lg:col-start-auto">
             <div className="flex items-center gap-2 mb-8">
-              <LotusMotif size={12} color="#e87825" />
-              <h4 className="font-black text-xs tracking-widest uppercase text-white">Shop</h4>
+              <LotusMotif size={13} color="#e87825" />
+              <h4 className="font-black text-xs tracking-widest uppercase text-[#16263f]">Shop</h4>
             </div>
-            <ul className="space-y-4 text-[0.82rem]" style={{ color: '#c9b99a' }}>
-              <li><Link to="/new-arrivals" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>New Arrivals</Link></li>
-              <li><Link to="/collections/all" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Best Sellers</Link></li>
-              <li><Link to="/collections/all" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Collections</Link></li>
-              <li><Link to="/collections/all" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Women&apos;s Ethnic</Link></li>
+            <ul className="space-y-4 text-[0.82rem] font-semibold" style={{ color: '#b75a14' }}>
+              <li><Link to="/new-arrivals" className="hover:underline transition-colors" style={{ color: 'inherit' }}>New Arrivals</Link></li>
+              <li><Link to="/collections/all" className="hover:underline transition-colors" style={{ color: 'inherit' }}>Best Sellers</Link></li>
+              <li><Link to="/collections" className="hover:underline transition-colors" style={{ color: 'inherit' }}>Collections</Link></li>
+              <li><Link to="/collections/all" className="hover:underline transition-colors" style={{ color: 'inherit' }}>All Products</Link></li>
             </ul>
           </div>
 
           <div className="md:col-start-1 lg:col-start-auto">
             <div className="flex items-center gap-2 mb-8">
               <LotusMotif size={12} color="#e87825" />
-              <h4 className="font-black text-xs tracking-widest uppercase text-white">Support</h4>
+              <h4 className="font-black text-xs tracking-widest uppercase text-[#16263f]">Support</h4>
             </div>
-            <ul className="space-y-4 text-[0.82rem]" style={{ color: '#c9b99a' }}>
-              <li><Link to="/shipping" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Shipping Policy</Link></li>
-              <li><Link to="/returns" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Returns & Exchanges</Link></li>
-              <li><Link to="/contact" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Track Your Order</Link></li>
-              <li><Link to="/contact" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Contact Us</Link></li>
-              <li><Link to="/privacy" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Privacy Policy</Link></li>
-              <li><Link to="/terms" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Terms & Conditions</Link></li>
+            <ul className="space-y-4 text-[0.82rem] text-[#b75a14] font-semibold">
+              <li><Link to="/shipping" className="hover:underline transition-colors" style={{ color: 'inherit' }}>Shipping Policy</Link></li>
+              <li><Link to="/returns" className="hover:underline transition-colors" style={{ color: 'inherit' }}>Returns & Exchanges</Link></li>
+              {/* <li><Link to="/contact" className="hover:text-white transition-colors" style={{ color: 'inherit' }}>Track Your Order</Link></li> */}
+              <li><Link to="/contact" className="hover:underline transition-colors" style={{ color: 'inherit' }}>Contact Us</Link></li>
+              <li><Link to="/privacy" className="hover:underline transition-colors" style={{ color: 'inherit' }}>Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:underline transition-colors" style={{ color: 'inherit' }}>Terms & Conditions</Link></li>
             </ul>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-8">
-              <LotusMotif size={12} color="#e87825" />
-              <h4 className="font-black text-xs tracking-widest uppercase text-white">Newsletter</h4>
-            </div>
-            <p className="text-[0.75rem] mb-5" style={{ color: '#c9b99a' }}>Join our list for exclusive offers & new drops.</p>
-            <div className="flex flex-col gap-3">
-              <input
-                type="email"
-                placeholder="Email address"
-                className="px-4 py-3 text-xs outline-none w-full text-white placeholder:text-white/30"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(232,120,37,0.3)', borderRadius: '2px' }}
-              />
-              <button
-                className="py-3 text-[0.65rem] font-black uppercase tracking-widest text-white transition-colors"
-                style={{ background: '#e87825', borderRadius: '2px' }}
-              >
-                Subscribe
-              </button>
-            </div>
           </div>
         </div>
 
@@ -176,21 +158,21 @@ const Footer = () => {
         >
           <div className="flex items-center gap-2">
             <LotusMotif size={12} color="#e87825" />
-            <p>© 2026 Ghar of Ethnics. All rights reserved.</p>
+            <p className='text-[#16263f] font-semibold'>© 2026 Ghar of Ethnics. All rights reserved.</p>
           </div>
           <div className="hidden md:flex gap-6">
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="hover:scale-105 text-[#16263f] transition-all">Privacy Policy</Link>
+            <Link to="/terms" className="hover:scale-105 text-[#16263f] transition-all">Terms of Service</Link>
           </div>
         </div>
 
         <p className="text-center text-gray-500 text-[0.85rem] mt-3 px-4">
-          Crafted with love by{' '}
+          Crafted with ❤️ by 
           <a
             href="https://www.novarsistech.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-white text-gray-100 font-bold transition-colors"
+            className="hover:text-green-500 text-[#e87825] font-bold animate-pulse transition-colors ml-2"
           >
             Novarsis Technologies
           </a>

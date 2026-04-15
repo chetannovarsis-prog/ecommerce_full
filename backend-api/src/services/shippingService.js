@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { logger } from '../utils/logger.js';
+import * as activityService from './activityService.js';
 
 const NON_CANCELLABLE_STATUSES = ['PICKED', 'SHIPPED', 'DELIVERED'];
 
@@ -68,6 +69,35 @@ const buildItemsFromOrder = (order, requestItems) => {
   }));
 };
 
+const deriveDimensionsFromOrder = (order) => {
+  const items = order?.items || [];
+
+  const numericValues = items.map((item) => ({
+    quantity: Number(item.quantity || 0),
+    weight: Number(item.product?.weight || 0),
+    length: Number(item.product?.length || 0),
+    breadth: Number(item.product?.breadth || 0),
+    height: Number(item.product?.height || 0),
+  }));
+
+  return {
+    weight:
+      numericValues.reduce(
+        (sum, item) => sum + (Number.isFinite(item.weight) ? item.weight * Math.max(item.quantity, 1) : 0),
+        0
+      ) || 0.5,
+    length:
+      numericValues.reduce((max, item) => (Number.isFinite(item.length) ? Math.max(max, item.length) : max), 0) || 10,
+    breadth:
+      numericValues.reduce((max, item) => (Number.isFinite(item.breadth) ? Math.max(max, item.breadth) : max), 0) || 10,
+    height:
+      numericValues.reduce(
+        (sum, item) => sum + (Number.isFinite(item.height) ? item.height * Math.max(item.quantity, 1) : 0),
+        0
+      ) || 10,
+  };
+};
+
 const getOrderForShipping = async (orderId) => {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -85,6 +115,10 @@ const getOrderForShipping = async (orderId) => {
             select: {
               id: true,
               name: true,
+              weight: true,
+              length: true,
+              breadth: true,
+              height: true,
             },
           },
         },
@@ -110,16 +144,17 @@ const buildOrderPayload = async (input) => {
   }
 
   const order = await getOrderForShipping(orderId);
+  const derivedDimensions = deriveDimensionsFromOrder(order);
 
   return {
     orderId,
     paymentMethod: getStringValue(input.paymentMethod, order.paymentMethod) || 'prepaid',
     totalAmount: Number(input.totalAmount ?? order.totalAmount ?? 0),
-    weight: Number(input.weight || 0.5),
+    weight: Number(input.weight ?? derivedDimensions.weight ?? 0.5),
     dimensions: {
-      length: Number(input.length ?? input.dimensions?.length ?? 10),
-      breadth: Number(input.breadth ?? input.dimensions?.breadth ?? 10),
-      height: Number(input.height ?? input.dimensions?.height ?? 10),
+      length: Number(input.length ?? input.dimensions?.length ?? derivedDimensions.length ?? 10),
+      breadth: Number(input.breadth ?? input.dimensions?.breadth ?? derivedDimensions.breadth ?? 10),
+      height: Number(input.height ?? input.dimensions?.height ?? derivedDimensions.height ?? 10),
     },
     address: buildAddressFromOrder(order, input.address),
     items: buildItemsFromOrder(order, input.items),
@@ -163,6 +198,12 @@ export const createShipment = async (input) => {
       labelUrl: result.label_url || null,
     },
   });
+
+  await activityService.logActivity(
+    payload.orderId,
+    'SHIPMENT_CREATED',
+    `Shipment manifested with ${shipment.courier}. AWB: ${shipment.awb}`
+  );
 
   return {
     created: true,
@@ -209,6 +250,35 @@ export const trackShipment = async ({ awb, orderId }) => {
     data: { status: tracking.current_status || tracking.status || 'UNKNOWN' },
   });
 
+  // Propagate status change to the order
+  const shipment = await prisma.shipment.findFirst({
+    where: { awb: resolvedAwb },
+  });
+
+  if (shipment && tracking.current_status) {
+    const statusMap = {
+      'PICKED': 'SHIPPED',
+      'SHIPPED': 'SHIPPED',
+      'DELIVERED': 'DELIVERED',
+      'CANCELLED': 'SHIPPING_CANCELLED',
+      'RETURNED': 'RETURNED'
+    };
+
+    const newOrderStatus = statusMap[tracking.current_status.toUpperCase()];
+    if (newOrderStatus) {
+      await prisma.order.update({
+        where: { id: shipment.orderId },
+        data: { status: newOrderStatus }
+      });
+      
+      await activityService.logActivity(
+        shipment.orderId,
+        `STATUS_${tracking.current_status.toUpperCase()}`,
+        `Order status updated to ${newOrderStatus} based on courier tracking.`
+      );
+    }
+  }
+
   return tracking;
 };
 
@@ -241,6 +311,12 @@ export const cancelShipment = async (shipmentId) => {
     where: { shipmentId: String(shipmentId) },
     data: { status: 'CANCELLED' },
   });
+
+  await activityService.logActivity(
+    existingShipment.orderId,
+    'SHIPMENT_CANCELLED',
+    `Shipment ${shipmentId} has been cancelled.`
+  );
 
   return result;
 };
@@ -279,6 +355,12 @@ export const generateLabel = async ({ shipmentId, orderId }) => {
     data: { labelUrl: result.label_url || shipment.labelUrl },
   });
 
+  await activityService.logActivity(
+    shipment.orderId,
+    'LABEL_GENERATED',
+    'Shipping label generated successfully.'
+  );
+
   return {
     shipment: normalizeShipmentRecord(updatedShipment),
     label_url: result.label_url,
@@ -311,6 +393,12 @@ export const schedulePickup = async ({ shipmentId, orderId }) => {
     where: { shipmentId: shipment.shipmentId },
     data: { status: result.status || 'PICKUP_SCHEDULED' },
   });
+
+  await activityService.logActivity(
+    shipment.orderId,
+    'PICKUP_SCHEDULED',
+    `Pickup scheduled. Status: ${result.status || 'PICKUP_SCHEDULED'}`
+  );
 
   return {
     shipment: normalizeShipmentRecord(updatedShipment),

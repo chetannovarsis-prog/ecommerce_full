@@ -48,14 +48,14 @@ const Contact = () => {
           {/* Info Side */}
           <div className="space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-              <a href="mailto:support@gharofethnics.com">
+              <a href="mailto:support@gharofethenics.com">
                 <div className="p-6 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-md">
                   <div className="w-12 h-12 bg-white mx-auto text-black rounded-full flex items-center justify-center shadow-xl">
                     <Mail size={20} />
                   </div>
                   <div className='text-center'>
                     <h3 className="font-semibold text-gray-500">Email Us</h3>
-                    <p className="text-md font-semibold mt-1"> @gharofethnics.com</p>
+                    <p className="text-md font-semibold mt-1"> support@gharofethenics.com</p>
                   </div>
                 </div>
               </a>
@@ -141,7 +141,7 @@ const Contact = () => {
                     value={formData.email}
                     onChange={handleChange}
                     className="w-full bg-white border border-gray-100 px-6 py-5 rounded-2xl outline-none focus:ring-2 ring-black/5 transition-all font-bold text-sm"
-                    placeholder="name@company.com"
+                    placeholder="name@gmail.com"
                   />
                 </div>
               </div>
@@ -182,7 +182,7 @@ const Contact = () => {
               >
                 {loading ? 'Sending...' : (
                   <>
-                    Send Message <Send className='group-hover:rotate-[360deg] group-hover:scale-110  transition-all duration-500' size={20} />
+                    Send Message <Send className='group-hover:translate-x-[3px] group-hover:scale-110  transition-all duration-300' size={20} />
                   </>
                 )}
               </button>

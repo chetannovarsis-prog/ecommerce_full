@@ -15,6 +15,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import shippingRoutes from './routes/shippingRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
 import { requireAdmin } from './middleware/requireAdmin.js';
 import { getCustomerOrders, getOrderById } from './controllers/orderController.js';
 import { getSettings } from './controllers/settingsController.js';
@@ -43,6 +44,7 @@ app.use('/api/address', addressRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/shipping', shippingRoutes);
+app.use('/api/coupons', couponRoutes);
 
 
 
