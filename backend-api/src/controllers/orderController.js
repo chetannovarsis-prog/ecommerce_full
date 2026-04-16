@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import { sendMail, TEMPLATES } from '../utils/mailer.js';
 
 export const getOrders = async (req, res) => {
   try {
@@ -94,6 +95,35 @@ export const updateOrderStatus = async (req, res) => {
       where: { id },
       data: { status }
     });
+
+    const destEmail = order.shippingAddress?.email || order.customerEmail || null;
+    if (destEmail) {
+      switch (status) {
+        case 'PACKED':
+          await sendMail(destEmail, 'Order Packed', TEMPLATES.ORDER_PACKED());
+          break;
+        case 'SHIPPED':
+          // We can fetch tracking link if it's available in order table.
+          await sendMail(destEmail, 'Order Shipped', TEMPLATES.ORDER_SHIPPED(order.trackingLink || ''));
+          break;
+        case 'OUT_FOR_DELIVERY':
+          await sendMail(destEmail, 'Out for Delivery', TEMPLATES.OUT_FOR_DELIVERY());
+          break;
+        case 'DELIVERED':
+          await sendMail(destEmail, 'Order Delivered', TEMPLATES.DELIVERED());
+          break;
+        case 'CANCELLED':
+          await sendMail(destEmail, 'Order Cancelled', TEMPLATES.ORDER_CANCELLED());
+          break;
+        case 'REFUND_INITIATED':
+          await sendMail(destEmail, 'Refund Initiated', TEMPLATES.REFUND_INITIATED());
+          break;
+        case 'REFUNDED':
+          await sendMail(destEmail, 'Refund Completed', TEMPLATES.REFUND_COMPLETED());
+          break;
+      }
+    }
+
     res.json(order);
   } catch (error) {
     res.status(500).json({ error: error.message });

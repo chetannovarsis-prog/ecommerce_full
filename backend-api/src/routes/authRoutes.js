@@ -4,8 +4,12 @@ import {
   verifyOtp, 
   toggle2FA, 
   customerSignup, 
+  verifyCustomerSignupOtp,
   customerLogin, 
+  verifyCustomerLoginOtp,
   customerForgotPassword, 
+  verifyCustomerForgotPasswordOtp,
+  resetCustomerPassword,
   googleLogin,
   getAllCustomers,
   getCustomerProfile,
@@ -20,8 +24,12 @@ router.post('/toggle-2fa', toggle2FA);
 
 // Customer Routes
 router.post('/customer/signup', customerSignup);
+router.post('/customer/signup/verify-otp', verifyCustomerSignupOtp);
 router.post('/customer/login', customerLogin);
+router.post('/customer/login/verify-otp', verifyCustomerLoginOtp);
 router.post('/customer/forgot-password', customerForgotPassword);
+router.post('/customer/forgot-password/verify-otp', verifyCustomerForgotPasswordOtp);
+router.post('/customer/reset-password', resetCustomerPassword);
 router.post('/customer/google-login', googleLogin);
 router.get('/customer/:customerId/profile', getCustomerProfile);
 router.put('/customer/:customerId/addresses', updateCustomerAddresses);

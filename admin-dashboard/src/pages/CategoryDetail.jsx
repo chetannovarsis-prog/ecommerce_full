@@ -41,9 +41,13 @@ const CategoryDetail = () => {
   const fetchAvailableProducts = async () => {
     try {
       const res = await api.get('/products');
-      // Filter out products already in this category
-      // Filter out products already in this category by checking categoryIds array
-      setAvailableProducts(res.data.filter(p => !p.categories?.some(cat => cat.id === id)));
+      const products = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data?.data)
+        ? res.data.data
+        : [];
+
+      setAvailableProducts(products.filter((p) => !p.categories?.some((cat) => cat.id === id)));
     } catch (error) {
       console.error('Error fetching products:', error);
     }
@@ -223,7 +227,7 @@ const CategoryDetail = () => {
                 <input 
                   type="text" 
                   placeholder="Search products..." 
-                  className="bg-transparent border-none focus:ring-0 text-xs font-bold w-full dark:text-white"
+                  className="bg-transparent border-none outline-none focus:ring-0 text-xs font-bold w-full dark:text-white"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />

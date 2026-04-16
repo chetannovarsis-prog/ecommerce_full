@@ -2,6 +2,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
 import { logActivity } from '../services/activityService.js';
+import { sendMail, TEMPLATES } from '../utils/mailer.js';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -114,12 +115,18 @@ export const createRazorpayOrder = async (req, res) => {
     console.log('Database Order Created:', order.id);
 
     // Log activity
-    // Log activity
     await logActivity(
       order.id,
       paymentMethod === 'cod' ? 'ORDER_PLACED_COD' : 'ORDER_PLACED_PENDING',
       `Order placed successfully via ${paymentMethod.toUpperCase()}.`
     );
+
+    if (paymentMethod === 'cod') {
+      const emailToSend = customerEmail || shippingAddress?.email;
+      if (emailToSend) {
+        await sendMail(emailToSend, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
+      }
+    }
 
     // Save address to customer profile relational table if user is logged in
     if (resolvedCustomerId && shippingAddress) {
@@ -211,6 +218,15 @@ export const verifyPayment = async (req, res) => {
       const orderItems = await prisma.orderItem.findMany({
         where: { orderId: order.id }
       });
+
+      // Send Emails
+      if (order.shippingAddress && typeof order.shippingAddress === 'object') {
+        const destEmail = order.shippingAddress.email || order.customerEmail || null;
+        if (destEmail) {
+          await sendMail(destEmail, 'Payment Success - Ghar of Ethnics', TEMPLATES.PAYMENT_SUCCESS());
+          await sendMail(destEmail, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
+        }
+      }
 
       await Promise.all(orderItems.map(item =>
         prisma.sale.create({

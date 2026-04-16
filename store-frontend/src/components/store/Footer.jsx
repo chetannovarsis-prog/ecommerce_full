@@ -18,7 +18,7 @@ const Footer = () => {
 
   return (
     <footer
-      className="relative overflow-hidden pt-20 pb-32 md:pb-10 bg-yellow-50"
+      className="relative overflow-hidden pt-20 pb-32 md:pb-10 bg-[#ddcbb7]/50"
     // style={{ background: 'linear-gradient(160deg, #1a2d5a 0%, #0f1c3a 60%, #0a1228 100%)' }}
     >
       <img

@@ -7,6 +7,7 @@ const Categories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [nameError, setNameError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,12 +28,16 @@ const Categories = () => {
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
-    if (!newCategoryName.trim()) return;
+    if (!newCategoryName.trim()) {
+      setNameError('Category name is required.');
+      return;
+    }
 
     try {
       const res = await api.post('/categories', { name: newCategoryName });
       setCategories([...categories, res.data]);
       setNewCategoryName('');
+      setNameError('');
     } catch (error) {
       alert('Error adding category');
     }
@@ -64,10 +69,20 @@ const Categories = () => {
               <input 
                 type="text" 
                 placeholder="e.g. Footwear, Outerwear" 
-                className="w-full px-5 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 focus:border-black transition-all text-gray-900 dark:text-white"
+                className={`w-full px-5 py-3 bg-gray-50 dark:bg-white/5 border rounded-xl text-sm font-bold focus:outline-none focus:ring-4 transition-all text-gray-900 dark:text-white ${nameError ? 'border-red-400 focus:ring-red-500/10 focus:border-red-500' : 'border-gray-200 dark:border-white/5 focus:ring-black/5 dark:focus:ring-white/5 focus:border-black'}`}
                 value={newCategoryName}
-                onChange={e => setNewCategoryName(e.target.value)}
+                onChange={e => {
+                  setNewCategoryName(e.target.value);
+                  if (e.target.value.trim()) {
+                    setNameError('');
+                  }
+                }}
               />
+              {nameError && (
+                <p className="ml-1 text-[0.7rem] font-bold text-red-500">
+                  {nameError}
+                </p>
+              )}
             </div>
             <button 
               type="submit" 

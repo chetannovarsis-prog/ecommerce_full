@@ -1,12 +1,13 @@
 import prisma from '../utils/prisma.js';
-import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
+import { sendMail, TEMPLATES } from '../utils/mailer.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
+const CUSTOMER_OTP_TTL_MINUTES = 10;
 
 const sanitizeAddresses = (addresses) => {
   if (!Array.isArray(addresses)) return [];
@@ -34,14 +35,31 @@ const serializeCustomer = (customer) => ({
   email: customer.email,
   addresses: sanitizeAddresses(customer.addresses || [])
 });
-// Setup nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: 'ansupal01@gmail.com',
-    pass: process.env.EMAIL_PASSWORD // Need to ensure user provides this or we use a placeholder
+
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
+
+const signActionToken = (payload, expiresIn = `${CUSTOMER_OTP_TTL_MINUTES}m`) =>
+  jwt.sign(payload, JWT_SECRET, { expiresIn });
+
+const verifyActionToken = (token, expectedPurpose) => {
+  const decoded = jwt.verify(token, JWT_SECRET);
+
+  if (decoded.purpose !== expectedPurpose) {
+    throw new Error('Invalid token purpose');
   }
-});
+
+  return decoded;
+};
+
+const issueCustomerAuthToken = (customer) =>
+  jwt.sign(
+    { id: customer.id, email: customer.email, role: 'customer' },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
 
 export const login = async (req, res) => {
   let { email, password } = req.body;
@@ -64,8 +82,8 @@ export const login = async (req, res) => {
     }
 
     if (admin.is2FAEnabled) {
-      // Generate OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate 4-digit OTP
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
       const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
       await prisma.admin.update({
@@ -73,21 +91,10 @@ export const login = async (req, res) => {
         data: { otp, otpExpires }
       });
 
-      // Send Email
-      const mailOptions = {
-        from: 'ansupal01@gmail.com',
-        to: email,
-        subject: 'Your Admin OTP',
-        text: `Your OTP for admin login is: ${otp}. It expires in 10 minutes.`
-      };
+      // Send Email using unified templates
+      const emailSent = await sendMail(email, 'Your Admin OTP', TEMPLATES.LOGIN_OTP(otp));
 
-      let emailSent = false;
-      try {
-        await transporter.sendMail(mailOptions);
-        emailSent = true;
-      } catch (mailError) {
-        console.error('Error sending OTP email:', mailError);
-      }
+
 
       // If email sent successfully, we require the OTP step.
       if (emailSent) {
@@ -199,15 +206,70 @@ export const customerSignup = async (req, res) => {
     if (existing) return res.status(400).json({ message: 'Email already registered' });
 
     const hashedPassword = await bcrypt.hash(password, 12);
+    const otp = generateOtp();
+    const verificationToken = signActionToken({
+      purpose: 'customer-signup',
+      name,
+      email,
+      hashedPassword,
+      otpHash: hashOtp(otp)
+    });
+
+    const emailSent = await sendMail(email, 'Welcome to Ghar of Ethnics', TEMPLATES.SIGNUP_OTP(otp));
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send OTP email' });
+    }
+
+    res.status(200).json({
+      success: true,
+      requiresOtp: true,
+      email,
+      verificationToken,
+      message: 'OTP sent to your email'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const verifyCustomerSignupOtp = async (req, res) => {
+  const { otp, verificationToken } = req.body;
+
+  try {
+    if (!otp || !verificationToken) {
+      return res.status(400).json({ message: 'OTP and verification token are required' });
+    }
+
+    const payload = verifyActionToken(verificationToken, 'customer-signup');
+    if (hashOtp(otp.trim()) !== payload.otpHash) {
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    const existing = await prisma.customer.findUnique({ where: { email: payload.email } });
+    if (existing) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
 
     const customer = await prisma.customer.create({
-      data: { name, email, password: hashedPassword, provider: 'local' },
+      data: {
+        name: payload.name,
+        email: payload.email,
+        password: payload.hashedPassword,
+        provider: 'local'
+      },
       include: { addresses: true }
     });
 
-    res.status(201).json({ success: true, customer: serializeCustomer(customer) });
+    const token = issueCustomerAuthToken(customer);
+
+    res.status(201).json({
+      success: true,
+      customer: serializeCustomer(customer),
+      token
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const status = error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError' ? 401 : 500;
+    res.status(status).json({ message: status === 401 ? 'Invalid or expired OTP' : error.message });
   }
 };
 
@@ -219,7 +281,10 @@ export const customerLogin = async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const customer = await prisma.customer.findUnique({ where: { email } });
+    const customer = await prisma.customer.findUnique({
+      where: { email },
+      include: { addresses: true }
+    });
     if (!customer || !customer.password) {
        return res.status(401).json({ message: 'Invalid email or password' });
     }
@@ -244,49 +309,152 @@ export const customerLogin = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    // Generate JWT
-    const token = jwt.sign(
-      { id: customer.id, email: customer.email, role: 'customer' },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = issueCustomerAuthToken(customer);
 
-    const refreshedCustomer = await prisma.customer.findUnique({
-      where: { id: customer.id },
-      include: { addresses: true }
+    res.json({
+      success: true,
+      customer: serializeCustomer(customer),
+      token
     });
-
-    res.json({ success: true, customer: serializeCustomer(refreshedCustomer || customer), token });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
-export const customerForgotPassword = async (req, res) => {
-  const { email } = req.body;
+export const verifyCustomerLoginOtp = async (req, res) => {
+  const { otp, verificationToken } = req.body;
+
   try {
+    if (!otp || !verificationToken) {
+      return res.status(400).json({ message: 'OTP and verification token are required' });
+    }
+
+    const payload = verifyActionToken(verificationToken, 'customer-login');
+    if (hashOtp(otp.trim()) !== payload.otpHash) {
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    const customer = await prisma.customer.findUnique({
+      where: { id: payload.customerId },
+      include: { addresses: true }
+    });
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+
+    const token = issueCustomerAuthToken(customer);
+
+    res.json({
+      success: true,
+      customer: serializeCustomer(customer),
+      token
+    });
+  } catch (error) {
+    const status = error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError' ? 401 : 500;
+    res.status(status).json({ message: status === 401 ? 'Invalid or expired OTP' : error.message });
+  }
+};
+
+export const customerForgotPassword = async (req, res) => {
+  const email = req.body.email?.trim().toLowerCase();
+  try {
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
     const customer = await prisma.customer.findUnique({ where: { email } });
     if (!customer) return res.status(404).json({ message: 'Customer not found' });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 15 * 60 * 1000);
-
-    await prisma.customer.update({
-      where: { email },
-      data: { otp, otpExpires }
+    const otp = generateOtp();
+    const verificationToken = signActionToken({
+      purpose: 'customer-forgot-password',
+      customerId: customer.id,
+      email: customer.email,
+      otpHash: hashOtp(otp)
     });
 
-    const mailOptions = {
-      from: 'ansupal01@gmail.com',
-      to: email,
-      subject: 'Password Reset OTP',
-      text: `Your OTP for password reset is: ${otp}. It expires in 15 minutes.`
-    };
+    const emailSent = await sendMail(email, 'Password Reset OTP', TEMPLATES.FORGOT_PASSWORD_OTP(otp));
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send OTP email' });
+    }
 
-    await transporter.sendMail(mailOptions);
-    res.json({ message: 'Password reset OTP sent to email' });
+    res.json({
+      success: true,
+      email,
+      verificationToken,
+      message: 'Password reset OTP sent to email'
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const verifyCustomerForgotPasswordOtp = async (req, res) => {
+  const { otp, verificationToken } = req.body;
+
+  try {
+    if (!otp || !verificationToken) {
+      return res.status(400).json({ message: 'OTP and verification token are required' });
+    }
+
+    const payload = verifyActionToken(verificationToken, 'customer-forgot-password');
+    if (hashOtp(otp.trim()) !== payload.otpHash) {
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    const resetToken = signActionToken({
+      purpose: 'customer-forgot-password-verified',
+      customerId: payload.customerId,
+      email: payload.email
+    });
+
+    res.json({
+      success: true,
+      resetToken,
+      message: 'OTP verified successfully'
+    });
+  } catch (error) {
+    const status = error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError' ? 401 : 500;
+    res.status(status).json({ message: status === 401 ? 'Invalid or expired OTP' : error.message });
+  }
+};
+
+export const resetCustomerPassword = async (req, res) => {
+  const { resetToken, password, confirmPassword } = req.body;
+
+  try {
+    if (!resetToken || !password || !confirmPassword) {
+      return res.status(400).json({ message: 'Reset token, password, and confirm password are required' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    const payload = verifyActionToken(resetToken, 'customer-forgot-password-verified');
+    const customer = await prisma.customer.findUnique({ where: { id: payload.customerId } });
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password.trim(), 12);
+    await prisma.customer.update({
+      where: { id: customer.id },
+      data: {
+        password: hashedPassword,
+        provider: 'local'
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    const status = error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError' ? 401 : 500;
+    res.status(status).json({ message: status === 401 ? 'Reset session expired. Please request OTP again.' : error.message });
   }
 };
 
@@ -331,12 +499,7 @@ export const googleLogin = async (req, res) => {
       });
     }
 
-    // Generate JWT
-    const token = jwt.sign(
-      { id: customer.id, email: customer.email, role: 'customer' },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const token = issueCustomerAuthToken(customer);
 
     return res.json({
       success: true,

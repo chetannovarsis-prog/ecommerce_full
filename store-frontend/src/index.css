@@ -24,5 +24,15 @@
     background-color: var(--warm-cream);
     background-image: radial-gradient(circle at 50% 50%, #fffbf6 0%, #fdf7f0 100%);
   }
+
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
 }
 

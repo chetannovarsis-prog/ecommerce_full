@@ -19,7 +19,13 @@ const Hero = () => {
   const slides = [
     {
       type: 'image',
-      src: isMobile ? '/images/banner.png' : '/images/banner.png',
+      src: isMobile ? '/images/mob_banner2.jpeg' : '/images/banner2.jpeg',
+      link: '/collections/all',
+      alt: 'Store banner'
+    },
+    {
+      type: 'image',
+      src: isMobile ? '/images/mob_banner1.png' : '/images/banner.png',
       link: '/collections/all',
       alt: 'Store banner'
     }
@@ -53,7 +59,7 @@ const Hero = () => {
 
   return (
     <div className="relative font-['Albert_Sans']">
-      <section className="relative h-[95vh] overflow-hidden bg-[#f7f3f0] cursor-grab active:cursor-grabbing">
+      <section className="relative h-[90vh] md:h-[95vh] overflow-hidden bg-[#f7f3f0] cursor-grab active:cursor-grabbing">
         <motion.div
           className="h-full w-full"
           drag="x"
@@ -75,7 +81,7 @@ const Hero = () => {
                   slides[currentSlide].link ? (
                     slides[currentSlide].link.startsWith('http') ? (
                       <a href={slides[currentSlide].link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
-                        <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-cover" />
+                        <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-center" />
                       </a>
                     ) : (
                       <Link to={slides[currentSlide].link} className="block w-full h-full">
