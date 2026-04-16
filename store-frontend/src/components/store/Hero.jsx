@@ -19,13 +19,19 @@ const Hero = () => {
   const slides = [
     {
       type: 'image',
-      src: isMobile ? '/images/mob_banner2.jpeg' : '/images/banner2.jpeg',
+      src: isMobile ? '/images/mob_banner2.png' : '/images/banner2.jpeg',
       link: '/collections/all',
       alt: 'Store banner'
     },
     {
       type: 'image',
-      src: isMobile ? '/images/mob_banner1.png' : '/images/banner.png',
+      src: isMobile ? '/images/mob_banner3.png' : '/images/banner.png',
+      link: '/collections/all',
+      alt: 'Store banner'
+    },
+    {
+      type: 'image',
+      src: isMobile ? '/images/mob_banner1.png' : '/images/banner4.png',
       link: '/collections/all',
       alt: 'Store banner'
     }
