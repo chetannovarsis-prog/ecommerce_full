@@ -25,7 +25,7 @@ const Hero = () => {
     },
     {
       type: 'image',
-      src: isMobile ? '/images/mob_banner3.png' : '/images/banner.png',
+      src: isMobile ? '/images/mob_banner3.png' : '/images/banner5.png',
       link: '/collections/all',
       alt: 'Store banner'
     },

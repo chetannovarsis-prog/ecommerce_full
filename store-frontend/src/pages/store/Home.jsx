@@ -242,7 +242,7 @@ const Home = () => {
       </section>
 
       {/* Shoppable Videos Section */}
-      <ShoppableVideo />
+      {/* <ShoppableVideo /> */}
 
       {/* Testimonials - Happy Clients */}
       <Testimonials />
@@ -252,7 +252,7 @@ const Home = () => {
 
       {/* Love Section - Banner */}
       <section className="py-24 relative overflow-hidden flex items-center justify-center">
-        <img src="/images/love.png" className="w-full h-full object-cover" alt="" />
+        <img src="/images/love1.jpeg" className="w-full h-full object-cover" alt="" />
         {/* <div className="absolute inset-0 bg-black/40"></div> */}
         {/* <div className="relative z-10 text-center">
             <h2 className="text-[12rem] font-black text-white leading-none tracking-tighter mix-blend-overlay">LOVE</h2>
