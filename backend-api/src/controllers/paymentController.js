@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
 import { logActivity } from '../services/activityService.js';
 import { sendMail, TEMPLATES } from '../utils/mailer.js';
+import { notifyOrderCreated, notifyPaymentSuccess } from '../services/notificationService.js';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -114,6 +115,13 @@ export const createRazorpayOrder = async (req, res) => {
     });
     console.log('Database Order Created:', order.id);
 
+    // SMS notification: should never block order creation
+    try {
+      await notifyOrderCreated(order);
+    } catch (error) {
+      console.error('notifyOrderCreated failed:', error?.message || error);
+    }
+
     // Log activity
     await logActivity(
       order.id,
@@ -122,7 +130,7 @@ export const createRazorpayOrder = async (req, res) => {
     );
 
     if (paymentMethod === 'cod') {
-      const emailToSend = customerEmail || shippingAddress?.email;
+      const emailToSend = shippingAddress?.email || customerEmail || null;
       if (emailToSend) {
         await sendMail(emailToSend, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
       }
@@ -208,6 +216,13 @@ export const verifyPayment = async (req, res) => {
         }
       });
 
+      // SMS notification: should never block payment verification
+      try {
+        await notifyPaymentSuccess(order);
+      } catch (error) {
+        console.error('notifyPaymentSuccess failed:', error?.message || error);
+      }
+
       await logActivity(
         order.id,
         'ORDER_PLACED',
@@ -221,7 +236,7 @@ export const verifyPayment = async (req, res) => {
 
       // Send Emails
       if (order.shippingAddress && typeof order.shippingAddress === 'object') {
-        const destEmail = order.shippingAddress.email || order.customerEmail || null;
+        const destEmail = order.shippingAddress.email || null;
         if (destEmail) {
           await sendMail(destEmail, 'Payment Success - Ghar of Ethnics', TEMPLATES.PAYMENT_SUCCESS());
           await sendMail(destEmail, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());

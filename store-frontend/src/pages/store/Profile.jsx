@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogOut, Package, MapPin, Settings, ChevronRight, ShoppingBag, Plus, Save } from 'lucide-react';
+import { LogOut, Package, MapPin, ChevronRight, ShoppingBag, Plus, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../utils/api';
 
@@ -18,6 +18,12 @@ const emptyAddress = {
 
 const Profile = () => {
   const [customer, setCustomer] = useState(null);
+  const [profileForm, setProfileForm] = useState({ name: '', gender: '', email: '', mobile: '' });
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState('');
+  const [otpSession, setOtpSession] = useState(null);
+  const [profileOtp, setProfileOtp] = useState({ emailOtp: '', mobileOtp: '' });
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [addressForm, setAddressForm] = useState(emptyAddress);
@@ -45,6 +51,12 @@ const Profile = () => {
       const res = await api.get(`/auth/customer/${customerId}/profile`);
       const nextCustomer = res.data.customer;
       setCustomer(prev => ({ ...prev, ...nextCustomer }));
+      setProfileForm({
+        name: nextCustomer.name || '',
+        gender: nextCustomer.gender || '',
+        email: nextCustomer.email || '',
+        mobile: nextCustomer.mobile || ''
+      });
       setAddresses(nextCustomer.addresses || []);
       localStorage.setItem('customer', JSON.stringify({
         ...JSON.parse(localStorage.getItem('customer') || '{}'),
@@ -53,6 +65,14 @@ const Profile = () => {
     } catch (err) {
       console.error('Error fetching profile:', err);
     }
+  };
+
+  const persistCustomer = (nextCustomer) => {
+    setCustomer(nextCustomer);
+    localStorage.setItem('customer', JSON.stringify({
+      ...JSON.parse(localStorage.getItem('customer') || '{}'),
+      ...nextCustomer
+    }));
   };
 
   const fetchOrders = async (customerId) => {
@@ -121,6 +141,91 @@ const Profile = () => {
     navigate('/login');
   };
 
+  const handleProfileInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'mobile') {
+      setProfileForm((prev) => ({ ...prev, [name]: value.replace(/\D/g, '').slice(0, 10) }));
+      return;
+    }
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveProfile = async () => {
+    if (!customer?.id) return;
+    setSavingProfile(true);
+    setProfileMessage('');
+
+    try {
+      const payload = {
+        name: profileForm.name.trim() || null,
+        gender: profileForm.gender || null,
+        email: profileForm.email.trim() || null,
+        mobile: profileForm.mobile.trim() || null
+      };
+
+      const res = await api.post(`/auth/customer/${customer.id}/profile/request-update`, payload);
+      if (res.data?.requiresOtp) {
+        setOtpSession({
+          verificationToken: res.data.verificationToken,
+          requireEmailOtp: !!res.data.requireEmailOtp,
+          requireMobileOtp: !!res.data.requireMobileOtp
+        });
+        setProfileOtp({ emailOtp: '', mobileOtp: '' });
+        setProfileMessage('OTP sent. Verify to complete profile update.');
+        return;
+      }
+
+      if (res.data?.customer) {
+        persistCustomer({ ...customer, ...res.data.customer });
+        setProfileForm({
+          name: res.data.customer.name || '',
+          gender: res.data.customer.gender || '',
+          email: res.data.customer.email || '',
+          mobile: res.data.customer.mobile || ''
+        });
+      }
+
+      setEditingProfile(false);
+      setProfileMessage(res.data?.message || 'Profile updated successfully.');
+    } catch (err) {
+      setProfileMessage(err.response?.data?.message || 'Could not update profile. Please try again.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleVerifyProfileOtp = async () => {
+    if (!otpSession || !customer?.id) return;
+    setSavingProfile(true);
+    setProfileMessage('');
+
+    try {
+      const res = await api.post(`/auth/customer/${customer.id}/profile/verify-update`, {
+        verificationToken: otpSession.verificationToken,
+        emailOtp: profileOtp.emailOtp.trim() || undefined,
+        mobileOtp: profileOtp.mobileOtp.trim() || undefined
+      });
+
+      if (res.data?.customer) {
+        persistCustomer({ ...customer, ...res.data.customer });
+        setProfileForm({
+          name: res.data.customer.name || '',
+          gender: res.data.customer.gender || '',
+          email: res.data.customer.email || '',
+          mobile: res.data.customer.mobile || ''
+        });
+      }
+
+      setOtpSession(null);
+      setEditingProfile(false);
+      setProfileMessage('Profile updated successfully.');
+    } catch (err) {
+      setProfileMessage(err.response?.data?.message || 'OTP verification failed. Please try again.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (!customer) return null;
 
   return (
@@ -162,6 +267,127 @@ const Profile = () => {
               </div>
             </motion.div>
           ))}
+        </div>
+
+        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-black/5 overflow-hidden">
+          <div className="flex items-center justify-between p-8 border-b">
+            <h2 className="text-xl font-black">Personal Information</h2>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingProfile((prev) => !prev);
+                setProfileMessage('');
+                setOtpSession(null);
+              }}
+              className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-bold uppercase tracking-widest hover:border-black"
+            >
+              {editingProfile ? 'Cancel' : 'Edit'}
+            </button>
+          </div>
+          <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <label className="text-[0.65rem] font-black uppercase tracking-widest text-gray-500">Name</label>
+              <input
+                name="name"
+                value={profileForm.name}
+                onChange={handleProfileInputChange}
+                disabled={!editingProfile}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100"
+                placeholder="Your name"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[0.65rem] font-black uppercase tracking-widest text-gray-500">Gender</label>
+              <select
+                name="gender"
+                value={profileForm.gender}
+                onChange={handleProfileInputChange}
+                disabled={!editingProfile}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100"
+              >
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[0.65rem] font-black uppercase tracking-widest text-gray-500">Email</label>
+              <input
+                name="email"
+                type="email"
+                value={profileForm.email}
+                onChange={handleProfileInputChange}
+                disabled={!editingProfile}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100"
+                placeholder="Email address"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[0.65rem] font-black uppercase tracking-widest text-gray-500">Mobile Number</label>
+              <input
+                name="mobile"
+                type="text"
+                inputMode="numeric"
+                value={profileForm.mobile}
+                onChange={handleProfileInputChange}
+                disabled={!editingProfile}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100"
+                placeholder="10-digit mobile number"
+              />
+            </div>
+          </div>
+
+          {editingProfile && (
+            <div className="px-8 pb-8 space-y-4">
+              <button
+                type="button"
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+                className="rounded-xl bg-black text-white px-6 py-3 text-[0.72rem] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all disabled:opacity-50"
+              >
+                {savingProfile ? 'Saving...' : 'Save Profile'}
+              </button>
+
+              {otpSession && (
+                <div className="rounded-2xl border border-gray-200 p-4 space-y-3 bg-gray-50">
+                  <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">Verify OTP to update email/mobile</p>
+                  {otpSession.requireEmailOtp && (
+                    <input
+                      type="text"
+                      value={profileOtp.emailOtp}
+                      onChange={(e) => setProfileOtp((prev) => ({ ...prev, emailOtp: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                      placeholder="Enter email OTP"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black"
+                    />
+                  )}
+                  {otpSession.requireMobileOtp && (
+                    <input
+                      type="text"
+                      value={profileOtp.mobileOtp}
+                      onChange={(e) => setProfileOtp((prev) => ({ ...prev, mobileOtp: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                      placeholder="Enter mobile OTP"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleVerifyProfileOtp}
+                    disabled={savingProfile}
+                    className="rounded-xl bg-black text-white px-6 py-3 text-[0.72rem] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all disabled:opacity-50"
+                  >
+                    {savingProfile ? 'Verifying...' : 'Verify OTP & Update'}
+                  </button>
+                </div>
+              )}
+
+              {profileMessage && (
+                <p className={`text-sm font-semibold ${profileMessage.toLowerCase().includes('success') || profileMessage.toLowerCase().includes('otp sent') ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {profileMessage}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-8">

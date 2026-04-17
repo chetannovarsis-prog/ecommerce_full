@@ -4,10 +4,13 @@ import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import bcrypt from 'bcryptjs';
 import { sendMail, TEMPLATES } from '../utils/mailer.js';
+import { sendSMS, normalizeMobile } from '../services/smsService.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
 const CUSTOMER_OTP_TTL_MINUTES = 10;
+const MOBILE_OTP_TTL_MINUTES = 2;
+const MAX_MOBILE_OTP_ATTEMPTS = 3;
 
 const sanitizeAddresses = (addresses) => {
   if (!Array.isArray(addresses)) return [];
@@ -33,10 +36,13 @@ const serializeCustomer = (customer) => ({
   id: customer.id,
   name: customer.name,
   email: customer.email,
+  mobile: customer.mobile,
+  gender: customer.gender || null,
   addresses: sanitizeAddresses(customer.addresses || [])
 });
 
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
+const generateFourDigitOtp = () => Math.floor(1000 + Math.random() * 9000).toString();
 
 const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
 
@@ -232,6 +238,10 @@ export const customerSignup = async (req, res) => {
   }
 };
 
+// Wrapper: POST /api/auth/register
+// Keeps the legacy `/api/auth/customer/*` routes intact while providing a simpler entry point.
+export const register = async (req, res) => customerSignup(req, res);
+
 export const verifyCustomerSignupOtp = async (req, res) => {
   const { otp, verificationToken } = req.body;
 
@@ -320,6 +330,10 @@ export const customerLogin = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Wrapper: POST /api/auth/email-login
+// Keeps the legacy `/api/auth/customer/login` route intact while providing a simpler entry point.
+export const emailLogin = async (req, res) => customerLogin(req, res);
 
 export const verifyCustomerLoginOtp = async (req, res) => {
   const { otp, verificationToken } = req.body;
@@ -577,6 +591,188 @@ export const updateCustomerAddresses = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+export const requestCustomerProfileUpdateOtp = async (req, res) => {
+  const { customerId } = req.params;
+  const nextName = req.body?.name?.trim() || null;
+  const nextGenderRaw = req.body?.gender;
+  const nextEmailRaw = req.body?.email?.trim().toLowerCase() || null;
+  const nextMobileRaw = req.body?.mobile;
+
+  try {
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      include: { addresses: true }
+    });
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+
+    const nextGender = ['male', 'female', 'other'].includes(String(nextGenderRaw || '').toLowerCase())
+      ? String(nextGenderRaw).toLowerCase()
+      : null;
+    const normalizedMobile = nextMobileRaw ? normalizeMobile(nextMobileRaw) : null;
+
+    if (nextMobileRaw && !normalizedMobile) {
+      return res.status(400).json({ message: 'Invalid mobile number' });
+    }
+
+    const emailChanged = nextEmailRaw && nextEmailRaw !== customer.email;
+    const mobileChanged = normalizedMobile && normalizedMobile !== customer.mobile;
+    const nameChanged = nextName !== null && nextName !== customer.name;
+    const genderChanged = nextGender !== customer.gender;
+
+    if (!emailChanged && !mobileChanged && !nameChanged && !genderChanged) {
+      return res.json({
+        success: true,
+        requiresOtp: false,
+        customer: serializeCustomer(customer),
+        message: 'No profile changes detected'
+      });
+    }
+
+    if (emailChanged) {
+      const existingEmail = await prisma.customer.findUnique({ where: { email: nextEmailRaw } });
+      if (existingEmail && existingEmail.id !== customerId) {
+        return res.status(400).json({ message: 'Email is already registered' });
+      }
+    }
+
+    if (mobileChanged) {
+      const existingMobile = await prisma.customer.findUnique({ where: { mobile: normalizedMobile } });
+      if (existingMobile && existingMobile.id !== customerId) {
+        return res.status(400).json({ message: 'Mobile number is already registered' });
+      }
+    }
+
+    if (!emailChanged && !mobileChanged) {
+      const updated = await prisma.customer.update({
+        where: { id: customerId },
+        data: {
+          name: nextName,
+          gender: nextGender
+        },
+        include: { addresses: true }
+      });
+
+      return res.json({
+        success: true,
+        requiresOtp: false,
+        customer: serializeCustomer(updated),
+        message: 'Profile updated successfully'
+      });
+    }
+
+    const payload = {
+      purpose: 'customer-profile-update',
+      customerId,
+      pending: {
+        name: nextName,
+        gender: nextGender,
+        email: emailChanged ? nextEmailRaw : customer.email,
+        mobile: mobileChanged ? normalizedMobile : customer.mobile
+      },
+      emailOtpHash: null,
+      mobileOtpHash: null,
+      requireEmailOtp: emailChanged,
+      requireMobileOtp: mobileChanged
+    };
+
+    if (emailChanged) {
+      const emailOtp = generateOtp();
+      payload.emailOtpHash = hashOtp(emailOtp);
+      const sent = await sendMail(nextEmailRaw, 'Verify your updated email', TEMPLATES.SIGNUP_OTP(emailOtp));
+      if (!sent) {
+        return res.status(500).json({ message: 'Failed to send email OTP' });
+      }
+    }
+
+    if (mobileChanged) {
+      const mobileOtp = generateFourDigitOtp();
+      payload.mobileOtpHash = hashOtp(mobileOtp);
+      const sent = await sendSMS(normalizedMobile, TEMPLATES.SIGNUP_OTP(mobileOtp));
+      if (!sent) {
+        return res.status(500).json({ message: 'Failed to send mobile OTP' });
+      }
+    }
+
+    const verificationToken = signActionToken(payload);
+
+    return res.json({
+      success: true,
+      requiresOtp: true,
+      verificationToken,
+      requireEmailOtp: emailChanged,
+      requireMobileOtp: mobileChanged,
+      message: 'OTP sent for profile update verification'
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const verifyCustomerProfileUpdateOtp = async (req, res) => {
+  const { customerId } = req.params;
+  const { verificationToken, emailOtp, mobileOtp } = req.body || {};
+
+  try {
+    if (!verificationToken) {
+      return res.status(400).json({ message: 'Verification token is required' });
+    }
+
+    const payload = verifyActionToken(verificationToken, 'customer-profile-update');
+    if (payload.customerId !== customerId) {
+      return res.status(401).json({ message: 'Invalid verification request' });
+    }
+
+    if (payload.requireEmailOtp) {
+      if (!emailOtp || hashOtp(String(emailOtp).trim()) !== payload.emailOtpHash) {
+        return res.status(401).json({ message: 'Invalid or expired email OTP' });
+      }
+    }
+
+    if (payload.requireMobileOtp) {
+      if (!mobileOtp || hashOtp(String(mobileOtp).trim()) !== payload.mobileOtpHash) {
+        return res.status(401).json({ message: 'Invalid or expired mobile OTP' });
+      }
+    }
+
+    if (payload.pending?.email) {
+      const existingEmail = await prisma.customer.findUnique({ where: { email: payload.pending.email } });
+      if (existingEmail && existingEmail.id !== customerId) {
+        return res.status(400).json({ message: 'Email is already registered' });
+      }
+    }
+
+    if (payload.pending?.mobile) {
+      const existingMobile = await prisma.customer.findUnique({ where: { mobile: payload.pending.mobile } });
+      if (existingMobile && existingMobile.id !== customerId) {
+        return res.status(400).json({ message: 'Mobile number is already registered' });
+      }
+    }
+
+    const updated = await prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        name: payload.pending?.name || null,
+        gender: payload.pending?.gender || null,
+        email: payload.pending?.email || null,
+        mobile: payload.pending?.mobile || null
+      },
+      include: { addresses: true }
+    });
+
+    return res.json({
+      success: true,
+      customer: serializeCustomer(updated),
+      message: 'Profile updated successfully'
+    });
+  } catch (error) {
+    const status = error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError' ? 401 : 500;
+    return res.status(status).json({ message: status === 401 ? 'Invalid or expired verification session' : error.message });
+  }
+};
 export const getAllCustomers = async (req, res) => {
   try {
     console.log('Fetching all customers...');
@@ -593,5 +789,142 @@ export const getAllCustomers = async (req, res) => {
   } catch (error) {
     console.error('Error in getAllCustomers:', error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+// --- Mobile OTP Authentication (login + implicit signup) ---
+
+export const sendOtp = async (req, res) => {
+  const mobileRaw = req.body?.mobile;
+  const forceResend = Boolean(req.body?.resend);
+
+  try {
+    if (!mobileRaw) {
+      return res.status(400).json({ message: 'Mobile is required' });
+    }
+
+    const mobile = normalizeMobile(mobileRaw);
+    if (!mobile) {
+      return res.status(400).json({ message: 'Invalid mobile number' });
+    }
+
+    const existingOtp = await prisma.mobileOtp.findUnique({ where: { mobile } });
+    if (existingOtp && existingOtp.expiresAt > new Date() && !forceResend) {
+      // Do not send SMS again unless user explicitly requested resend.
+      return res.json({
+        success: true,
+        mobile,
+        otpAlreadySent: true,
+        message: 'OTP already sent. Please use the existing OTP or click resend.'
+      });
+    }
+
+    // Generate 4-digit OTP
+    const otp = generateFourDigitOtp();
+    const otpHash = hashOtp(otp);
+    const expiresAt = new Date(Date.now() + MOBILE_OTP_TTL_MINUTES * 60 * 1000);
+
+    // Upsert OTP row for this mobile
+    await prisma.mobileOtp.upsert({
+      where: { mobile },
+      update: { otpHash, expiresAt, attempts: 0 },
+      create: { mobile, otpHash, expiresAt, attempts: 0 }
+    });
+
+    const smsMessage = TEMPLATES.SIGNUP_OTP(otp);
+    const smsSent = await sendSMS(mobile, smsMessage);
+    if (!smsSent) {
+      return res.status(500).json({ message: 'Failed to send OTP SMS' });
+    }
+
+    return res.json({ success: true, mobile });
+  } catch (error) {
+    console.error('sendOtp error:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const verifyMobileOtp = async (req, res) => {
+  const { mobile: mobileRaw, otp } = req.body || {};
+
+  try {
+    if (!mobileRaw || otp === undefined || otp === null) {
+      return res.status(400).json({ message: 'Mobile and OTP are required' });
+    }
+
+    const mobile = normalizeMobile(mobileRaw);
+    if (!mobile) {
+      return res.status(400).json({ message: 'Invalid mobile number' });
+    }
+
+    const otpRecord = await prisma.mobileOtp.findUnique({ where: { mobile } });
+    if (!otpRecord) {
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    if (otpRecord.expiresAt < new Date()) {
+      // Expired OTP should be cleared
+      await prisma.mobileOtp
+        .delete({ where: { mobile } })
+        .catch(() => {});
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    const otpStr = String(otp).trim();
+    const otpHash = hashOtp(otpStr);
+
+    if (otpRecord.otpHash !== otpHash) {
+      const nextAttempts = (otpRecord.attempts ?? 0) + 1;
+
+      if (nextAttempts >= MAX_MOBILE_OTP_ATTEMPTS) {
+        // Lock/clear after max attempts
+        await prisma.mobileOtp
+          .delete({ where: { mobile } })
+          .catch(() => {});
+
+        return res
+          .status(401)
+          .json({ message: 'Too many OTP attempts. Please request a new OTP.' });
+      }
+
+      await prisma.mobileOtp.update({
+        where: { mobile },
+        data: { attempts: nextAttempts }
+      });
+
+      return res.status(401).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // OTP verified successfully: clear OTP row
+    await prisma.mobileOtp
+      .delete({ where: { mobile } })
+      .catch(() => {});
+
+    // Implicit signup: create customer if it doesn't exist
+    let customer = await prisma.customer.findUnique({
+      where: { mobile },
+      include: { addresses: true }
+    });
+
+    if (!customer) {
+      customer = await prisma.customer.create({
+        data: {
+          mobile,
+          provider: 'phone'
+        },
+        include: { addresses: true }
+      });
+    }
+
+    const token = issueCustomerAuthToken(customer);
+
+    return res.json({
+      success: true,
+      customer: serializeCustomer(customer),
+      token
+    });
+  } catch (error) {
+    console.error('verifyMobileOtp error:', error);
+    return res.status(500).json({ error: error.message });
   }
 };

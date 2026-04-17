@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { sendMail, TEMPLATES } from '../utils/mailer.js';
+import { notifyOrderStatus } from '../services/notificationService.js';
 
 export const getOrders = async (req, res) => {
   try {
@@ -91,13 +92,25 @@ export const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   try {
+    const existingOrder = await prisma.order.findUnique({
+      where: { id },
+      select: { id: true, status: true }
+    });
+
+    if (!existingOrder) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const statusChanged = existingOrder.status !== status;
+
     const order = await prisma.order.update({
       where: { id },
       data: { status }
     });
 
-    const destEmail = order.shippingAddress?.email || order.customerEmail || null;
-    if (destEmail) {
+    // Send notifications only when status actually changes to avoid duplicate SMS/email costs.
+    const destEmail = order.shippingAddress?.email || null;
+    if (statusChanged && destEmail) {
       switch (status) {
         case 'PACKED':
           await sendMail(destEmail, 'Order Packed', TEMPLATES.ORDER_PACKED());
@@ -122,6 +135,26 @@ export const updateOrderStatus = async (req, res) => {
           await sendMail(destEmail, 'Refund Completed', TEMPLATES.REFUND_COMPLETED());
           break;
       }
+    }
+
+    // SMS notification: should never block admin status updates
+    try {
+      if (!statusChanged) {
+        return res.json(order);
+      }
+
+      if (status === 'SHIPPED') {
+        const shipment = await prisma.shipment.findUnique({
+          where: { orderId: order.id },
+        });
+        await notifyOrderStatus(order, status, {
+          trackingLink: shipment?.labelUrl || '',
+        });
+      } else {
+        await notifyOrderStatus(order, status);
+      }
+    } catch (error) {
+      console.error('notifyOrderStatus failed:', error?.message || error);
     }
 
     res.json(order);

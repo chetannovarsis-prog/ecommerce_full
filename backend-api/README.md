@@ -36,14 +36,27 @@ The high-performance engine powering the storefront and admin dashboard. Built w
 
 3. **Database Migration**:
    ```bash
+   # If your backend is currently running with `nodemon`/a dev watcher,
+   # stop it first to avoid Prisma `query_engine` file-lock issues.
    npx prisma generate
    npx prisma migrate dev
    ```
+
+   If you only changed `schema.prisma`, `npx prisma generate` alone is usually enough.
 
 4. **Run Server**:
    ```bash
    npm run dev
    ```
+
+## OTP & SMS Verification
+
+1. Ensure your backend `.env` contains `FAST2SMS_API_KEY` (used by `POST /api/auth/send-otp` and order-status SMS).
+2. Restart the backend after running `prisma generate`.
+3. Verify these endpoints work:
+   - `POST /api/auth/send-otp` (body: `{ "mobile": "10-digit-number" }`)
+   - `POST /api/auth/verify-otp` (body: `{ "mobile": "10-digit-number", "otp": "1234" }`)
+   - `POST /api/auth/email-login` (body: `{ "email": "...", "password": "..." }`)
 
 ## 📡 API Endpoints
 

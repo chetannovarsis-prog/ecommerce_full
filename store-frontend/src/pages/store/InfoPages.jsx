@@ -36,7 +36,7 @@ export const Shipping = () => (
     <section className="space-y-6">
       <h2 className="text-2xl font-black uppercase tracking-tight">Tracking Your Order</h2>
       <p className="text-gray-600 font-medium leading-relaxed">
-        Upon dispatch, a unique tracking identifier will be shared via email and SMS. You can monitor your shipment's progress
+        Upon dispatch, a unique tracking identity will be shared via email and SMS. You can monitor your shipment's progress
         through our logistics partner's portal.
       </p>
     </section>

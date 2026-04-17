@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+
 import productRoutes from './routes/productRoutes.js';
 import collectionRoutes from './routes/collectionRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
