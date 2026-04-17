@@ -41,7 +41,7 @@ const ProductDetail = () => {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [isReviewing, setIsReviewing] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '', name: '' });
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '', name: '', email: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
 
   const thumbnailRefs = useRef([]);
@@ -140,6 +140,7 @@ const ProductDetail = () => {
       await api.post('/reviews', {
         productId: product.id,
         userName: reviewForm.name,
+        userEmail: reviewForm.email,
         rating: reviewForm.rating,
         comment: reviewForm.comment
       });
@@ -147,7 +148,13 @@ const ProductDetail = () => {
       const reviewsRes = await api.get(`/reviews/product/${id}`);
       setReviews(reviewsRes.data);
 
-      setReviewForm({ rating: 5, comment: '', name: '' });
+      const savedCustomer = localStorage.getItem('customer');
+      if (savedCustomer) {
+        const customer = JSON.parse(savedCustomer);
+        setReviewForm({ rating: 5, comment: '', name: customer.name || '', email: customer.email || '' });
+      } else {
+        setReviewForm({ rating: 5, comment: '', name: '', email: '' });
+      }
       setIsReviewing(false);
     } catch (error) {
       console.error('Error submitting review:', error);
@@ -155,6 +162,21 @@ const ProductDetail = () => {
       setSubmittingReview(false);
     }
   };
+
+  // Auto-populate review form when opening
+  useEffect(() => {
+    if (isReviewing) {
+      const savedCustomer = localStorage.getItem('customer');
+      if (savedCustomer) {
+        const customer = JSON.parse(savedCustomer);
+        setReviewForm(prev => ({
+          ...prev,
+          name: customer.name || prev.name,
+          email: customer.email || prev.email
+        }));
+      }
+    }
+  }, [isReviewing]);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -612,16 +634,27 @@ const ProductDetail = () => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[0.6rem] font-black uppercase tracking-widest text-gray-400">Your Name</label>
-                      <input 
-                        required
-                        type="text" 
-                        value={reviewForm.name}
-                        onChange={e => setReviewForm({ ...reviewForm, name: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-black transition-all outline-none font-bold text-sm"
-                        placeholder="John Doe"
-                      />
-                    </div>
+                       <label className="text-[0.6rem] font-black uppercase tracking-widest text-gray-400">Your Name</label>
+                       <input 
+                         required
+                         type="text" 
+                         value={reviewForm.name}
+                         onChange={e => setReviewForm({ ...reviewForm, name: e.target.value })}
+                         className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-black transition-all outline-none font-bold text-sm"
+                         placeholder="John Doe"
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-[0.6rem] font-black uppercase tracking-widest text-gray-400">Email Address</label>
+                       <input 
+                         required
+                         type="email" 
+                         value={reviewForm.email}
+                         onChange={e => setReviewForm({ ...reviewForm, email: e.target.value })}
+                         className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:bg-white focus:border-black transition-all outline-none font-bold text-sm"
+                         placeholder="john@example.com"
+                       />
+                     </div>
                     <div className="space-y-2">
                       <label className="text-[0.6rem] font-black uppercase tracking-widest text-gray-400">Review</label>
                       <textarea 
@@ -657,7 +690,7 @@ const ProductDetail = () => {
                         {new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </div>
-                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">{r.name || 'Anonymous User'}</h4>
+                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">{r.userName || 'Anonymous User'}</h4>
                     <p className="text-gray-500 text-sm leading-relaxed font-medium">{r.comment}</p>
                   </div>
                 ))
@@ -723,4 +756,3 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
-
