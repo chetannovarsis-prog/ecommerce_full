@@ -218,7 +218,7 @@ const Home = () => {
       </section>
 
       {/* Shop The Style - Lookbook Grid */}
-      <section className="py-24">
+      {/* <section className="py-24">
         <div className="container mx-auto px-10">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black uppercase tracking-tighter mb-4 italic italic">Shop The Style</h2>
@@ -239,7 +239,7 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Shoppable Videos Section */}
       {/* <ShoppableVideo /> */}
