@@ -14,13 +14,25 @@ const ProductCard = ({ product, isListView = false }) => {
   // State for selected variant
   const [selectedVariant, setSelectedVariant] = useState(variants && variants.length > 0 ? variants[0] : null);
   const [activeImage, setActiveImage] = useState(thumbnailUrl || (images && images.length > 0 ? images[0] : 'https://via.placeholder.com/400x500?text=No+Image'));
+  const isFirstRender = React.useRef(true);
+
+  // Sync activeImage whenever curated fields change (e.g. from Admin update)
+  useEffect(() => {
+    setActiveImage(thumbnailUrl || (images && images.length > 0 ? images[0] : 'https://via.placeholder.com/400x500?text=No+Image'));
+  }, [thumbnailUrl, images]);
 
   useEffect(() => {
-    if (selectedVariant) {
+    if (selectedVariant && !isFirstRender.current) {
       const variantImg = selectedVariant.thumbnailUrl || (selectedVariant.images && selectedVariant.images[0]);
-      if (variantImg) setActiveImage(variantImg);
+      if (variantImg) {
+        setActiveImage(variantImg);
+      }
     }
   }, [selectedVariant]);
+
+  useEffect(() => {
+     isFirstRender.current = false;
+  }, []);
 
   const currentPrice = (selectedVariant?.price !== null && selectedVariant?.price !== undefined) ? selectedVariant.price : (price || 0);
   const hasDiscount = isDiscountable && discountPrice > 0;

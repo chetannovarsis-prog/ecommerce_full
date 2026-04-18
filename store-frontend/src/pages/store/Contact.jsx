@@ -48,14 +48,14 @@ const Contact = () => {
           {/* Info Side */}
           <div className="space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-              <a href="mailto:support@gharofethenics.com">
+              <a href="mailto:support@gharofethnics.com">
                 <div className="p-6 bg-gray-50 rounded-[2rem] space-y-4 border border-gray-100 shadow-md">
                   <div className="w-12 h-12 bg-white mx-auto text-black rounded-full flex items-center justify-center shadow-xl">
                     <Mail size={20} />
                   </div>
                   <div className='text-center'>
                     <h3 className="font-semibold text-gray-500">Email Us</h3>
-                    <p className="text-md font-semibold mt-1"> support@gharofethenics.com</p>
+                    <p className="text-md font-semibold mt-1"> support@gharofethnics.com</p>
                   </div>
                 </div>
               </a>

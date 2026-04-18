@@ -70,9 +70,9 @@ const Footer = () => {
                 <Phone size={14} style={{ color: '#e87825' }} />
                 <span className="text-[0.72rem]" style={{ color: '#b75a14' }}>+91 98456 34734</span>
               </a>
-              <a href="mailto:support@gharofethenics.com" className="flex items-center gap-3">
+              <a href="mailto:support@gharofethnics.com" className="flex items-center gap-3">
                 <Mail size={14} style={{ color: '#e87825' }} />
-                <span className="text-[0.72rem]" style={{ color: '#b75a14' }}>support@gharofethenics.com</span>
+                <span className="text-[0.72rem]" style={{ color: '#b75a14' }}>support@gharofethnics.com</span>
               </a>
             </div>
 
