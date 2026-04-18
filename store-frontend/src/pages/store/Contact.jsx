@@ -80,7 +80,7 @@ const Contact = () => {
                   <MapPin size={18} className="text-gray-700" />
                 </div>
                 <div>
-                  <h4 className=" font-bold text-orange-500 mb-2">Our Store</h4>
+                  <h4 className=" font-bold text-orange-500 mb-2">Our Official Address</h4>
                   <p className="text-md font-black">Ghar of Ethnics, 38, Booth no-127, 2nd Main Road, Ashwini layout, Ejipura, Koramangala, Bangalore-560047</p>
                 </div>
               </div>
