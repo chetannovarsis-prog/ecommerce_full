@@ -11,7 +11,7 @@ const Testimonials = () => {
       text: "I always find trendy and elegant outfits that make me feel confident and beautiful.",
       author: "Ananya Sharma",
       location: "Customer from India",
-      image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=200",
+      image: "/images/3.webp",
       productName: "The Bare Basic — Women's Self-Line...",
       price: "₹699",
       oldPrice: "₹2,399"
@@ -21,7 +21,7 @@ const Testimonials = () => {
       text: "The quality of the fabric is amazing and everything fits like it was made for me!",
       author: "Priya Joshi",
       location: "Customer from Jaipur",
-      image: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=200",
+      image: "/images/2.webp",
       productName: "The Contrast Line — Pure Cambridge...",
       price: "₹699",
       oldPrice: "₹2,316"
@@ -31,7 +31,7 @@ const Testimonials = () => {
       text: "Finally, a fashion site that understands women—stylish collections without breaking the bank.",
       author: "Akansha Tyagi",
       location: "Customer from Bhopal",
-      image: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&q=80&w=200",
+      image: "/images/1.webp",
       productName: "The Half Bloom — Pure Cotton Boat...",
       price: "₹1,199",
       oldPrice: "₹3,613"
