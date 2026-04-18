@@ -327,7 +327,7 @@ const Login = () => {
           <div className="relative flex justify-center text-[0.6rem] uppercase tracking-widest font-black"><span className="bg-white px-4 text-gray-300">or continue with</span></div>
         </div>
 
-        <div className="flex justify-center">
+        {/* <div className="flex justify-center">
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={() => setError('Google login failed')}
@@ -335,7 +335,7 @@ const Login = () => {
             size="large"
             shape="pill"
           />
-        </div>
+        </div> */}
 
         <p className="text-center text-[0.65rem] font-bold text-gray-400 uppercase tracking-tight">
           Don&apos;t have an account? <Link to="/signup" className="text-black underline underline-offset-4 decoration-2">Create profile</Link>

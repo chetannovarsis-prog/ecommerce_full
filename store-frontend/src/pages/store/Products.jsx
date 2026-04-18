@@ -139,17 +139,17 @@ const Products = () => {
   const getGridClass = () => {
     if (viewCols === 1) return 'grid-cols-1 md:grid-cols-1';
     if (viewCols === 2) return 'grid-cols-2 md:grid-cols-2';
-    if (viewCols === 3) return 'grid-cols-2 lg:grid-cols-3';
+    if (viewCols === 3) return 'grid-cols-3 lg:grid-cols-3';
     if (viewCols === 4) return 'grid-cols-2 lg:grid-cols-4';
     if (viewCols === 5) return 'grid-cols-2 lg:grid-cols-5';
     if (viewCols === 6) return 'grid-cols-3 lg:grid-cols-6';
     return 'grid-cols-2 lg:grid-cols-4';
   };
 
-  const ViewIcon = ({ cols, active, onClick }) => (
+  const ViewIcon = ({ cols, active, onClick, className = "" }) => (
     <button 
       onClick={onClick}
-      className={`p-1.5 rounded-sm transition-all ${active ? 'bg-black text-white' : 'text-gray-300 hover:text-black hover:bg-gray-100'}`}
+      className={`p-1.5 rounded-sm transition-all ${active ? 'bg-black text-white' : 'text-gray-300 hover:text-black hover:bg-gray-100'} ${className}`}
     >
       <div className="flex gap-0.5">
         {Array.from({ length: cols }).map((_, i) => (
@@ -193,9 +193,9 @@ const Products = () => {
                  </button>
                  <ViewIcon cols={2} active={viewCols === 2} onClick={() => setViewCols(2)} />
                  <ViewIcon cols={3} active={viewCols === 3} onClick={() => setViewCols(3)} />
-                 <ViewIcon cols={4} active={viewCols === 4} onClick={() => setViewCols(4)} />
-                 <ViewIcon cols={5} active={viewCols === 5} onClick={() => setViewCols(5)} />
-                 <ViewIcon cols={6} active={viewCols === 6} onClick={() => setViewCols(6)} />
+                 <ViewIcon cols={4} active={viewCols === 4} onClick={() => setViewCols(4)} className="hidden lg:block" />
+                 <ViewIcon cols={5} active={viewCols === 5} onClick={() => setViewCols(5)} className="hidden lg:block" />
+                 <ViewIcon cols={6} active={viewCols === 6} onClick={() => setViewCols(6)} className="hidden lg:block" />
               </div>
 
                <div ref={sortRef} className="relative group min-w-[240px] z-50">
