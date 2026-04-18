@@ -194,16 +194,29 @@ const ProductForm = ({ onClose, onSave, product }) => {
 
 
   const removeImage = (index, isStaged = false) => {
+    let removedUrl = '';
     if (isStaged) {
       setStagedImages(prev => {
         const item = prev[index];
+        removedUrl = item?.previewUrl;
         if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
         return prev.filter((_, i) => i !== index);
       });
     } else {
+      setFormData(prev => {
+        removedUrl = prev.images[index];
+        return {
+          ...prev,
+          images: prev.images.filter((_, i) => i !== index)
+        };
+      });
+    }
+
+    if (removedUrl) {
       setFormData(prev => ({
         ...prev,
-        images: prev.images.filter((_, i) => i !== index)
+        thumbnailUrl: prev.thumbnailUrl === removedUrl ? '' : prev.thumbnailUrl,
+        hoverThumbnailUrl: prev.hoverThumbnailUrl === removedUrl ? '' : prev.hoverThumbnailUrl
       }));
     }
   };
@@ -700,7 +713,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
                 <h3 className="text-sm font-black text-zinc-900 uppercase tracking-widest">Product Variations</h3>
               </div>
               <div className="flex items-center gap-3">
-                <button
+                {/* <button
                   type="button"
                   onClick={() => {
                     setBulkEditMode(true);
@@ -709,7 +722,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
                   className="group flex items-center gap-2 bg-gray-50 border border-gray-200 text-gray-600 px-5 py-2.5 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-gray-100 active:scale-95 transition-all"
                 >
                   <Settings size={14} className="text-gray-400" /> Bulk Edit
-                </button>
+                </button> */}
                 <button
                   type="button"
                   onClick={() => {

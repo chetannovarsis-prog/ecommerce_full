@@ -74,7 +74,11 @@ const Reviews = () => {
                         <User size={12} className="text-gray-400" /> {review.userName}
                       </div>
                       <div className="text-gray-300 dark:text-white/10">•</div>
-                      <div className="text-gray-400 dark:text-gray-500 font-medium lowercase italic">{review.userEmail}</div>
+                      <div className="text-gray-400 dark:text-gray-500 font-medium lowercase italic">
+                        {review.userEmail && review.userEmail !== 'anonymous@example.com' 
+                          ? review.userEmail 
+                          : review.userPhone || ''}
+                      </div>
                     </div>
                   </div>
                   

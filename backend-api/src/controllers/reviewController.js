@@ -2,11 +2,12 @@ import prisma from '../utils/prisma.js';
 
 export const createReview = async (req, res) => {
   try {
-    let { rating, comment, userName, name, userEmail, email, productId } = req.body;
+    let { rating, comment, userName, name, userEmail, email, userPhone, mobile, phone, productId } = req.body;
     
     // Support aliases
     const finalUserName = userName || name || 'Anonymous';
-    const finalUserEmail = userEmail || email || 'anonymous@example.com';
+    const finalUserEmail = userEmail || email || null; // Avoid anonymous@example.com
+    const finalUserPhone = userPhone || mobile || phone || null;
 
     // Resolve productId if it's a handle
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
@@ -21,6 +22,7 @@ export const createReview = async (req, res) => {
         comment,
         userName: finalUserName,
         userEmail: finalUserEmail,
+        userPhone: finalUserPhone,
         productId
       }
     });

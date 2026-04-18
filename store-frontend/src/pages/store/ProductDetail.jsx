@@ -137,10 +137,18 @@ const ProductDetail = () => {
     e.preventDefault();
     setSubmittingReview(true);
     try {
+      const savedCustomer = localStorage.getItem('customer');
+      let userPhone = '';
+      if (savedCustomer) {
+        const customer = JSON.parse(savedCustomer);
+        userPhone = customer.mobile || '';
+      }
+
       await api.post('/reviews', {
         productId: product.id,
         userName: reviewForm.name,
         userEmail: reviewForm.email,
+        userPhone: userPhone,
         rating: reviewForm.rating,
         comment: reviewForm.comment
       });
@@ -148,7 +156,6 @@ const ProductDetail = () => {
       const reviewsRes = await api.get(`/reviews/product/${id}`);
       setReviews(reviewsRes.data);
 
-      const savedCustomer = localStorage.getItem('customer');
       if (savedCustomer) {
         const customer = JSON.parse(savedCustomer);
         setReviewForm({ rating: 5, comment: '', name: customer.name || '', email: customer.email || '' });

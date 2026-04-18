@@ -349,7 +349,7 @@ const BulkVariantModal = ({ product, mediaAssets, onClose, onGenerate, mode = 'c
                                 min="0"
                                 value={variantMatrix[`${color.name}-${size}`] ?? ''}
                                 onChange={(e) => handleStockChange(color.name, size, e.target.value)}
-                                className="w-full bg-gray-50/50 border border-transparent rounded-xl px-4 py-3 text-xs font-black text-center focus:bg-white focus:border-black focus:shadow-lg transition-all outline-none"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-black text-center focus:bg-white focus:border-black focus:shadow-lg transition-all outline-none"
                               />
                             </td>
                           ))}

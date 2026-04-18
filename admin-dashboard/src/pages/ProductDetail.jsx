@@ -17,7 +17,8 @@ import {
   Plus,
   CheckCircle2,
   Upload,
-  Settings
+  Settings,
+  Sparkles
 } from 'lucide-react';
 import ProductForm from '../forms/ProductForm';
 import BulkVariantModal from '../components/BulkVariantModal';
@@ -94,6 +95,22 @@ const ProductDetail = () => {
   useEffect(() => {
     fetchMetadata();
   }, []);
+
+  const handleSetImageRole = async (url, role) => {
+    try {
+      const payload = {};
+      if (role === 'thumbnail') {
+        payload.thumbnailUrl = product.thumbnailUrl === url ? '' : url;
+      } else if (role === 'hover') {
+        payload.hoverThumbnailUrl = product.hoverThumbnailUrl === url ? '' : url;
+      }
+      await api.patch(`/products/${id}`, payload);
+      fetchProduct();
+    } catch (err) {
+      console.error(`Error setting ${role} image:`, err);
+      alert(`Error setting ${role} image`);
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -216,7 +233,7 @@ const ProductDetail = () => {
                   }} 
                   className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-100 transition-all font-bold"
                 >
-                   Bulk Edit
+                  Edit
                 </button>
                 <button 
                   onClick={() => {
@@ -576,23 +593,50 @@ const ProductDetail = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                 {product.images?.map((url, i) => (
                   <div key={i} className="relative aspect-[3/4] group">
-                    <img src={url} className="w-full h-full object-cover rounded-2xl border-2 border-white ring-1 ring-black/5 transition-all" alt="" />
+                    <img src={url} className={`w-full h-full object-cover rounded-2xl border-2 ring-1 transition-all ${product.thumbnailUrl === url ? 'border-amber-500 ring-amber-500' : product.hoverThumbnailUrl === url ? 'border-sky-500 ring-sky-500' : 'border-white ring-black/5'}`} alt="" />
+                    
+                    {/* Status Badges */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                      {product.thumbnailUrl === url && (
+                        <div className="bg-amber-500 text-[8px] text-white px-2 py-0.5 rounded-md font-black tracking-widest uppercase shadow-lg ring-2 ring-white/20">Main</div>
+                      )}
+                      {product.hoverThumbnailUrl === url && (
+                        <div className="bg-sky-500 text-[8px] text-white px-2 py-0.5 rounded-md font-black tracking-widest uppercase shadow-lg ring-2 ring-white/20">Hover</div>
+                      )}
+                    </div>
+
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex flex-col items-center justify-center gap-2">
+                       <button 
+                         onClick={() => handleSetImageRole(url, 'thumbnail')}
+                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[0.6rem] font-black uppercase tracking-widest transition-all ${product.thumbnailUrl === url ? 'bg-amber-500 text-white' : 'bg-white/20 text-white hover:bg-white/40'}`}
+                       >
+                         <Star size={10} fill={product.thumbnailUrl === url ? "currentColor" : "none"} /> {product.thumbnailUrl === url ? 'Main Image' : 'Set as Main'}
+                       </button>
+                       <button 
+                         onClick={() => handleSetImageRole(url, 'hover')}
+                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[0.6rem] font-black uppercase tracking-widest transition-all ${product.hoverThumbnailUrl === url ? 'bg-sky-500 text-white' : 'bg-white/20 text-white hover:bg-white/40'}`}
+                       >
+                         <Sparkles size={10} fill={product.hoverThumbnailUrl === url ? "currentColor" : "none"} /> {product.hoverThumbnailUrl === url ? 'Hover Image' : 'Set as Hover'}
+                       </button>
                        <button 
                          onClick={async () => {
                            if (!window.confirm("Permanently delete this image from server?")) return;
                            try {
                              await api.delete('/upload', { data: { url } });
                              const newImages = product.images.filter(img => img !== url);
-                             await api.patch(`/products/${id}`, { images: newImages });
+                             const patchPayload = { images: newImages };
+                             if (product.thumbnailUrl === url) patchPayload.thumbnailUrl = '';
+                             if (product.hoverThumbnailUrl === url) patchPayload.hoverThumbnailUrl = '';
+                             
+                             await api.patch(`/products/${id}`, patchPayload);
                              fetchProduct();
                            } catch (err) {
                              alert("Error deleting image");
                            }
                          }}
-                         className="p-2 bg-red-500 text-white rounded-lg hover:scale-110 transition-all mt-2"
+                         className="p-1.5 bg-red-500/80 text-white rounded-lg hover:bg-red-600 transition-all mt-1"
                        >
-                         <Trash2 size={14} />
+                         <Trash2 size={12} />
                        </button>
                     </div>
                   </div>

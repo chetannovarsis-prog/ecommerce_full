@@ -61,7 +61,8 @@ model Review {
   rating    Int
   comment   String?
   userName  String
-  userEmail String
+  userEmail String?
+  userPhone String?
   productId String
   createdAt DateTime @default(now())
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -136,7 +137,7 @@ model OrderItem {
   productId String
   orderId   String
   order     Order   @relation(fields: [orderId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -232,7 +233,7 @@ model Sale {
   price     Float
   source    String   @default("Website")
   createdAt DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
