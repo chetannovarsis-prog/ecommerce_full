@@ -600,7 +600,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
                 </div>
               ))}
               {stagedImages.map((staged, i) => (
-                <div key={`staged-${i}`} className="relative aspect-[3/4] group animate-in zoom-in duration-300 border-2 border-emerald-500 rounded-2xl overflow-hidden">
+                <div key={`staged-${i}`} className="relative aspect-[3/4] group animate-in zoom-in duration-300 border-2 border-emerald-500 rounded-2xl">
                   <img src={staged.previewUrl} className="w-full h-full object-cover rounded-2xl" alt="" />
                   <div className="absolute top-1 left-1 bg-emerald-500 text-[10px] text-white px-1.5 py-0.5 rounded-md font-bold tracking-tighter uppercase">Staged</div>
                   <button

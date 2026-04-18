@@ -308,25 +308,27 @@ const ProductDetail = () => {
     // 2. Update the target attribute with the new value
     currentSelections[type.toLowerCase()] = newVal.toLowerCase();
 
-    // 3. Find matches based on ANY matching attribute first, then score
+    // 3. Find matches based on the STRICT attribute pattern
     const possibleMatches = product.variants.filter(v => {
       const vTitle = v.title.toLowerCase();
-      // Relaxed matching: check if the newVal is present in the title
-      return vTitle.includes(newVal.toLowerCase());
+      const attrPattern = `${type.toLowerCase()}: ${newVal.toLowerCase()}`;
+      // Match "size: l" or exactly "l" (for simple titles)
+      return vTitle.includes(attrPattern) || vTitle === newVal.toLowerCase();
     });
 
     if (possibleMatches.length === 0) return null;
 
-    // 4. Score matches based on how many OTHER current selections they satisfy
+    // 4. Score matches based on how many OTHER current selections they satisfy strictly
     const scoredMatches = possibleMatches.map(v => {
       let score = 0;
       const vTitle = v.title.toLowerCase();
+      
       Object.entries(currentSelections).forEach(([k, val]) => {
-        // If it's the attribute we just clicked, it MUST match (though filtered above)
-        if (k === type.toLowerCase()) {
-           if (vTitle.includes(val)) score += 10; 
-        } else {
-           if (vTitle.includes(val)) score += 1;
+        const pattern = `${k.toLowerCase()}: ${val.toLowerCase()}`;
+        if (vTitle.includes(pattern)) {
+          score += (k.toLowerCase() === type.toLowerCase() ? 10 : 1);
+        } else if (vTitle === val.toLowerCase() && k.toLowerCase() === type.toLowerCase()) {
+          score += 10;
         }
       });
       return { variant: v, score };
