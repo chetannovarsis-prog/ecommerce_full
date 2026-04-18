@@ -196,8 +196,8 @@ const Home = () => {
                       <h4 className="text-[0.7rem] font-black uppercase tracking-tight text-gray-900">{product.name}</h4>
                       <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest mt-1">{product.subtitle || 'Essential Piece'}</p>
                       <div className="flex items-center gap-4 mt-2">
-                        <span className="text-xs font-black">₹{product.price}</span>
-                        {product.isDiscountable && <span className="text-[0.65rem] text-gray-300 line-through">₹{product.price + (product.discountPrice || 0)}</span>}
+                        {/* <span className="text-xs font-black">₹{product.price}</span>
+                        {product.isDiscountable && <span className="text-[0.65rem] text-gray-300 line-through">₹{product.price + (product.discountPrice || 0)}</span>} */}
                       </div>
                     </div>
                   </Link>
