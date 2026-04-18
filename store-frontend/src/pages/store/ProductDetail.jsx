@@ -717,7 +717,7 @@ const ProductDetail = () => {
           <div className="mt-40">
             <div className="flex items-center justify-between mb-12">
               <h2 className="text-3xl font-black uppercase tracking-tight">You May Also Like</h2>
-              <Link to="/products" className="text-xs font-black uppercase tracking-widest border-b-2 border-black pb-1 hover:opacity-60 transition-all">View All Products</Link>
+              <Link to="/collections/all" className="text-xs font-black uppercase tracking-widest border-b-2 border-black pb-1 hover:opacity-60 transition-all">View All Products</Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {relatedProducts.map((p, i) => (
