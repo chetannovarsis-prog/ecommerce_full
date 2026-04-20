@@ -158,7 +158,7 @@ const Signup = () => {
               <div className="relative flex justify-center text-[0.6rem] uppercase tracking-widest font-black"><span className="bg-white px-4 text-gray-300">or sign up with</span></div>
             </div>
 
-            <div className="flex justify-center">
+            {/* <div className="flex justify-center">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => setError('Google login failed')}
@@ -166,7 +166,7 @@ const Signup = () => {
                 size="large"
                 shape="pill"
               />
-            </div>
+            </div> */}
           </>
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-6">

@@ -122,7 +122,7 @@ const Navbar = () => {
       <div className="container mx-auto px-6 md:px-10 flex justify-between items-center relative gap-8">
         <div className="flex gap-4 md:gap-8 items-center flex-shrink-0 text-black">
           <Link to="/">
-            <img className="w-[70px] md:w-[85px] transition-all duration-300" src="images/logo3.png" alt="" />
+            <img className="w-[70px] md:w-[85px] h-auto transition-all duration-300" src="/images/logo.webp?v=1" alt="logo" />
           </Link>
           <div className="hidden md:flex gap-8 text-[0.7rem] font-bold uppercase tracking-[0.2em] ml-4">
             <Link to="/" className="hover:opacity-60 transition-opacity whitespace-nowrap">Home</Link>

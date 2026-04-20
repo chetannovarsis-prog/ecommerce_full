@@ -1,6 +1,8 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 
 import productRoutes from './routes/productRoutes.js';
 import collectionRoutes from './routes/collectionRoutes.js';
@@ -20,10 +22,6 @@ import couponRoutes from './routes/couponRoutes.js';
 import { requireAdmin } from './middleware/requireAdmin.js';
 import { getCustomerOrders, getOrderById } from './controllers/orderController.js';
 import { getSettings } from './controllers/settingsController.js';
-
-
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

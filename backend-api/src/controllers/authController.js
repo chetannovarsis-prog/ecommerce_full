@@ -234,7 +234,8 @@ export const customerSignup = async (req, res) => {
       message: 'OTP sent to your email'
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Signup error:', error);
+    res.status(500).json({ message: error.message });
   }
 };
 
