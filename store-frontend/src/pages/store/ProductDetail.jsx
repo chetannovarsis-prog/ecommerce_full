@@ -50,6 +50,7 @@ const ProductDetail = () => {
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '', name: '', email: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const [loadRelated, setLoadRelated] = useState(false);
   const [reviewImages, setReviewImages] = useState([]);
   const [reviewPreviews, setReviewPreviews] = useState([]);
@@ -111,8 +112,13 @@ const ProductDetail = () => {
         }
         setActiveImage(response.data.thumbnailUrl || response.data.images?.[0]);
         
-        // Staggered loading: Fetch Related Products and Reviews after a short delay
-        // to prioritize the main product image and details (LCP).
+        // Use reviews immediately if present in the response
+        if (response.data.reviews) {
+          setReviews(response.data.reviews);
+          setReviewsLoading(false);
+        }
+
+        // Staggered loading for non-critical related products
         setTimeout(() => {
           fetchRelatedAndReviews(response.data);
         }, 1000);
@@ -145,9 +151,13 @@ const ProductDetail = () => {
           setRelatedProducts(related);
         }
 
-        // Fetch Reviews
-        const reviewsRes = await api.get(`/reviews/product/${id}`);
-        setReviews(reviewsRes.data);
+        // Fetch Reviews only if not already provided in productData
+        if (!productData.reviews) {
+          setReviewsLoading(true);
+          const reviewsRes = await api.get(`/reviews/product/${id}`);
+          setReviews(reviewsRes.data);
+          setReviewsLoading(false);
+        }
       } catch (error) {
         console.error('Error fetching non-critical data:', error);
       }
@@ -342,7 +352,6 @@ const ProductDetail = () => {
     } else {
       const nextIdx = (fullscreenIndex + 1) % fullscreenImages.length;
       setFullscreenIndex(nextIdx);
-      setActiveImage(fullscreenImages[nextIdx]);
     }
   };
 
@@ -354,7 +363,6 @@ const ProductDetail = () => {
     } else {
       const prevIdx = (fullscreenIndex - 1 + fullscreenImages.length) % fullscreenImages.length;
       setFullscreenIndex(prevIdx);
-      setActiveImage(fullscreenImages[prevIdx]);
     }
   };
 
@@ -516,27 +524,38 @@ const ProductDetail = () => {
                     onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}
                     className="flex items-center gap-2 hover:opacity-70 transition-opacity"
                   >
-                     <div className="flex text-amber-400">
-                        {[1, 2, 3, 4, 5].map(s => {
-                          const avgRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0;
-                          return (
-                            <Star 
-                              key={s} 
-                              size={16} 
-                              fill={s <= avgRating ? "currentColor" : "none"} 
-                              className={s <= avgRating ? "" : "text-gray-200"}
-                            />
-                          );
-                        })}
-                     </div>
-                     <span className="text-sm font-bold text-gray-900">
-                       {reviews.length > 0 
-                         ? `${(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} | (${reviews.length} Review${reviews.length > 1 ? 's' : ''})` 
-                         : '0.0 | (0 Reviews)'}
-                     </span>
-                     <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                     </div>
+                     {reviewsLoading ? (
+                       <div className="flex items-center gap-2">
+                          <div className="flex gap-1">
+                            {[1,2,3,4,5].map(s => <div key={s} className="w-4 h-4 rounded-full bg-gray-100 animate-pulse" />)}
+                          </div>
+                          <div className="h-4 w-24 bg-gray-100 animate-pulse rounded" />
+                       </div>
+                     ) : (
+                       <>
+                         <div className="flex text-amber-400">
+                            {[1, 2, 3, 4, 5].map(s => {
+                              const avgRating = reviews.length > 0 ? reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length : 0;
+                              return (
+                                <Star 
+                                  key={s} 
+                                  size={16} 
+                                  fill={s <= avgRating ? "currentColor" : "none"} 
+                                  className={s <= avgRating ? "" : "text-gray-200"}
+                                />
+                              );
+                            })}
+                         </div>
+                         <span className="text-sm font-bold text-gray-900">
+                           {reviews.length > 0 
+                             ? `${(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} | (${reviews.length} Review${reviews.length > 1 ? 's' : ''})` 
+                             : 'Be the first to review'}
+                         </span>
+                         <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                         </div>
+                       </>
+                     )}
                   </button>
 
               <div className="flex flex-col gap-1 pt-2">
@@ -696,25 +715,37 @@ const ProductDetail = () => {
             <div className="md:w-1/3 space-y-6">
               <h2 className="text-3xl font-black uppercase tracking-tight">Customer Reviews</h2>
               <div className="flex items-center gap-4">
-                <div className="text-6xl font-black text-gray-900">
-                  {reviews.length > 0 
-                    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-                    : '0.0'
-                  }
-                </div>
-                <div className="space-y-1">
-                  <div className="flex text-amber-400">
-                    {[1,2,3,4,5].map(s => (
-                      <Star 
-                        key={s} 
-                        size={18} 
-                        fill={s <= (reviews.reduce((acc, r) => acc + r.rating, 0) / (reviews.length || 1)) ? "currentColor" : "none"} 
-                        className={s <= (reviews.reduce((acc, r) => acc + r.rating, 0) / (reviews.length || 1)) ? "" : "text-gray-200"}
-                      />
-                    ))}
+                {reviewsLoading ? (
+                  <div className="flex items-center gap-4 w-full">
+                    <div className="w-20 h-16 bg-gray-100 animate-pulse rounded-2xl" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-24 bg-gray-100 animate-pulse rounded" />
+                      <div className="h-4 w-32 bg-gray-100 animate-pulse rounded" />
+                    </div>
                   </div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Based on {reviews.length} reviews</p>
-                </div>
+                ) : (
+                  <>
+                    <div className="text-6xl font-black text-gray-900">
+                      {reviews.length > 0 
+                        ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+                        : '0.0'
+                      }
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex text-amber-400">
+                        {[1,2,3,4,5].map(s => (
+                          <Star 
+                            key={s} 
+                            size={18} 
+                            fill={s <= (reviews.reduce((acc, r) => acc + r.rating, 0) / (reviews.length || 1)) ? "currentColor" : "none"} 
+                            className={s <= (reviews.reduce((acc, r) => acc + r.rating, 0) / (reviews.length || 1)) ? "" : "text-gray-200"}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Based on {reviews.length} reviews</p>
+                    </div>
+                  </>
+                )}
               </div>
               <button 
                 onClick={() => setIsReviewing(!isReviewing)}
@@ -859,7 +890,6 @@ const ProductDetail = () => {
                               setFullscreenMode('review');
                               setFullscreenImages(r.images);
                               setFullscreenIndex(idx);
-                              setActiveImage(img);
                               setIsFullscreenOpen(true);
                             }}
                           >
@@ -964,11 +994,11 @@ const ProductDetail = () => {
             <div className="w-full h-full flex items-center justify-center relative">
               <AnimatePresence mode="wait">
                 <motion.img 
-                  key={activeImage}
+                  key={fullscreenMode === 'product' ? activeImage : `${fullscreenMode}-${fullscreenIndex}`}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.05 }}
-                  src={activeImage} 
+                  src={fullscreenMode === 'product' ? activeImage : fullscreenImages[fullscreenIndex]} 
                   className="max-w-full max-h-full object-contain shadow-2xl" 
                   alt="" 
                 />
