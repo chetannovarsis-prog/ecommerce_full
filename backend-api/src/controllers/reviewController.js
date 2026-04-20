@@ -19,10 +19,17 @@ export const createReview = async (req, res) => {
 
     // Check if user has already reviewed this product
     if (finalUserEmail) {
+      const emailToCheck = finalUserEmail.trim().toLowerCase();
+      
+      console.log(`[Review] Checking existing review for Product: ${productId}, Email: ${emailToCheck}`);
+      
       const existingReview = await prisma.review.findFirst({
         where: {
-          productId,
-          userEmail: finalUserEmail
+          productId: productId,
+          userEmail: {
+            equals: emailToCheck,
+            mode: 'insensitive'
+          }
         }
       });
 

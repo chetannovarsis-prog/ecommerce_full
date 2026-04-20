@@ -61,9 +61,9 @@ const ProductCard = ({ product, isListView = false }) => {
     return (
       <div
         onClick={() => navigate(`/products/${product.handle || id}`)}
-        className="flex gap-10 group cursor-pointer py-10 border-b border-gray-50 last:border-0 italic-none"
+        className="flex flex-col md:flex-row gap-6 md:gap-10 group cursor-pointer py-10 border-b border-gray-50 last:border-0 italic-none"
       >
-        <div className="w-60 aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm relative flex-shrink-0">
+        <div className="w-full md:w-60 aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm relative flex-shrink-0">
           <img src={activeImage} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="" loading="lazy" />
           {badge && <div className="absolute top-4 left-4 bg-black text-white px-3 py-1 text-[0.6rem] font-black uppercase tracking-widest">{badge}</div>}
         </div>
@@ -104,9 +104,12 @@ const ProductCard = ({ product, isListView = false }) => {
             <button
               onClick={(e) => { e.stopPropagation(); addToCart(product, selectedVariant); }}
               disabled={isOutOfStock}
-              className={`px-8 py-3.5 text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm transition-all flex items-center gap-2 ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:bg-zinc-800'}`}
+              className={`px-4 md:px-8 py-3.5 text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm transition-all flex items-center justify-center gap-2 ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:bg-zinc-800'}`}
+              title={isOutOfStock ? 'Out of Stock' : 'Add to Bag'}
             >
-              {isOutOfStock ? 'Out of Stock' : 'Add to Bag'} <ShoppingBag size={14} />
+              <span className="hidden md:inline">{isOutOfStock ? 'Out of Stock' : 'Add to Bag'}</span>
+              {!isOutOfStock && <ShoppingBag size={14} />}
+              {isOutOfStock && <span className="md:hidden">X</span>}
             </button>
             <button className="text-[0.65rem] font-black uppercase tracking-[3px] flex items-center gap-2 group-hover:gap-4 transition-all">
               View Details <ArrowRight size={14} />
@@ -137,7 +140,7 @@ const ProductCard = ({ product, isListView = false }) => {
           e.stopPropagation();
           toggleWishlist(product);
         }}
-        className={`absolute top-4 right-4 z-20 p-2.5 rounded-full backdrop-blur-md transition-all shadow-xl active:scale-90 opacity-0 group-hover:opacity-100 ${isFavorited ? 'bg-red-50 text-red-500 opacity-100' : 'bg-white/80 text-gray-400 hover:text-black hover:bg-white'}`}
+        className={`absolute top-4 right-4 z-[30] p-2.5 rounded-full backdrop-blur-md transition-all shadow-xl active:scale-90 opacity-100 md:opacity-0 group-hover:opacity-100 ${isFavorited ? 'bg-red-50 text-red-500 opacity-100' : 'bg-white/80 text-gray-400 hover:text-black hover:bg-white'}`}
       >
         <Heart size={16} fill={isFavorited ? "currentColor" : "none"} />
       </button>

@@ -30,6 +30,14 @@ const Home = () => {
   const [newArrivals, setNewArrivals] = useState([]);
   const [activeTab, setActiveTab] = useState('best-sellers');
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,7 +104,7 @@ const Home = () => {
                 <Link
                   key={collection.id}
                   to={`/collections/${toCollectionSlug(collection.name)}`}
-                  className="group relative cursor-pointer block mr-16"
+                  className="group relative cursor-pointer block md:mr-4 lg:mr-16 mx-4 md:mx-0"
                 >
                   {/* Decorative Premium Corner Bracket */}
                   <div className="absolute -top-[34px] -right-[38px] z-30 w-[80px] h-[80px] pointer-events-none transition-transform duration-500 overflow-hidden">
@@ -171,7 +179,7 @@ const Home = () => {
               {loading ? (
                 Array(5).fill(0).map((_, i) => <ProductSkeleton key={i} />)
               ) : (
-                displayProducts.slice(0, 5).map((product) => (
+                displayProducts.slice(0, isMobile ? 4 : 5).map((product) => (
                   <Link key={product.id} to={`/products/${product.handle || product.id}`} className="group space-y-4">
                      <div className="product-card">
                     <div className="aspect-[3/4] overflow-hidden rounded-2xl bg-white relative">

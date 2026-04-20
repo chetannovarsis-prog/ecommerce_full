@@ -5,6 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 const Testimonials = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0); // 1 for next, -1 for prev
+  const [visibleCount, setVisibleCount] = useState(3);
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) setVisibleCount(1);
+      else if (window.innerWidth < 1024) setVisibleCount(2);
+      else setVisibleCount(3);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const testimonials = [
     {
@@ -53,13 +65,12 @@ const Testimonials = () => {
     setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
-  // Get exactly 3 visible items with wrap-around
+  // Get visible items based on responsive count
   const getVisibleTestimonials = () => {
-    const indices = [
-      (currentIndex) % testimonials.length,
-      (currentIndex + 1) % testimonials.length,
-      (currentIndex + 2) % testimonials.length,
-    ];
+    const indices = [];
+    for (let i = 0; i < visibleCount; i++) {
+      indices.push((currentIndex + i) % testimonials.length);
+    }
     return indices.map(idx => testimonials[idx]);
   };
 
@@ -106,7 +117,11 @@ const Testimonials = () => {
                         x: { type: "spring", stiffness: 300, damping: 30 },
                         opacity: { duration: 0.2 }
                     }}
-                    className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                    className={`absolute inset-0 grid gap-8 ${
+                        visibleCount === 1 ? 'grid-cols-1' : 
+                        visibleCount === 2 ? 'grid-cols-2' : 
+                        'grid-cols-3'
+                    }`}
                 >
                     {getVisibleTestimonials().map((t, i) => (
                     <div 

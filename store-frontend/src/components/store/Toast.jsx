@@ -13,7 +13,7 @@ const Toast = () => {
           initial={{ opacity: 0, y: 50, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-          className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-3 bg-black text-white px-6 py-4 rounded-2xl shadow-2xl ring-1 ring-white/10 min-w-[300px]"
+          className="fixed bottom-28 md:bottom-10 left-1/2 -translate-x-1/2 z-[2000] flex items-center gap-3 bg-black text-white px-6 py-4 rounded-2xl shadow-2xl ring-1 ring-white/10 min-w-[300px]"
         >
           <div className="p-1 bg-emerald-500 rounded-full">
             <CheckCircle2 size={16} strokeWidth={3} />
