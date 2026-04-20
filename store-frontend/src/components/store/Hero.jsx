@@ -87,15 +87,33 @@ const Hero = () => {
                   slides[currentSlide].link ? (
                     slides[currentSlide].link.startsWith('http') ? (
                       <a href={slides[currentSlide].link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
-                        <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-center" />
+                        <img 
+                          src={slides[currentSlide].src} 
+                          alt={slides[currentSlide].alt} 
+                          className="w-full h-full object-center" 
+                          loading={currentSlide === 0 ? "eager" : "lazy"}
+                          fetchpriority={currentSlide === 0 ? "high" : "low"}
+                        />
                       </a>
                     ) : (
                       <Link to={slides[currentSlide].link} className="block w-full h-full">
-                        <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-cover" />
+                        <img 
+                          src={slides[currentSlide].src} 
+                          alt={slides[currentSlide].alt} 
+                          className="w-full h-full object-cover" 
+                          loading={currentSlide === 0 ? "eager" : "lazy"}
+                          fetchpriority={currentSlide === 0 ? "high" : "low"}
+                        />
                       </Link>
                     )
                   ) : (
-                    <img src={slides[currentSlide].src} alt={slides[currentSlide].alt} className="w-full h-full object-cover" />
+                    <img 
+                      src={slides[currentSlide].src} 
+                      alt={slides[currentSlide].alt} 
+                      className="w-full h-full object-cover" 
+                      loading={currentSlide === 0 ? "eager" : "lazy"}
+                      fetchpriority={currentSlide === 0 ? "high" : "low"}
+                    />
                   )
                 ) : (
                   slides[currentSlide].content

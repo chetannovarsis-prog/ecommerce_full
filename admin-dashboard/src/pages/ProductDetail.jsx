@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Upload,
   Settings,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 import ProductForm from '../forms/ProductForm';
 import BulkVariantModal from '../components/BulkVariantModal';
@@ -44,6 +45,8 @@ const ProductDetail = () => {
   const [activeDropdown, setActiveDropdown] = useState(null); // 'categories' or 'collections'
   const [showVariantImagePicker, setShowVariantImagePicker] = useState(false);
   const [useDefaultVariantPrice, setUseDefaultVariantPrice] = useState(true);
+  const [selectedReviewImages, setSelectedReviewImages] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const categoryRef = React.useRef(null);
   const collectionRef = React.useRef(null);
   const variantImagePickerRef = React.useRef(null);
@@ -431,6 +434,23 @@ const ProductDetail = () => {
                     <span className="text-[0.6rem] text-gray-400 font-medium">{new Date(review.createdAt).toLocaleDateString()}</span>
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed italic">"{review.comment}"</p>
+                  
+                  {review.images && review.images.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {review.images.map((img, idx) => (
+                        <div 
+                          key={idx} 
+                          onClick={() => {
+                            setSelectedReviewImages(review.images);
+                            setSelectedImageIndex(idx);
+                          }}
+                          className="w-14 h-14 rounded-xl overflow-hidden border border-gray-100 cursor-pointer hover:opacity-80 transition-opacity ring-1 ring-black/5"
+                        >
+                          <img src={img} className="w-full h-full object-cover" alt="" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {(!product.reviews || product.reviews.length === 0) && (
@@ -956,6 +976,56 @@ const ProductDetail = () => {
                   <button type="submit" className="px-8 py-3 bg-black dark:bg-white text-white dark:text-black rounded-xl text-[0.6rem] font-black uppercase tracking-widest shadow-lg shadow-black/10 active:scale-95 transition-all">Save Changes</button>
                 </div>
              </form>
+          </div>
+        </div>
+      )}
+      {/* Review Image Lightbox */}
+      {selectedReviewImages && (
+        <div 
+          className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-md flex items-center justify-center p-10 select-none"
+          onClick={() => setSelectedReviewImages(null)}
+        >
+          <button 
+            onClick={() => setSelectedReviewImages(null)}
+            className="absolute top-10 right-10 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[1100]"
+          >
+            <X size={32} />
+          </button>
+
+          {selectedReviewImages.length > 1 && (
+            <>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIndex((prev) => (prev - 1 + selectedReviewImages.length) % selectedReviewImages.length);
+                }}
+                className="absolute left-6 md:left-12 top-1/2 -translate-y-1/2 w-12 h-12 md:w-20 md:h-20 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all backdrop-blur-md z-[1100]"
+              >
+                <ChevronLeft size={48} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIndex((prev) => (prev + 1) % selectedReviewImages.length);
+                }}
+                className="absolute right-6 md:right-12 top-1/2 -translate-y-1/2 w-12 h-12 md:w-20 md:h-20 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all backdrop-blur-md z-[1100]"
+              >
+                <ChevronRight size={48} />
+              </button>
+
+              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-white/10 backdrop-blur-md rounded-full text-white text-[0.65rem] font-black uppercase tracking-widest">
+                {selectedImageIndex + 1} / {selectedReviewImages.length}
+              </div>
+            </>
+          )}
+
+          <div className="w-full h-full flex items-center justify-center">
+            <img 
+              src={selectedReviewImages[selectedImageIndex]} 
+              className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl animate-in zoom-in-95 duration-200" 
+              alt="" 
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}

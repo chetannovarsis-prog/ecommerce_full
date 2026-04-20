@@ -63,6 +63,7 @@ model Review {
   userName  String
   userEmail String?
   userPhone String?
+  images    String[]
   productId String
   createdAt DateTime @default(now())
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)

@@ -2,18 +2,33 @@ import prisma from '../utils/prisma.js';
 
 export const createReview = async (req, res) => {
   try {
-    let { rating, comment, userName, name, userEmail, email, userPhone, mobile, phone, productId } = req.body;
+    let { rating, comment, userName, name, userEmail, email, userPhone, mobile, phone, productId, images } = req.body;
     
     // Support aliases
     const finalUserName = userName || name || 'Anonymous';
     const finalUserEmail = userEmail || email || null; // Avoid anonymous@example.com
     const finalUserPhone = userPhone || mobile || phone || null;
+    const finalImages = Array.isArray(images) ? images : [];
 
     // Resolve productId if it's a handle
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
     if (!isUuid) {
       const product = await prisma.product.findUnique({ where: { handle: productId } });
       if (product) productId = product.id;
+    }
+
+    // Check if user has already reviewed this product
+    if (finalUserEmail) {
+      const existingReview = await prisma.review.findFirst({
+        where: {
+          productId,
+          userEmail: finalUserEmail
+        }
+      });
+
+      if (existingReview) {
+        return res.status(400).json({ error: "You have already submitted a review for this product." });
+      }
     }
 
     const review = await prisma.review.create({
@@ -23,6 +38,7 @@ export const createReview = async (req, res) => {
         userName: finalUserName,
         userEmail: finalUserEmail,
         userPhone: finalUserPhone,
+        images: finalImages,
         productId
       }
     });

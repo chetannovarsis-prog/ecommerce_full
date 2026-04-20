@@ -1,5 +1,5 @@
 import { Facebook, Mail, MapPin, Phone } from 'lucide-react';
-import { TbBrandLinkedin, TbBrandThreads, TbBrandWhatsapp, TbBrandYoutube } from 'react-icons/tb';
+import { TbBrandLinkedin, TbBrandThreads, TbBrandWhatsapp, TbBrandYoutube, TbBrandInstagram } from 'react-icons/tb';
 import { Link } from 'react-router-dom';
 
 const LotusMotif = ({ size = 14, color = '#e87825' }) => (
@@ -46,7 +46,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 md:gap-16 mb-16">
           <div className="md:col-span-2 lg:col-span-2">
             <Link to="/" className="mb-6 block w-[150px]">
-              <img src="/images/logo3.png" alt="Ghar of Ethnics" className="w-full" />
+              <img src="/images/logo.webp?v=1" alt="Ghar of Ethnics" className="w-full h-auto" />
             </Link>
             <p className="text-[0.8rem] leading-7 max-w-xs font-medium" style={{ color: '#b75a14' }}>
               Rooted in tradition. Crafted for today. Discover ethnic fashion that celebrates India&apos;s timeless heritage.
@@ -94,6 +94,15 @@ const Footer = () => {
                 style={{ borderColor: '#e87825', color: '#e87825' }}
               >
                 <TbBrandYoutube size={16} className='group-hover/youtube:rotate-[360deg] transition-all duration-500 ' />
+              </a>
+              <a
+                href="https://www.instagram.com/gharofethnics?igsh=NG92OXRrMWhhbjBo&utm_source=qr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full group/instagram flex items-center justify-center border transition-all hover:scale-110"
+                style={{ borderColor: '#e87825', color: '#e87825' }}
+              >
+                <TbBrandInstagram size={16} className='group-hover/instagram:rotate-[360deg] transition-all duration-500 '/>
               </a>
               <a
                 href="https://www.threads.com/@gharofethnics?igshid=NTc4MTIwNjQ2YQ=="

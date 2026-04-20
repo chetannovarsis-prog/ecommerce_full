@@ -64,7 +64,7 @@ const ProductCard = ({ product, isListView = false }) => {
         className="flex gap-10 group cursor-pointer py-10 border-b border-gray-50 last:border-0 italic-none"
       >
         <div className="w-60 aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm relative flex-shrink-0">
-          <img src={activeImage} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="" />
+          <img src={activeImage} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="" loading="lazy" />
           {badge && <div className="absolute top-4 left-4 bg-black text-white px-3 py-1 text-[0.6rem] font-black uppercase tracking-widest">{badge}</div>}
         </div>
         <div className="flex-1 flex flex-col justify-between py-4">
@@ -154,6 +154,7 @@ const ProductCard = ({ product, isListView = false }) => {
             src={activeImage}
             alt={name}
             className="w-full h-full object-cover absolute inset-0 z-10"
+            loading="lazy"
           />
           {hoverThumbnailUrl && (
             <motion.img
@@ -166,6 +167,7 @@ const ProductCard = ({ product, isListView = false }) => {
               src={hoverThumbnailUrl}
               alt={`${name} hover`}
               className="w-full h-full object-cover absolute inset-0 z-20"
+              loading="lazy"
             />
           )}
 

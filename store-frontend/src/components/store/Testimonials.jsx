@@ -4,102 +4,181 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const Testimonials = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState(0); // 1 for next, -1 for prev
 
   const testimonials = [
     {
-      title: "My Favourite Place to Shop Online",
-      text: "I always find trendy and elegant outfits that make me feel confident and beautiful.",
-      author: "Ananya Sharma",
-      location: "Customer from India",
-      image: "/images/3.webp",
-      productName: "The Bare Basic — Women's Self-Line...",
-      price: "₹699",
-      oldPrice: "₹2,399"
+      title: "Exactly as shown, amazing quality",
+      text: "Loved the quality of the fabric - it's really comfortable and looks exactly like the pictures. Totally worth it!",
+      author: "Shivani",
+      location: "Greater Noida",
+      rating: 4.0
     },
     {
-      title: "Perfect Fit and Good Quality Febric",
-      text: "The quality of the fabric is amazing and everything fits like it was made for me!",
-      author: "Priya Joshi",
-      location: "Customer from Jaipur",
-      image: "/images/2.webp",
-      productName: "The Contrast Line — Pure Cambridge...",
-      price: "₹699",
-      oldPrice: "₹2,316"
+      title: "Great experience from start to finish",
+      text: "Great experience overall. Good material, neat stitching, and fast delivery. Really happy with my purchase.",
+      author: "Geetanjali",
+      location: "Gurgaon",
+      rating: 4.5
     },
     {
-      title: "Stylish, Affordable & Reliable",
-      text: "Finally, a fashion site that understands women—stylish collections without breaking the bank.",
-      author: "Akansha Tyagi",
-      location: "Customer from Bhopal",
-      image: "/images/1.webp",
-      productName: "The Half Bloom — Pure Cotton Boat...",
-      price: "₹1,199",
-      oldPrice: "₹3,613"
+      title: "Lightweight & office-friendly",
+      text: "Such a great find! The suit is lightweight, soft, and very comfortable. Perfect for office wear and casual plans too.",
+      author: "Vaani",
+      location: "New Delhi",
+      rating: 4.7
+    },
+    {
+      title: "Great fit, super lightweight",
+      text: "Perfect for hot weather. Keeps you cool and relaxed all day.",
+      author: "Sheela",
+      location: "Puri",
+      rating: 4.8
+    },
+    {
+      title: "Extremely comfortable for everyday use",
+      text: "This Cotton Kurta Set is extremely comfortable for everyday use. The material feels soft on the skin and is very breathable, even in humid weather.",
+      author: "Sudeshna",
+      location: "Kolkata",
+      rating: 4.6
     }
   ];
 
-  const next = () => setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-  const prev = () => setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+  const next = () => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % testimonials.length);
+  };
+  const prev = () => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+  };
+
+  // Get exactly 3 visible items with wrap-around
+  const getVisibleTestimonials = () => {
+    const indices = [
+      (currentIndex) % testimonials.length,
+      (currentIndex + 1) % testimonials.length,
+      (currentIndex + 2) % testimonials.length,
+    ];
+    return indices.map(idx => testimonials[idx]);
+  };
+
+  const variants = {
+    enter: (direction) => ({
+      x: direction > 0 ? 100 : -100,
+      opacity: 0
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1
+    },
+    exit: (direction) => ({
+      zIndex: 0,
+      x: direction < 0 ? 100 : -100,
+      opacity: 0
+    })
+  };
 
   return (
-    <section className="py-32  font-['Albert_Sans']">
-      <div className="container mx-auto px-10">
+    <section className="py-32 font-['Albert_Sans'] bg-[#fffaf5] overflow-hidden">
+      <div className="container mx-auto px-4 md:px-10">
         <div className="text-center mb-20">
-          <h2 className="text-4xl font-black uppercase tracking-tight text-black mb-4">Happy Clients</h2>
-          <p className="text-sm font-medium text-gray-500">Hear what they say about us</p>
+          <h2 className="text-4xl font-black uppercase tracking-tight text-[#1a2d5a] mb-4">Customer Testimonials</h2>
+          <div className="flex items-center justify-center gap-4">
+             <div className="h-px w-12 bg-orange-200" />
+             <p className="text-[0.65rem] font-black text-orange-500 uppercase tracking-[4px]">Verified Feedback</p>
+             <div className="h-px w-12 bg-orange-200" />
+          </div>
         </div>
 
-        <div className="relative">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((t, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white p-8 rounded-2xl border border-amber-100 shadow-[0_10px_40px_rgba(0,0,0,0.02)] relative group hover:shadow-xl transition-all h-full flex flex-col"
-              >
-                <div className="flex gap-1 mb-6">
-                  {[1,2,3,4,5].map(s => (
-                    <Star key={s} size={16} className="fill-[#ff7a5c] text-[#ff7a5c]" />
-                  ))}
-                </div>
+        <div className="relative max-w-7xl mx-auto px-10 md:px-16">
+          <div className="relative h-[480px]">
+             <AnimatePresence initial={false} custom={direction}>
+                <motion.div 
+                    key={currentIndex}
+                    custom={direction}
+                    variants={variants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                        x: { type: "spring", stiffness: 300, damping: 30 },
+                        opacity: { duration: 0.2 }
+                    }}
+                    className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                >
+                    {getVisibleTestimonials().map((t, i) => (
+                    <div 
+                        key={`${currentIndex}-${i}-${t.author}`}
+                        className="h-full"
+                    >
+                        <div className="bg-white p-10 rounded-[2rem] border border-orange-50 shadow-[0_20px_50px_rgba(232,120,37,0.05)] relative group hover:shadow-2xl hover:shadow-orange-200/20 transition-all duration-500 h-full flex flex-col ring-1 ring-black/5">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex gap-0.5">
+                                {[1,2,3,4,5].map(s => (
+                                    <div key={s} className="relative">
+                                    <Star size={14} className="text-gray-100" fill="currentColor" />
+                                    <div 
+                                        className="absolute inset-0 overflow-hidden" 
+                                        style={{ width: `${Math.max(0, Math.min(100, (t.rating - (s - 1)) * 100))}%` }}
+                                    >
+                                        <Star size={14} className="text-[#e87825] fill-[#e87825]" />
+                                    </div>
+                                    </div>
+                                ))}
+                                </div>
+                                <span className="text-[0.6rem] font-black text-gray-300 uppercase tracking-widest">{t.rating.toFixed(1)}</span>
+                            </div>
 
-                <h3 className="text-lg font-black uppercase tracking-tight mb-4 text-gray-900">{t.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed mb-10 font-medium">
-                  "{t.text}"
-                </p>
+                            <h3 className="text-[0.95rem] font-black uppercase tracking-tight mb-4 text-[#1a2d5a] leading-tight group-hover:text-[#e87825] transition-colors">{t.title}</h3>
+                            <p className="text-gray-500 text-sm leading-relaxed mb-10 font-medium italic opacity-80">
+                            "{t.text}"
+                            </p>
 
-                <div className="mt-auto">
-                    <div className="mb-8">
-                        <h4 className="text-sm font-black text-gray-900">{t.author}</h4>
-                        <p className="text-[0.7rem] text-gray-400 font-bold mt-0.5">{t.location}</p>
-                    </div>
-
-                    <div className="pt-6 border-t border-amber-100 flex items-center gap-4 group/prod cursor-pointer">
-                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-50">
-                            <img src={t.image} className="w-full h-full object-cover grayscale group-hover/prod:grayscale-0 transition-all" alt="" />
-                        </div>
-                        <div>
-                            <p className="text-[0.65rem] font-bold text-gray-800 line-clamp-1">{t.productName}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[0.65rem] text-gray-400 line-through font-bold">{t.oldPrice}</span>
-                                <span className="text-[0.65rem] text-[#ff4d4d] font-black">{t.price}</span>
+                            <div className="mt-auto pt-8 border-t border-gray-50 flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-[0.7rem] font-black text-[#1a2d5a] uppercase tracking-wider">{t.author}</h4>
+                                    <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest mt-1">{t.location}</p>
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 opacity-20 group-hover:opacity-100 transition-opacity">
+                                    <Star size={12} fill="currentColor" />
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-              </motion.div>
-            ))}
+                    ))}
+                </motion.div>
+             </AnimatePresence>
           </div>
 
           {/* Navigation Arrows */}
-          <button onClick={prev} className="absolute -left-20 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-amber-100 flex items-center justify-center text-amber-200 hover:text-amber-500 hover:border-amber-500 transition-all hidden xl:flex">
-             <ChevronLeft size={24} />
+          <button 
+            onClick={prev} 
+            className="absolute left-0 md:-left-4 xl:-left-10 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white border border-orange-100 flex items-center justify-center text-orange-500 shadow-xl hover:bg-[#1a2d5a] hover:text-white hover:border-[#1a2d5a] transition-all z-[10] group/btn"
+          >
+             <ChevronLeft size={24} className="group-hover/btn:-translate-x-0.5 transition-transform" />
           </button>
-          <button onClick={next} className="absolute -right-20 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-amber-100 flex items-center justify-center text-amber-200 hover:text-amber-500 hover:border-amber-500 transition-all hidden xl:flex">
-             <ChevronRight size={24} />
+          <button 
+            onClick={next} 
+            className="absolute right-0 md:-right-4 xl:-right-10 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white border border-orange-100 flex items-center justify-center text-orange-500 shadow-xl hover:bg-[#1a2d5a] hover:text-white hover:border-[#1a2d5a] transition-all z-[10] group/btn"
+          >
+             <ChevronRight size={24} className="group-hover/btn:translate-x-0.5 transition-transform" />
           </button>
+        </div>
+
+        {/* Progress Dots */}
+        <div className="flex justify-center gap-3 mt-16">
+            {testimonials.map((_, i) => (
+                <button 
+                    key={i}
+                    onClick={() => {
+                        setDirection(i > currentIndex ? 1 : -1);
+                        setCurrentIndex(i);
+                    }}
+                    className={`h-1.5 rounded-full transition-all duration-500 ${currentIndex === i ? 'w-8 bg-[#1a2d5a]' : 'w-2 bg-orange-200'}`}
+                />
+            ))}
         </div>
       </div>
     </section>

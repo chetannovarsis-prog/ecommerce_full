@@ -108,6 +108,7 @@ const Home = () => {
                       src={collection.imageUrl || 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&q=80&w=400'}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                       alt={collection.name}
+                      loading="lazy"
                     />
                   </div>
 
@@ -178,12 +179,14 @@ const Home = () => {
                         src={product.thumbnailUrl || product.images?.[0]}
                         className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${product.hoverThumbnailUrl || product.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : ''}`}
                         alt={product.name}
+                        loading="lazy"
                       />
                       {(product.hoverThumbnailUrl || product.images?.[1]) && (
                         <img
                           src={product.hoverThumbnailUrl || product.images?.[1]}
                           className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
                           alt={`${product.name} hover`}
+                          loading="lazy"
                         />
                       )}
                       {product.isDiscountable && (
@@ -252,7 +255,7 @@ const Home = () => {
 
       {/* Love Section - Banner */}
       <section className="py-24 relative overflow-hidden flex items-center justify-center">
-        <img src="/images/love1.webp" className="w-full h-full object-cover" alt="" />
+        <img src="/images/love1.webp" className="w-full h-full object-cover" alt="" loading="lazy" />
         {/* <div className="absolute inset-0 bg-black/40"></div> */}
         {/* <div className="relative z-10 text-center">
             <h2 className="text-[12rem] font-black text-white leading-none tracking-tighter mix-blend-overlay">LOVE</h2>

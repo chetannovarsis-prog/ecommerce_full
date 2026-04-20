@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Star, Trash2, MessageSquare, User, Calendar } from 'lucide-react';
+import { Star, Trash2, MessageSquare, User, Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const Reviews = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedReviewImages, setSelectedReviewImages] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     fetchReviews();
@@ -69,6 +71,23 @@ const Reviews = () => {
 
                     <p className="text-gray-600 dark:text-gray-400 leading-relaxed italic">"{review.comment}"</p>
 
+                    {review.images && review.images.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {review.images.map((img, idx) => (
+                          <div 
+                            key={idx} 
+                            onClick={() => {
+                              setSelectedReviewImages(review.images);
+                              setSelectedImageIndex(idx);
+                            }}
+                            className="w-16 h-16 rounded-xl overflow-hidden border border-gray-100 dark:border-white/5 cursor-pointer hover:opacity-80 transition-opacity ring-1 ring-black/5"
+                          >
+                            <img src={img} className="w-full h-full object-cover" alt="" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-4 text-[0.7rem] pt-2">
                       <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-tight">
                         <User size={12} className="text-gray-400" /> {review.userName}
@@ -102,6 +121,57 @@ const Reviews = () => {
           </div>
         </div>
       </main>
+
+      {/* Lightbox */}
+      {selectedReviewImages && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-20 select-none"
+          onClick={() => setSelectedReviewImages(null)}
+        >
+          <button 
+            onClick={() => setSelectedReviewImages(null)}
+            className="absolute top-6 right-6 md:top-10 md:right-10 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[110]"
+          >
+            <X size={32} />
+          </button>
+
+          {selectedReviewImages.length > 1 && (
+            <>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIndex((prev) => (prev - 1 + selectedReviewImages.length) % selectedReviewImages.length);
+                }}
+                className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all backdrop-blur-md z-[110]"
+              >
+                <ChevronLeft size={32} />
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedImageIndex((prev) => (prev + 1) % selectedReviewImages.length);
+                }}
+                className="absolute right-4 md:right-10 top-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all backdrop-blur-md z-[110]"
+              >
+                <ChevronRight size={32} />
+              </button>
+
+              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-white text-xs font-black tracking-widest">
+                {selectedImageIndex + 1} / {selectedReviewImages.length}
+              </div>
+            </>
+          )}
+
+          <div className="w-full h-full flex items-center justify-center">
+            <img 
+              src={selectedReviewImages[selectedImageIndex]} 
+              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200" 
+              alt="" 
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
