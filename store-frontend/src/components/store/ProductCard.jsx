@@ -187,13 +187,13 @@ const ProductCard = ({ product, isListView = false }) => {
         </button>
       </div>
 
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 rounded-md ring-1 ring-black/5">
+      <div className="relative overflow-hidden bg-gray-100 rounded-md ring-1 ring-black/5" style={{ width: '100%', paddingBottom: '133.33%' }}>
         {/* Skeleton shimmer while image loads */}
         {!imgLoaded && (
           <div className="absolute inset-0 z-30 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-[shimmer_1.4s_infinite] bg-[length:200%_100%]" />
         )}
 
-        <div className="w-full h-full relative">
+        <div className="absolute inset-0">
           <motion.img
             initial={false}
             animate={{ scale: 1, opacity: imgLoaded ? 1 : 0 }}
@@ -205,6 +205,11 @@ const ProductCard = ({ product, isListView = false }) => {
             alt={name}
             className="w-full h-full object-contain absolute inset-0 z-10 transition-opacity duration-300"
             loading="eager"
+            decoding="async"
+            style={{
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'translateZ(0)'
+            }}
             onLoad={() => setImgLoaded(true)}
           />
           {hoverThumbnailUrl && (
@@ -219,6 +224,11 @@ const ProductCard = ({ product, isListView = false }) => {
               alt={`${name} hover`}
               className="w-full h-full object-contain absolute inset-0 z-20"
               loading="eager"
+              decoding="async"
+              style={{
+                WebkitBackfaceVisibility: 'hidden',
+                transform: 'translateZ(0)'
+              }}
             />
           )}
         </div>

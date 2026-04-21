@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import imageCompression from 'browser-image-compression';
 import api from '../../utils/api';
+import imageCache from '../../utils/imageCache';
 
 import {
   ShoppingBag,
@@ -228,9 +229,12 @@ const ProductDetail = () => {
     }
     // Also reset active image to the first one in the new list to keep dots synced
     if (allImages.length > 0) {
-      setActiveImage(allImages[0]);
+      const firstImg = allImages[0];
+      setActiveImage(firstImg);
+      // Preload current batch
+      imageCache.preload(allImages);
     }
-  }, [selectedVariant?.id, product?.id, allImages.length]);
+  }, [selectedVariant?.id, product?.id, id]); // Trigger on product/variant change
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
@@ -533,22 +537,35 @@ const ProductDetail = () => {
             <div className="block lg:hidden relative">
               <div
                 id="mobile-gallery"
-                className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative"
+                className="bg-gray-50 rounded-2xl overflow-hidden relative"
               >
-                <div
-                  className="w-full h-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
-                  onScroll={(e) => {
-                    const idx = Math.round(e.target.scrollLeft / e.target.clientWidth);
-                    if (allImages[idx] && allImages[idx] !== activeImage) setActiveImage(allImages[idx]);
-                  }}
-                  ref={(el) => { if (el) el._mobileSlider = true; }}
-                  id="mobile-gallery-inner"
-                >
-                  {allImages.map((img, i) => (
-                    <div key={i} className="min-w-full h-full snap-center snap-always flex-shrink-0">
-                      <img src={img} className="w-full h-full object-contain" alt={`${product.name} ${i + 1}`} loading="eager" />
-                    </div>
-                  ))}
+                {/* 3:4 ratio container for mobile */}
+                <div style={{ position: 'relative', width: '100%', paddingBottom: '133.33%' }}>
+                  <div 
+                    className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth"
+                    onScroll={(e) => {
+                      const idx = Math.round(e.target.scrollLeft / e.target.clientWidth);
+                      if (allImages[idx] && allImages[idx] !== activeImage) setActiveImage(allImages[idx]);
+                    }}
+                    id="mobile-gallery-inner"
+                  >
+                    {allImages.map((img, i) => (
+                      <div key={i} className="min-w-full h-full snap-center snap-always flex-shrink-0 relative">
+                        <img 
+                          src={img} 
+                          className="absolute inset-0 w-full h-full object-contain" 
+                          alt={`${product.name} ${i + 1}`} 
+                          loading="eager" 
+                          decoding="async"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                          style={{
+                            WebkitBackfaceVisibility: 'hidden',
+                            transform: 'translateZ(0)'
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Left arrow */}
@@ -573,27 +590,22 @@ const ProductDetail = () => {
                     >
                       <RightIcon size={18} />
                     </button>
+                    
+                    {/* Dots */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                      {allImages.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            const el = document.getElementById('mobile-gallery-inner');
+                            if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
+                            setActiveImage(allImages[i]);
+                          }}
+                          className={`rounded-full transition-all duration-300 ${activeImage === allImages[i] ? 'w-5 h-1.5 bg-black' : 'w-1.5 h-1.5 bg-black/25'}`}
+                        />
+                      ))}
+                    </div>
                   </>
-                )}
-
-                {/* Dots */}
-                {allImages.length > 1 && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                    {allImages.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          const el = document.getElementById('mobile-gallery-inner');
-                          if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
-                          setActiveImage(allImages[i]);
-                        }}
-                        className={`rounded-full transition-all duration-300 ${activeImage === allImages[i]
-                            ? 'w-5 h-1.5 bg-black'
-                            : 'w-1.5 h-1.5 bg-black/25'
-                          }`}
-                      />
-                    ))}
-                  </div>
                 )}
 
                 {/* Fullscreen btn */}
@@ -618,17 +630,33 @@ const ProductDetail = () => {
                     key={i}
                     ref={el => thumbnailRefs.current[i] = el}
                     onClick={() => setActiveImage(img)}
-                    className={`flex-shrink-0 rounded-lg border-2 transition-all ${activeImage === img
-                      ? 'border-black opacity-100'
-                      : 'border-transparent opacity-50 hover:opacity-100'
-                      }`}
+                    style={{ flexShrink: 0 }}
+                    className={`w-full rounded-lg border-2 transition-all ${
+                      activeImage === img
+                        ? 'border-black opacity-100'
+                        : 'border-transparent opacity-50 hover:opacity-100'
+                    }`}
                   >
-                    <div className="aspect-[3/4] w-full rounded-lg overflow-hidden relative">
+                    {/* padding-bottom trick for 3:4 ratio — more reliable than aspect-ratio on iOS */}
+                    <div style={{ position: 'relative', width: '100%', paddingBottom: '133.33%' }}>
                       <img
                         src={img}
-                        className="absolute inset-0 w-full h-full object-contain"
                         alt=""
-                        loading="lazy"
+                        loading="eager"          // never lazy for thumbnails on iOS
+                        decoding="async"
+                        onError={(e) => {
+                          e.target.style.display = 'none'; // hide broken images
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          WebkitBackfaceVisibility: 'hidden', // iOS GPU fix
+                          transform: 'translateZ(0)',          // force GPU layer
+                        }}
                       />
                     </div>
                   </button>
@@ -637,27 +665,44 @@ const ProductDetail = () => {
 
               {/* Main Image */}
               <div className="col-span-10">
-                <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative group">
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={activeImage}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      src={activeImage}
-                      className="w-full h-full object-contain"
-                      alt={product.name}
-                      loading="lazy"
-                      fetchpriority="high"
-                    />
-                  </AnimatePresence>
-                  <button
-                    onClick={() => setIsFullscreenOpen(true)}
-                    className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all z-10"
+                <div style={{ position: 'relative', width: '100%', paddingBottom: '133.33%' }}>
+                  <div
+                    style={{ position: 'absolute', inset: 0 }}
+                    className="bg-gray-50 rounded-2xl overflow-hidden"
                   >
-                    <Maximize2 size={18} />
-                  </button>
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={activeImage}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        src={activeImage}
+                        alt={product.name}
+                        loading="eager"
+                        decoding="async"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          WebkitBackfaceVisibility: 'hidden',
+                          transform: 'translateZ(0)',
+                        }}
+                      />
+                    </AnimatePresence>
+                    <button
+                      onClick={() => setIsFullscreenOpen(true)}
+                      className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-black shadow-lg hover:bg-white transition-all z-10"
+                    >
+                      <Maximize2 size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -843,7 +888,17 @@ const ProductDetail = () => {
                             <div className={`w-12 h-12 rounded-full border border-gray-100 transition-all duration-300 overflow-hidden shadow-sm`}>
                               <div className="w-full h-full bg-gray-100">
                                 {imgUrl ? (
-                                  <img src={imgUrl} className="w-full h-full object-cover" alt={color} loading="lazy" />
+                                  <img 
+                                    src={imgUrl} 
+                                    className="w-full h-full object-cover" 
+                                    alt={color} 
+                                    loading="eager" 
+                                    decoding="async"
+                                    style={{
+                                      WebkitBackfaceVisibility: 'hidden',
+                                      transform: 'translateZ(0)'
+                                    }}
+                                  />
                                 ) : (
                                   <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-100" />
                                 )}
@@ -1107,22 +1162,32 @@ const ProductDetail = () => {
                         to={`/products/${p.handle || p.id}`}
                         className="group space-y-4"
                       >
-                        <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative">
-                          <img
-                            src={p.thumbnailUrl || p.images?.[0]}
-                            className={`w-full h-full object-contain transition-all duration-700 ${p.hoverThumbnailUrl || p.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : 'group-hover:scale-105'}`}
-                            alt={p.name}
-                            loading="lazy"
-                          />
-                          {(p.hoverThumbnailUrl || p.images?.[1]) && (
+                          <div style={{ position: 'relative', width: '100%', paddingBottom: '133.33%' }}>
                             <img
-                              src={p.hoverThumbnailUrl || p.images?.[1]}
-                              className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-                              alt={`${p.name} hover`}
-                              loading="lazy"
+                              src={p.thumbnailUrl || p.images?.[0]}
+                              className={`absolute inset-0 w-full h-full object-contain transition-all duration-700 ${p.hoverThumbnailUrl || p.images?.[1] ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`}
+                              alt={p.name}
+                              loading="eager"
+                              decoding="async"
+                              style={{
+                                WebkitBackfaceVisibility: 'hidden',
+                                transform: 'translateZ(0)'
+                              }}
                             />
-                          )}
-                        </div>
+                            {(p.hoverThumbnailUrl || p.images?.[1]) && (
+                              <img
+                                src={p.hoverThumbnailUrl || p.images?.[1]}
+                                className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                                alt={`${p.name} hover`}
+                                loading="eager"
+                                decoding="async"
+                                style={{
+                                  WebkitBackfaceVisibility: 'hidden',
+                                  transform: 'translateZ(0)'
+                                }}
+                              />
+                            )}
+                          </div>
                         <div className="space-y-1">
                           <h3 className="font-black uppercase text-sm tracking-tight group-hover:text-[#e44d26] transition-colors">{p.name}</h3>
                           <p className="text-sm font-black text-gray-400">₹{p.price.toLocaleString()}</p>
