@@ -27,7 +27,15 @@ import { getSettings } from './controllers/settingsController.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Robust CORS configuration for production
+app.use(cors({
+  origin: true, // Reflects the request origin, or you can specify 'https://admin.gharofethnics.com'
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  maxAge: 86400 // Cache preflight for 24 hours
+}));
+
 app.use(express.json());
 
 app.use('/api/products', productRoutes);

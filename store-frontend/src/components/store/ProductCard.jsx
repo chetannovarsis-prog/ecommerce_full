@@ -79,7 +79,7 @@ const ProductCard = ({ product, isListView = false }) => {
         className="flex flex-col md:flex-row gap-6 md:gap-10 group cursor-pointer py-10 border-b border-gray-50 last:border-0 italic-none"
       >
         <div className="w-full md:w-60 aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm relative flex-shrink-0">
-          <img src={activeImage} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="" loading="lazy" />
+          <img src={activeImage} className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105" alt="" loading="lazy" />
           {badge && <div className="absolute top-4 left-4 bg-black text-white px-3 py-1 text-[0.6rem] font-black uppercase tracking-widest">{badge}</div>}
         </div>
         <div className="flex-1 flex flex-col justify-between py-4">
@@ -203,7 +203,7 @@ const ProductCard = ({ product, isListView = false }) => {
             }}
             src={activeImage}
             alt={name}
-            className="w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300"
+            className="w-full h-full object-contain absolute inset-0 z-10 transition-opacity duration-300"
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
           />
@@ -217,7 +217,7 @@ const ProductCard = ({ product, isListView = false }) => {
               }}
               src={hoverThumbnailUrl}
               alt={`${name} hover`}
-              className="w-full h-full object-cover absolute inset-0 z-20"
+              className="w-full h-full object-contain absolute inset-0 z-20"
               loading="lazy"
             />
           )}

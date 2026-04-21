@@ -539,7 +539,7 @@ const ProductDetail = () => {
                 >
                   {allImages.map((img, i) => (
                     <div key={i} className="min-w-full h-full snap-center flex-shrink-0">
-                      <img src={img} className="w-full h-full object-cover" alt={`${product.name} ${i + 1}`} />
+                      <img src={img} className="w-full h-full object-contain" alt={`${product.name} ${i + 1}`} />
                     </div>
                   ))}
                 </div>
@@ -628,7 +628,7 @@ const ProductDetail = () => {
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3 }}
                       src={activeImage}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                       alt={product.name}
                       loading="eager"
                       fetchpriority="high"
