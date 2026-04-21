@@ -41,7 +41,12 @@ const ProductCard = ({ product, isListView = false }) => {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
     // Fire-and-forget: prime the browser and API cache
-    fetch(`/api/products/${product.handle || id}`, { priority: 'low' }).catch(() => {});
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://ecommerce-backend-s90k.onrender.com/api'}/products/${product.handle || id}`, { 
+      priority: 'low',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('customerToken') || ''}`
+      }
+    }).catch(() => {});
   };
 
   const currentPrice = (selectedVariant?.price !== null && selectedVariant?.price !== undefined) ? selectedVariant.price : (price || 0);
@@ -114,11 +119,16 @@ const ProductCard = ({ product, isListView = false }) => {
             <button
               onClick={(e) => { e.stopPropagation(); addToCart(product, selectedVariant); }}
               disabled={isOutOfStock}
-              className={`px-4 md:px-8 py-3.5 text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm transition-all flex items-center justify-center gap-2 ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:bg-zinc-800'}`}
+              className={`px-4 md:px-8 py-3.5 text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm transition-all flex items-center justify-center gap-2 active:scale-95 ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:bg-zinc-800 md:hover:bg-zinc-800'}`}
               title={isOutOfStock ? 'Out of Stock' : 'Add to Bag'}
             >
               <span className="hidden md:inline">{isOutOfStock ? 'Out of Stock' : 'Add to Bag'}</span>
-              {!isOutOfStock && <ShoppingBag size={14} />}
+              {!isOutOfStock && (
+                <>
+                  <span className="md:hidden">+</span>
+                  <ShoppingBag size={14} />
+                </>
+              )}
               {isOutOfStock && <span className="md:hidden">X</span>}
             </button>
             <button className="text-[0.65rem] font-black uppercase tracking-[3px] flex items-center gap-2 group-hover:gap-4 transition-all">
@@ -149,15 +159,29 @@ const ProductCard = ({ product, isListView = false }) => {
         )}
       </div>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleWishlist(product);
-        }}
-        className={`absolute top-4 right-4 z-[30] p-2.5 rounded-full backdrop-blur-md transition-all shadow-xl active:scale-90 opacity-100 md:opacity-0 group-hover:opacity-100 ${isFavorited ? 'bg-red-50 text-red-500 opacity-100' : 'bg-white/80 text-gray-400 hover:text-black hover:bg-white'}`}
-      >
-        <Heart size={16} fill={isFavorited ? "currentColor" : "none"} />
-      </button>
+      <div className="absolute top-1 -right-1 z-[30] flex flex-col gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleWishlist(product);
+          }}
+          className={`p-2.5 rounded-full backdrop-blur-md transition-all shadow-xl active:scale-90 ${isFavorited ? 'bg-red-50 text-red-500' : 'bg-white text-black md:bg-white/80 md:text-gray-400 hover:text-black hover:bg-white opacity-100 md:opacity-0 group-hover:opacity-100'}`}
+          title={isFavorited ? 'Remove from Wishlist' : 'Add to Wishlist'}
+        >
+          <Heart size={16} fill={isFavorited ? "currentColor" : "none"} />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            addToCart(product, selectedVariant);
+          }}
+          disabled={isOutOfStock}
+          className={`p-2.5 rounded-full backdrop-blur-md transition-all shadow-xl active:scale-90 md:hidden ${isOutOfStock ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-white/80 text-black hover:bg-white'}`}
+          title={isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+        >
+          <ShoppingBag size={16} />
+        </button>
+      </div>
 
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 rounded-md ring-1 ring-black/5">
         {/* Skeleton shimmer while image loads */}
@@ -196,7 +220,7 @@ const ProductCard = ({ product, isListView = false }) => {
         </div>
 
         {/* Quick Add Button */}
-        <div className="absolute inset-x-4 bottom-4 z-30 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+        <div className="absolute hidden md:inline-block inset-x-4 bottom-4 z-30 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
           <button
             onClick={(e) => {
               e.stopPropagation();

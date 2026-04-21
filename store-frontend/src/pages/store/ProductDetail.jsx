@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import imageCompression from 'browser-image-compression';
 import api from '../../utils/api';
+
 import {
   ShoppingBag,
   Heart,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { useStore } from '../../services/useStore';
+import { ProductDetailSkeleton, RelatedProductsSkeleton } from '../../components/store/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const isValidUrl = (url) => {
@@ -46,6 +48,7 @@ const ProductDetail = () => {
 
   const [currentFullscreenIndex, setCurrentFullscreenIndex] = useState(0);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [relatedProductsLoading, setRelatedProductsLoading] = useState(false);
   const [reviews, setReviews] = useState([]);
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '', name: '', email: '' });
@@ -98,27 +101,54 @@ const ProductDetail = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreenOpen, allImages.length, activeImage]);
 
+  // Reset state IMMEDIATELY on route change to prevent wrong product flashes
+  useEffect(() => {
+    setProduct(null);
+    setSelectedVariant(null);
+    setActiveImage(null);
+    setReviews([]);
+    setRelatedProducts([]);
+    setRelatedProductsLoading(false);
+    setLoading(true);
+    setReviewsLoading(true);
+    // Clear any cached images
+    if (window.productImageCache) {
+      window.productImageCache.clear();
+    }
+  }, [id]);
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const response = await api.get(`/products/${id}`);
-        setProduct(response.data);
+        const productData = response.data;
 
-        if (response.data.variants && response.data.variants.length > 0) {
-          setSelectedVariant(response.data.variants[0]);
+        // Set main product data immediately for instant render
+        setProduct(productData);
+
+        if (productData.variants && productData.variants.length > 0) {
+          setSelectedVariant(productData.variants[0]);
         }
-        setActiveImage(response.data.thumbnailUrl || response.data.images?.[0]);
+
+        // Set main image immediately with high priority
+        const mainImage = productData.thumbnailUrl || productData.images?.[0];
+        setActiveImage(mainImage);
 
         // Use reviews immediately if present in the response
-        if (response.data.reviews) {
-          setReviews(response.data.reviews);
+        if (productData.reviews) {
+          setReviews(productData.reviews);
           setReviewsLoading(false);
         }
 
-        // Staggered loading for non-critical related products
+        // Staggered loading for non-critical data - load after main content is rendered
         setTimeout(() => {
-          fetchRelatedAndReviews(response.data);
-        }, 1000);
+          fetchRelatedAndReviews(productData);
+        }, 500);
+
+        // Load additional images in background after main render
+        setTimeout(() => {
+          preloadAdditionalImages(productData);
+        }, 100);
 
       } catch (error) {
         console.error('Error fetching product:', error);
@@ -127,8 +157,33 @@ const ProductDetail = () => {
       }
     };
 
+    const preloadAdditionalImages = (productData) => {
+      // Preload additional images with low priority
+      const imagesToPreload = [];
+      if (productData.images && productData.images.length > 1) {
+        imagesToPreload.push(...productData.images.slice(1));
+      }
+      if (productData.variants) {
+        productData.variants.forEach(variant => {
+          if (variant.images) {
+            imagesToPreload.push(...variant.images);
+          }
+        });
+      }
+
+      // Preload images in background
+      imagesToPreload.forEach(src => {
+        if (src && isValidUrl(src)) {
+          const img = new Image();
+          img.src = src;
+          img.loading = 'lazy';
+        }
+      });
+    };
+
     const fetchRelatedAndReviews = async (productData) => {
       try {
+        setRelatedProductsLoading(true);
         // Fetch Related Products (Same category + Featured)
         const allProductsRes = await api.get('/products');
         const categoryIds = productData.categoryIds || [];
@@ -147,6 +202,7 @@ const ProductDetail = () => {
             .slice(0, 6); // Limit to top 6 as requested
           setRelatedProducts(related);
         }
+        setRelatedProductsLoading(false);
 
         // Fetch Reviews only if not already provided in productData
         if (!productData.reviews) {
@@ -157,6 +213,7 @@ const ProductDetail = () => {
         }
       } catch (error) {
         console.error('Error fetching non-critical data:', error);
+        setRelatedProductsLoading(false);
       }
     };
 
@@ -324,13 +381,9 @@ const ProductDetail = () => {
     }
   }, [activeImage]);
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
-    </div>
-  );
-
-  if (!product) return <div className="p-20 text-center">Product not found</div>;
+  if (!product) {
+    return <ProductDetailSkeleton />;
+  }
 
   const isFavorited = wishlist.some(p => p.id === product.id);
   const sellingPrice = (selectedVariant?.price !== null && selectedVariant?.price !== undefined)
@@ -367,91 +420,81 @@ const ProductDetail = () => {
   const variantOptions = {};
   const valueMapByAttribute = {}; // Maps lowercase values to their original case
 
-  product.variants?.forEach(v => {
+  product?.variants?.forEach(v => {
     if (!v.title) return;
-    // Split by comma for multiple attributes (e.g., "Color: Red, Size: XL")
     const attributes = v.title.split(', ');
     attributes.forEach(attr => {
       if (!attr.includes(':')) return;
-      const parts = attr.split(': ');
+      const parts = attr.split(':');
       if (parts.length < 2) return;
       const name = parts[0].trim().toLowerCase();
-      const value = parts[1].trim();
-      const valueLower = value.toLowerCase();
+      const value = parts.slice(1).join(':').trim(); // Join back in case value had colons
+      const valueLower = value.toLowerCase().replace(/\s+/g, ' ');
 
       if (!variantOptions[name]) {
         variantOptions[name] = new Set();
         valueMapByAttribute[name] = {};
       }
 
-      // Only add if we haven't seen this value (case-insensitive)
       if (!valueMapByAttribute[name][valueLower]) {
         variantOptions[name].add(value);
-        valueMapByAttribute[name][valueLower] = value; // Store original case
+        valueMapByAttribute[name][valueLower] = value;
       }
     });
   });
 
-  // Helper to find variant matching partial selections
   const findMatchingVariant = (newVal, type) => {
-    if (!product.variants || product.variants.length === 0) return null;
+    if (!product?.variants || product.variants.length === 0) return null;
 
-    const typeLower = type.toLowerCase();
-    const valLower = newVal.toLowerCase();
+    const typeLower = type.toLowerCase().replace(/\s+/g, ' ');
+    const valLower = newVal.toLowerCase().replace(/\s+/g, ' ');
 
-    // 1. Build current selections from the selectedVariant title
     const currentSelections = {};
     if (selectedVariant?.title) {
-      selectedVariant.title.split(', ').forEach(attr => {
-        if (attr.includes(': ')) {
-          const colonIdx = attr.indexOf(': ');
-          const k = attr.slice(0, colonIdx).trim().toLowerCase();
-          const v = attr.slice(colonIdx + 2).trim().toLowerCase();
+      selectedVariant.title.split(',').forEach(attr => {
+        if (attr.includes(':')) {
+          const colonIdx = attr.indexOf(':');
+          const k = attr.slice(0, colonIdx).trim().toLowerCase().replace(/\s+/g, ' ');
+          const v = attr.slice(colonIdx + 1).trim().toLowerCase().replace(/\s+/g, ' ');
           currentSelections[k] = v;
         } else {
-          currentSelections['option'] = attr.trim().toLowerCase();
+          currentSelections['option'] = attr.trim().toLowerCase().replace(/\s+/g, ' ');
         }
       });
     }
 
-    // 2. Override with the newly chosen value
     currentSelections[typeLower] = valLower;
 
-    // 3. Find all variants that contain the target value in any form:
-    //    - "Size: M"  (explicit key:value)
-    //    - "M"        (bare value, standalone segment)
     const possibleMatches = product.variants.filter(v => {
-      const vTitle = v.title.toLowerCase();
-      const segments = vTitle.split(', ').map(s => s.trim());
+      const vTitle = v.title.toLowerCase().replace(/\s+/g, ' ');
+      const segments = vTitle.split(',').map(s => s.trim());
 
-      // Check explicit "type: value" pattern
-      if (vTitle.includes(`${typeLower}: ${valLower}`)) return true;
+      const targetStr = `${typeLower}:${valLower}`;
+      if (vTitle.includes(targetStr) || vTitle.includes(`${typeLower}: ${valLower}`)) return true;
 
-      // Check a bare segment that equals the value (e.g. title is just "M")
-      return segments.some(seg => seg === valLower || seg.endsWith(`: ${valLower}`));
+      return segments.some(seg => seg === valLower || seg.endsWith(`:${valLower}`) || seg.endsWith(`: ${valLower}`));
     });
 
     if (possibleMatches.length === 0) return null;
 
-    // 4. Score each candidate by how many other current selections it also satisfies
     const scoredMatches = possibleMatches.map(v => {
       let score = 0;
-      const vTitle = v.title.toLowerCase();
-      const segments = vTitle.split(', ').map(s => s.trim());
+      const vTitle = v.title.toLowerCase().replace(/\s+/g, ' ');
+      const segments = vTitle.split(',').map(s => s.trim());
 
       Object.entries(currentSelections).forEach(([k, val]) => {
         const isTarget = k === typeLower;
-        const explicitPattern = `${k}: ${val}`;
-        if (vTitle.includes(explicitPattern)) {
+        const explicitPattern = `${k}:${val}`;
+        const explicitPatternSpace = `${k}: ${val}`;
+        if (vTitle.includes(explicitPattern) || vTitle.includes(explicitPatternSpace)) {
           score += isTarget ? 20 : 2;
-        } else if (segments.some(seg => seg === val || seg.endsWith(`: ${val}`))) {
+        } else if (segments.some(seg => seg === val || seg.endsWith(`:${val}`) || seg.endsWith(`: ${val}`))) {
           score += isTarget ? 20 : 2;
         }
       });
       return { variant: v, score };
     });
 
-    // 5. Pick best match; fall back to first candidate if all scores are 0
     return scoredMatches.sort((a, b) => b.score - a.score)[0].variant;
   };
 
@@ -603,13 +646,22 @@ const ProductDetail = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-start gap-4">
                 <h1 className="text-4xl font-black uppercase tracking-tight leading-[1.1] flex-1">{product.name}</h1>
-                <button
-                  onClick={handleShare}
-                  className="p-3 bg-gray-50 rounded-full hover:bg-black hover:text-white transition-all shadow-sm"
-                  title="Share Product"
-                >
-                  <Share2 size={20} />
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => toggleWishlist(product)}
+                    className={`p-3 rounded-full transition-all shadow-sm ${isFavorited ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-400 hover:text-black hover:bg-white'}`}
+                    title={isFavorited ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                  >
+                    <Heart size={20} fill={isFavorited ? "currentColor" : "none"} />
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="p-3 bg-gray-50 rounded-full hover:bg-black hover:text-white transition-all shadow-sm"
+                    title="Share Product"
+                  >
+                    <Share2 size={20} />
+                  </button>
+                </div>
               </div>
               <button
                 onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}
@@ -1002,43 +1054,49 @@ const ProductDetail = () => {
 
         {/* Suggestions Section */}
         <div ref={relatedSectionRef}>
-          {loadRelated && relatedProducts.length > 0 && (
-            <div className="mt-40">
-              <div className="flex items-center justify-between mb-12">
-                <h2 className="text-3xl font-black uppercase tracking-tight">You May Also Like</h2>
-                <Link to="/collections/all" className="text-xs font-black uppercase tracking-widest border-b-2 border-black pb-1 hover:opacity-60 transition-all">View All Products</Link>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                {relatedProducts.map((p, i) => (
-                  <Link
-                    key={p.id}
-                    to={`/products/${p.handle || p.id}`}
-                    className="group space-y-4"
-                  >
-                    <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative">
-                      <img
-                        src={p.thumbnailUrl || p.images?.[0]}
-                        className={`w-full h-full object-cover transition-all duration-700 ${p.hoverThumbnailUrl || p.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : 'group-hover:scale-105'}`}
-                        alt={p.name}
-                        loading="lazy"
-                      />
-                      {(p.hoverThumbnailUrl || p.images?.[1]) && (
-                        <img
-                          src={p.hoverThumbnailUrl || p.images?.[1]}
-                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-                          alt={`${p.name} hover`}
-                          loading="lazy"
-                        />
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="font-black uppercase text-sm tracking-tight group-hover:text-[#e44d26] transition-colors">{p.name}</h3>
-                      <p className="text-sm font-black text-gray-400">₹{p.price.toLocaleString()}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
+          {loadRelated && (
+            <>
+              {relatedProductsLoading ? (
+                <RelatedProductsSkeleton />
+              ) : relatedProducts.length > 0 && (
+                <div className="mt-40">
+                  <div className="flex items-center justify-between mb-12">
+                    <h2 className="text-3xl font-black uppercase tracking-tight">You May Also Like</h2>
+                    <Link to="/collections/all" className="text-xs font-black uppercase tracking-widest border-b-2 border-black pb-1 hover:opacity-60 transition-all">View All Products</Link>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    {relatedProducts.map((p, i) => (
+                      <Link
+                        key={p.id}
+                        to={`/products/${p.handle || p.id}`}
+                        className="group space-y-4"
+                      >
+                        <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative">
+                          <img
+                            src={p.thumbnailUrl || p.images?.[0]}
+                            className={`w-full h-full object-cover transition-all duration-700 ${p.hoverThumbnailUrl || p.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : 'group-hover:scale-105'}`}
+                            alt={p.name}
+                            loading="lazy"
+                          />
+                          {(p.hoverThumbnailUrl || p.images?.[1]) && (
+                            <img
+                              src={p.hoverThumbnailUrl || p.images?.[1]}
+                              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                              alt={`${p.name} hover`}
+                              loading="lazy"
+                            />
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="font-black uppercase text-sm tracking-tight group-hover:text-[#e44d26] transition-colors">{p.name}</h3>
+                          <p className="text-sm font-black text-gray-400">₹{p.price.toLocaleString()}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

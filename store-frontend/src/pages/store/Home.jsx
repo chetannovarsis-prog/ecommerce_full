@@ -40,7 +40,36 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
+      // Check for cached collections
+      const cachedCollections = localStorage.getItem('homeCollections');
+      const cachedTimestamp = localStorage.getItem('homeCollectionsTimestamp');
+      const isCacheValid = cachedTimestamp && (Date.now() - parseInt(cachedTimestamp)) < (30 * 60 * 1000); // 30 minutes
+
+      if (cachedCollections && isCacheValid) {
+        try {
+          const parsedCollections = JSON.parse(cachedCollections);
+          setCollections(parsedCollections);
+          setLoading(false);
+          // Still fetch in background to update cache
+          fetchFreshData();
+          return;
+        } catch (error) {
+          console.error('Error parsing cached collections:', error);
+        }
+      }
+
+      fetchFreshData();
+    };
+
+    const fetchFreshData = async () => {
       try {
         const [collRes, bestRes, newRes] = await Promise.allSettled([
           api.get('/collections'),
@@ -52,7 +81,11 @@ const Home = () => {
           const collectionsData = Array.isArray(collRes.value.data)
             ? collRes.value.data
             : collRes.value.data?.data || [];
-          setCollections(collectionsData.sort((a, b) => (a.order || 0) - (b.order || 0)));
+          const sortedCollections = collectionsData.sort((a, b) => (a.order || 0) - (b.order || 0));
+          setCollections(sortedCollections);
+          // Cache collections
+          localStorage.setItem('homeCollections', JSON.stringify(sortedCollections));
+          localStorage.setItem('homeCollectionsTimestamp', Date.now().toString());
         }
         if (bestRes.status === 'fulfilled') {
           setBestSellers(bestRes.value.data);
@@ -66,6 +99,7 @@ const Home = () => {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
@@ -272,54 +306,8 @@ const Home = () => {
       </section>
 
       {/* Store Section - Indore Store */}
-      {/* <section className="py-24 container mx-auto px-10">
-        <div className="bg-gray-50 rounded-[3rem] overflow-hidden flex flex-col lg:flex-row shadow-2xl ring-1 ring-black/5">
-          <div className="flex-1 p-16 flex flex-col justify-center">
-            <h2 className="text-4xl font-black uppercase tracking-tighter mb-4 italic italic">Our Store in Bangalore</h2>
-            <p className="text-sm text-gray-600 leading-relaxed max-w-md mb-10">
-              Experience our ethnic collection in person. Visit us in the heart of Koramangala for a personalized styling session and exclusive in-store designs.
-            </p>
-
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 group">
-                <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-black group-hover:bg-black group-hover:text-white transition-all shadow-lg">
-                  <a
-                    href="https://www.google.com/maps/place/Vikram+Urbane/@22.748421,75.8182107,13z/data=!4m6!3m5!1s0x3962fd57c7b315d5:0xe8e1287dffe4c75!8m2!3d22.748421!4d75.8903085!16s%2Fg%2F1q62k_zmf?entry=ttu&g_ep=EgoyMDI2MDMxMS4wIKXMDSoASAFQAw%3D%3D"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MapPin size={18} /></a>
-                </div>
-                <span className="text-xs font-bold uppercase tracking-tight">38, Booth no-127, 2nd Main Road, Ashwini Layout, Ejipura, Koramangala, Bangalore – 560047</span>
-              </div>
-              <div className="flex items-center gap-4 group">
-                <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-black group-hover:bg-black group-hover:text-white transition-all shadow-lg">
-                  <Phone size={18} />
-                </div>
-                <span className="text-xs font-bold uppercase tracking-tight">+91 88619 40980</span>
-              </div>
-            </div>
-
-            <div className="mt-12 flex gap-4">
-              <Link to="/contact" className="bg-black text-white px-8 py-4 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">Get Directions</Link>
-            </div>
-          </div>
-          <div className="flex-1 h-[500px] lg:h-auto overflow-hidden">
-            <img src="/images/knitting_knot.png" className="w-full h-full object-cover" alt="Indore Store" />
-          </div>
-        </div>
-      </section> */}
     </div>
   );
 };
-
-// Help helper icon component (placeholder)
-const ImageIcon = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <polyline points="21 15 16 10 5 21" />
-  </svg>
-);
 
 export default Home;

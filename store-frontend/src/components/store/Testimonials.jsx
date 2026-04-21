@@ -104,7 +104,7 @@ const Testimonials = () => {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-10 md:px-16">
-          <div className="relative h-[37        0px]">
+          <div className="relative h-[370px]">
              <AnimatePresence initial={false} custom={direction}>
                 <motion.div 
                     key={currentIndex}

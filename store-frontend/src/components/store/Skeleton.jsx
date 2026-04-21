@@ -42,5 +42,66 @@ export const HeroSkeleton = () => (
   </div>
 );
 
-export default Skeleton;
+export const ProductDetailSkeleton = () => (
+  <div className="min-h-screen pb-40 italic-none">
+    <div className="container mx-auto px-6 lg:px-10 pt-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
+        {/* Left: Images */}
+        <div className="lg:col-span-7">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-2 space-y-4">
+              {Array(4).fill(0).map((_, i) => (
+                <Skeleton key={i} className="aspect-[3/4] rounded-lg w-full" />
+              ))}
+            </div>
+            <div className="col-span-10">
+              <Skeleton className="aspect-[3/4] rounded-2xl w-full" />
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Info */}
+        <div className="lg:col-span-5 space-y-8">
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-full rounded-full" />
+            <Skeleton className="h-8 w-3/4 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-1/2 rounded-full" />
+              <Skeleton className="h-4 w-1/3 rounded-full" />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-1/4 rounded-full" />
+            <div className="flex gap-4">
+              <Skeleton className="h-12 w-32 rounded-lg" />
+              <Skeleton className="h-12 flex-1 rounded-lg" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+export const RelatedProductsSkeleton = () => (
+  <div className="mt-40">
+    <div className="flex items-center justify-between mb-12">
+      <Skeleton className="h-8 w-48 rounded-full" />
+      <Skeleton className="h-4 w-32 rounded-full" />
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+      {Array(4).fill(0).map((_, i) => (
+        <div key={i} className="space-y-4">
+          <Skeleton className="aspect-[3/4] rounded-2xl w-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-3/4 rounded-full" />
+            <Skeleton className="h-3 w-1/2 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 

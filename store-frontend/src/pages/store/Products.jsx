@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import ProductCard from '../../components/store/ProductCard';
+import { useParams } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import FilterSidebar from '../../components/store/FilterSidebar';
 import { 
@@ -12,9 +14,7 @@ import {
   ChevronDown,
   LayoutList
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-import { useParams } from 'react-router-dom';
+import { useStore } from '../../services/useStore';
 
 const isUuid = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const formatCollectionTitle = (value = '') =>
@@ -37,6 +37,7 @@ const setCache = (key, data) => _productsCache.set(key, { data, ts: Date.now() }
 
 const Products = () => {
   const { id: collectionId } = useParams();
+  const { getCachedProducts, cacheProducts } = useStore();
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [collection, setCollection] = useState(null);
@@ -62,9 +63,34 @@ const Products = () => {
     const cached = getCached(cacheKey);
 
     const fetchData = async () => {
+      // Check store cache first
+      const storeCached = getCachedProducts();
+      if (storeCached && !cached) {
+        const allProducts = Array.isArray(storeCached)
+          ? storeCached
+          : Array.isArray(storeCached?.data)
+          ? storeCached.data
+          : [];
+        // Filter for collection if needed
+        let filtered = allProducts;
+        if (collectionId && collectionId !== 'all') {
+          filtered = allProducts.filter(p => p.collections?.some(c => c.id === collectionId));
+        }
+        setProducts(filtered);
+        setFilteredProducts(filtered);
+        setLoading(false);
+        // Still refresh in background
+        fetchFreshData();
+        return;
+      }
+
       // Show cached data instantly if available, still refresh in background
       if (!cached) setLoading(true);
 
+      fetchFreshData();
+    };
+
+    const fetchFreshData = async () => {
       try {
         const [prodRes, collRes] = await Promise.allSettled([
           api.get('/products', {
@@ -83,6 +109,9 @@ const Products = () => {
           ? prodData.data
           : [];
 
+        // Cache all products in store
+        cacheProducts(allProducts);
+
         let filtered = allProducts;
         let collectionData = null;
 
@@ -97,6 +126,7 @@ const Products = () => {
               .find((item) => item?.id === collectionId);
 
             if (fallbackCollection) {
+              collectionData = fallbackCollection;
               collectionData = fallbackCollection;
             }
           }

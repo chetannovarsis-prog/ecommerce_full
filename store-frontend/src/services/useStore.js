@@ -8,6 +8,8 @@ export const useStore = create(
       wishlist: [],
       toast: null,
       appliedCoupon: null,
+      productsCache: null, // Cache for product listings
+      productsCacheTimestamp: null,
 
       showToast: (message, type = 'success') => {
         set({ toast: { message, type, id: Date.now() } });
@@ -105,6 +107,21 @@ export const useStore = create(
       clearCoupon: () => set({ appliedCoupon: null }),
 
       clearCart: () => set({ cart: [], appliedCoupon: null }),
+
+      // Product caching methods
+      cacheProducts: (products) => set({ 
+        productsCache: products, 
+        productsCacheTimestamp: Date.now() 
+      }),
+
+      getCachedProducts: () => {
+        const { productsCache, productsCacheTimestamp } = get();
+        const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+        if (productsCache && productsCacheTimestamp && (Date.now() - productsCacheTimestamp) < CACHE_DURATION) {
+          return productsCache;
+        }
+        return null;
+      },
 
       syncStore: (allProducts) => {
         const { cart, wishlist } = get();
