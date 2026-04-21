@@ -20,6 +20,14 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Robust email validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(formData.email)) {
+      setStatus({ type: 'error', message: 'Please enter a valid email address (e.g. name@example.com).' });
+      return;
+    }
+
     setLoading(true);
     setStatus({ type: '', message: '' });
     try {
@@ -55,7 +63,7 @@ const Contact = () => {
                   </div>
                   <div className='text-center'>
                     <h3 className="font-semibold text-gray-500">Email Us</h3>
-                    <p className="text-md font-semibold mt-1"> support@gharofethnics.com</p>
+                    <p className="text-md font-semibold mt-1 break-all"> support@gharofethnics.com</p>
                   </div>
                 </div>
               </a>

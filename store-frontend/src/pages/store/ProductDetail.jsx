@@ -50,7 +50,6 @@ const ProductDetail = () => {
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [sizeGuideTab, setSizeGuideTab] = useState('chart'); // 'chart' | 'measure'
-  const [mainImageLoaded, setMainImageLoaded] = useState(false);
 
   const [currentFullscreenIndex, setCurrentFullscreenIndex] = useState(0);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -112,7 +111,6 @@ const ProductDetail = () => {
     setProduct(null);
     setSelectedVariant(null);
     setActiveImage(null);
-    setMainImageLoaded(false);
     setReviews([]);
     setRelatedProducts([]);
     setRelatedProductsLoading(false);
@@ -139,7 +137,6 @@ const ProductDetail = () => {
 
         // Set main image immediately with high priority
         const mainImage = productData.thumbnailUrl || productData.images?.[0];
-        setMainImageLoaded(false);
         setActiveImage(mainImage);
 
         // Use reviews immediately if present in the response
@@ -374,7 +371,6 @@ const ProductDetail = () => {
       // Prioritize variant thumbnail, then first image, then product thumbnail
       const variantImage = selectedVariant.thumbnailUrl || (selectedVariant.images && selectedVariant.images.length > 0 ? selectedVariant.images[0] : null);
       if (isValidUrl(variantImage)) {
-        setMainImageLoaded(false);
         setActiveImage(variantImage);
       }
     }
@@ -624,9 +620,6 @@ const ProductDetail = () => {
 
               <div className="col-span-10">
                 <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative group">
-                  {!mainImageLoaded && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-[shimmer_1.4s_infinite] bg-[length:200%_100%] z-20" />
-                  )}
                   <AnimatePresence mode="wait">
                     <motion.img
                       key={activeImage}
@@ -639,7 +632,6 @@ const ProductDetail = () => {
                       alt={product.name}
                       loading="eager"
                       fetchpriority="high"
-                      onLoad={() => setMainImageLoaded(true)}
                     />
                   </AnimatePresence>
                   <button
@@ -761,6 +753,15 @@ const ProductDetail = () => {
                       .filter((size, index, arr) =>
                         arr.findIndex(s => s.toLowerCase() === size.toLowerCase()) === index
                       )
+                      .sort((a, b) => {
+                        const order = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+                        const indexA = order.indexOf(a.toUpperCase());
+                        const indexB = order.indexOf(b.toUpperCase());
+                        if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+                        if (indexA === -1) return 1;
+                        if (indexB === -1) return -1;
+                        return indexA - indexB;
+                      })
                       .map(val => {
                         const isSelected = selectedVariant?.title?.toLowerCase().includes(`size: ${val.toLowerCase()}`);
                         return (
