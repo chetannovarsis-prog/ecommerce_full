@@ -80,19 +80,14 @@ const ProductDetail = () => {
       variantImages = [variantThumbnail, ...variantImages.filter(img => img !== variantThumbnail)];
     }
 
-    const otherVariantsImages = (product.variants || [])
-      .filter(v => v.id !== selectedVariant?.id)
-      .flatMap(v => [v.thumbnailUrl, ...(v.images || [])])
+    const productImages = [product.thumbnailUrl, ...(product.images || [])]
       .filter(img => isValidUrl(img) && !variantImages.includes(img));
 
-    const uniqueOtherVariantsImages = Array.from(new Set(otherVariantsImages));
-
-    const productImages = [product.thumbnailUrl, ...(product.images || [])]
-      .filter(img => isValidUrl(img) && !variantImages.includes(img) && !uniqueOtherVariantsImages.includes(img));
-
     const uniqueProductImages = Array.from(new Set(productImages));
-
-    return [...variantImages, ...uniqueOtherVariantsImages, ...uniqueProductImages];
+    const finalImages = [...variantImages, ...uniqueProductImages];
+    
+    // Filter out any duplicates or non-unique items one last time to be safe
+    return Array.from(new Set(finalImages)).filter(isValidUrl);
   }, [product, selectedVariant]);
 
   useEffect(() => {
