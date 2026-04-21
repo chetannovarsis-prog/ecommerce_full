@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import ProductCard from '../../components/store/ProductCard';
+import { ProductSkeleton } from '../../components/store/Skeleton';
 
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,13 +12,41 @@ const NewArrivals = () => {
   useEffect(() => {
     const fetchNewArrivals = async () => {
       try {
-        const response = await api.get('/products');
-        // Sort by id descending (assuming newer IDs are higher) or createdAt if available
+        const response = await api.get('/products/new-arrivals');
+        let productsData = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
 
-        const sorted = response.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setProducts(sorted.slice(0, 12)); // Show first 12
+        // Fallback: if new-arrivals endpoint returns empty, fetch all products
+        if (productsData.length === 0) {
+          const allRes = await api.get('/products');
+          const allData = Array.isArray(allRes.data)
+            ? allRes.data
+            : Array.isArray(allRes.data?.data)
+            ? allRes.data.data
+            : [];
+          productsData = allData;
+        }
+
+        const sorted = [...productsData].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        setProducts(sorted.slice(0, 12));
       } catch (error) {
         console.error('Error fetching new arrivals:', error);
+        // Try fallback on error too
+        try {
+          const allRes = await api.get('/products');
+          const allData = Array.isArray(allRes.data)
+            ? allRes.data
+            : Array.isArray(allRes.data?.data)
+            ? allRes.data.data
+            : [];
+          const sorted = [...allData].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+          setProducts(sorted.slice(0, 12));
+        } catch (e2) {
+          console.error('Fallback also failed:', e2);
+        }
       } finally {
         setLoading(false);
       }
@@ -34,10 +63,12 @@ const NewArrivals = () => {
         </header>
 
         {loading ? (
-          <div className="flex justify-center py-40">
-            <div className="w-12 h-12 border-t-2 border-black rounded-full animate-spin"></div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-16">
+            {Array.from({ length: 8 }).map((_, idx) => (
+              <ProductSkeleton key={idx} />
+            ))}
           </div>
-        ) : (
+        ) : products.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-16">
             <AnimatePresence>
               {products.map((product) => (
@@ -50,6 +81,10 @@ const NewArrivals = () => {
                 </motion.div>
               ))}
             </AnimatePresence>
+          </div>
+        ) : (
+          <div className="py-40 text-center border-2 border-dashed border-gray-100 rounded-sm">
+            <p className="text-gray-400 font-bold uppercase tracking-widest">No new arrivals available yet</p>
           </div>
         )}
       </div>

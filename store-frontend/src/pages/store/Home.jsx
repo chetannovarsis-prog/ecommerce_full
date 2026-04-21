@@ -25,11 +25,26 @@ const LotusMotif = ({ size = 14, color = '#e87825' }) => (
 );
 
 const Home = () => {
-  const [collections, setCollections] = useState([]);
+  // Initialize state synchronously from cache to prevent loading flashes
+  const [collections, setCollections] = useState(() => {
+    try {
+      const cached = localStorage.getItem('homeCollections');
+      const timestamp = localStorage.getItem('homeCollectionsTimestamp');
+      if (cached && timestamp && (Date.now() - parseInt(timestamp)) < (30 * 60 * 1000)) {
+        return JSON.parse(cached);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
   const [bestSellers, setBestSellers] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
   const [activeTab, setActiveTab] = useState('best-sellers');
-  const [loading, setLoading] = useState(true);
+  // Only show loading state initially if we didn't find cached collections
+  const [loading, setLoading] = useState(() => collections.length === 0);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -40,35 +55,6 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      // Check for cached collections
-      const cachedCollections = localStorage.getItem('homeCollections');
-      const cachedTimestamp = localStorage.getItem('homeCollectionsTimestamp');
-      const isCacheValid = cachedTimestamp && (Date.now() - parseInt(cachedTimestamp)) < (30 * 60 * 1000); // 30 minutes
-
-      if (cachedCollections && isCacheValid) {
-        try {
-          const parsedCollections = JSON.parse(cachedCollections);
-          setCollections(parsedCollections);
-          setLoading(false);
-          // Still fetch in background to update cache
-          fetchFreshData();
-          return;
-        } catch (error) {
-          console.error('Error parsing cached collections:', error);
-        }
-      }
-
-      fetchFreshData();
-    };
-
     const fetchFreshData = async () => {
       try {
         const [collRes, bestRes, newRes] = await Promise.allSettled([
@@ -83,24 +69,30 @@ const Home = () => {
             : collRes.value.data?.data || [];
           const sortedCollections = collectionsData.sort((a, b) => (a.order || 0) - (b.order || 0));
           setCollections(sortedCollections);
-          // Cache collections
           localStorage.setItem('homeCollections', JSON.stringify(sortedCollections));
           localStorage.setItem('homeCollectionsTimestamp', Date.now().toString());
         }
         if (bestRes.status === 'fulfilled') {
-          setBestSellers(bestRes.value.data);
+          const bestData = Array.isArray(bestRes.value.data)
+            ? bestRes.value.data
+            : bestRes.value.data?.data || [];
+          setBestSellers(bestData);
         }
         if (newRes.status === 'fulfilled') {
-          setNewArrivals(newRes.value.data);
+          const newData = Array.isArray(newRes.value.data)
+            ? newRes.value.data
+            : newRes.value.data?.data || [];
+          setNewArrivals(newData);
         }
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {
+        setFeaturedLoading(false);
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchFreshData();
   }, []);
 
   const displayProducts = activeTab === 'best-sellers' ? bestSellers : newArrivals;
@@ -210,7 +202,7 @@ const Home = () => {
               transition={{ duration: 0.4 }}
               className="grid grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-12"
             >
-              {loading ? (
+              {featuredLoading ? (
                 Array(5).fill(0).map((_, i) => <ProductSkeleton key={i} />)
               ) : (
                 displayProducts.slice(0, isMobile ? 4 : 5).map((product) => (

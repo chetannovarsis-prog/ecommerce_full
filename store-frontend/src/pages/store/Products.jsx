@@ -15,6 +15,7 @@ import {
   LayoutList
 } from 'lucide-react';
 import { useStore } from '../../services/useStore';
+import { ProductSkeleton } from '../../components/store/Skeleton';
 
 const isUuid = (value = '') => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const formatCollectionTitle = (value = '') =>
@@ -321,8 +322,10 @@ const Products = () => {
         </header>
 
         {loading ? (
-          <div className="flex justify-center py-40">
-            <div className="w-12 h-12 border-t-2 border-black rounded-full animate-spin"></div>
+          <div className={`grid gap-x-8 gap-y-16 transition-all duration-500 ${getGridClass()}`}>
+            {Array.from({ length: viewCols === 1 ? 4 : 8 }).map((_, idx) => (
+              <ProductSkeleton key={idx} />
+            ))}
           </div>
         ) : sortedProducts.length > 0 ? (
           <div className={`grid gap-x-8 gap-y-16 transition-all duration-500 ${getGridClass()}`}>

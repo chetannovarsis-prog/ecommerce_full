@@ -165,21 +165,10 @@ const ProductCard = ({ product, isListView = false }) => {
             e.stopPropagation();
             toggleWishlist(product);
           }}
-          className={`p-2.5 rounded-full backdrop-blur-md transition-all shadow-xl active:scale-90 ${isFavorited ? 'bg-red-50 text-red-500' : 'bg-white text-black md:bg-white/80 md:text-gray-400 hover:text-black hover:bg-white opacity-100 md:opacity-0 group-hover:opacity-100'}`}
+          className={`absolute top-4 right-4 z-[30] p-2.5 rounded-full backdrop-blur-md transition-all shadow-xl active:scale-90 opacity-100 lg:opacity-0 group-hover:opacity-100 ${isFavorited ? 'bg-red-50 text-red-500 opacity-100' : 'bg-white/80 text-gray-400 hover:text-black hover:bg-white'}`}
           title={isFavorited ? 'Remove from Wishlist' : 'Add to Wishlist'}
         >
           <Heart size={16} fill={isFavorited ? "currentColor" : "none"} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            addToCart(product, selectedVariant);
-          }}
-          disabled={isOutOfStock}
-          className={`p-2.5 rounded-full backdrop-blur-md transition-all shadow-xl active:scale-90 md:hidden ${isOutOfStock ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-white/80 text-black hover:bg-white'}`}
-          title={isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-        >
-          <ShoppingBag size={16} />
         </button>
       </div>
 
@@ -219,17 +208,31 @@ const ProductCard = ({ product, isListView = false }) => {
           )}
         </div>
 
-        {/* Quick Add Button */}
-        <div className="absolute hidden md:inline-block inset-x-4 bottom-4 z-30 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+        {/* Quick Add Button — DESKTOP ONLY */}
+        <div className="hidden lg:block absolute inset-x-4 bottom-4 z-30 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
           <button
             onClick={(e) => {
               e.stopPropagation();
               addToCart(product, selectedVariant);
             }}
             disabled={isOutOfStock}
-            className={`w-full backdrop-blur-md py-3 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] transition-all flex items-center justify-center gap-2 active:scale-95 shadow-2xl ${isOutOfStock ? 'bg-white/90 text-gray-400 cursor-not-allowed' : 'bg-white/90 text-black hover:bg-black hover:text-white'}`}
+            className={`w-full backdrop-blur-md py-3 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] transition-all flex items-center justify-center gap-2 shadow-2xl ${isOutOfStock ? 'bg-white/90 text-gray-400 cursor-not-allowed' : 'bg-white/90 text-black hover:bg-black hover:text-white'}`}
           >
             {isOutOfStock ? 'Out of Stock' : 'Add to Bag'} <ShoppingBag size={14} />
+          </button>
+        </div>
+
+        {/* Quick Add Button — MOBILE ONLY */}
+        <div className="block lg:hidden absolute bottom-3 right-3 z-30">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              addToCart(product, selectedVariant);
+            }}
+            disabled={isOutOfStock}
+            className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md shadow-lg active:scale-95 transition-all ${isOutOfStock ? 'bg-white/80 text-gray-400' : 'bg-white/80 text-black'}`}
+          >
+            <ShoppingBag size={14} />
           </button>
         </div>
       </div>

@@ -29,6 +29,11 @@ const isValidUrl = (url) => {
   return url.includes('/') || url.includes('http');
 };
 
+const getVariantColor = (variant) => {
+  const match = (variant?.title || '').match(/color:\s*([^,]+)/i);
+  return match?.[1]?.trim() || '';
+};
+
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,6 +50,7 @@ const ProductDetail = () => {
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [sizeGuideTab, setSizeGuideTab] = useState('chart'); // 'chart' | 'measure'
+  const [mainImageLoaded, setMainImageLoaded] = useState(false);
 
   const [currentFullscreenIndex, setCurrentFullscreenIndex] = useState(0);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -106,6 +112,7 @@ const ProductDetail = () => {
     setProduct(null);
     setSelectedVariant(null);
     setActiveImage(null);
+    setMainImageLoaded(false);
     setReviews([]);
     setRelatedProducts([]);
     setRelatedProductsLoading(false);
@@ -132,6 +139,7 @@ const ProductDetail = () => {
 
         // Set main image immediately with high priority
         const mainImage = productData.thumbnailUrl || productData.images?.[0];
+        setMainImageLoaded(false);
         setActiveImage(mainImage);
 
         // Use reviews immediately if present in the response
@@ -366,6 +374,7 @@ const ProductDetail = () => {
       // Prioritize variant thumbnail, then first image, then product thumbnail
       const variantImage = selectedVariant.thumbnailUrl || (selectedVariant.images && selectedVariant.images.length > 0 ? selectedVariant.images[0] : null);
       if (isValidUrl(variantImage)) {
+        setMainImageLoaded(false);
         setActiveImage(variantImage);
       }
     }
@@ -615,6 +624,9 @@ const ProductDetail = () => {
 
               <div className="col-span-10">
                 <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative group">
+                  {!mainImageLoaded && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-[shimmer_1.4s_infinite] bg-[length:200%_100%] z-20" />
+                  )}
                   <AnimatePresence mode="wait">
                     <motion.img
                       key={activeImage}
@@ -627,6 +639,7 @@ const ProductDetail = () => {
                       alt={product.name}
                       loading="eager"
                       fetchpriority="high"
+                      onLoad={() => setMainImageLoaded(true)}
                     />
                   </AnimatePresence>
                   <button
@@ -649,7 +662,7 @@ const ProductDetail = () => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => toggleWishlist(product)}
-                    className={`p-3 rounded-full transition-all shadow-sm ${isFavorited ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-400 hover:text-black hover:bg-white'}`}
+                    className={`p-3 rounded-full transition-all shadow-sm ${isFavorited ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-black hover:text-black hover:bg-white'}`}
                     title={isFavorited ? 'Remove from Wishlist' : 'Add to Wishlist'}
                   >
                     <Heart size={20} fill={isFavorited ? "currentColor" : "none"} />
@@ -792,12 +805,12 @@ const ProductDetail = () => {
                         const lowerTitle = (selectedVariant?.title || '').toLowerCase();
                         const isSelected = lowerTitle.includes(`color: ${lowerColor}`) ||
                           (!lowerTitle.includes('color:') && lowerTitle.includes(lowerColor));
-                        // Find a variant that has this color to show its thumbnail
-                        const representativeVariant = product.variants.find(v => {
-                          const vTitle = v.title.toLowerCase();
-                          return vTitle.includes(`color: ${color.toLowerCase()}`) || vTitle.includes(color.toLowerCase());
-                        });
-                        const imgUrl = representativeVariant?.thumbnailUrl || representativeVariant?.images?.find(isValidUrl) || product.thumbnailUrl;
+                        const representativeVariant = product.variants.find((v) => getVariantColor(v).toLowerCase() === lowerColor);
+                        const imgUrl = representativeVariant?.thumbnailUrl
+                          || representativeVariant?.images?.find(isValidUrl)
+                          || product.variants?.find((v) => getVariantColor(v).toLowerCase() === lowerColor)?.images?.find(isValidUrl)
+                          || product.thumbnailUrl
+                          || product.images?.find(isValidUrl);
 
                         return (
                           <button
@@ -809,8 +822,12 @@ const ProductDetail = () => {
                             className={`group relative flex flex-col items-center gap-2 transition-all p-1 rounded-full ${isSelected ? 'ring-2 ring-black ring-offset-2' : ''}`}
                           >
                             <div className={`w-12 h-12 rounded-full border border-gray-100 transition-all duration-300 overflow-hidden shadow-sm`}>
-                              <div className="w-full h-full bg-gray-50">
-                                <img src={imgUrl} className="w-full h-full object-cover" alt={color} />
+                              <div className="w-full h-full bg-gray-100">
+                                {imgUrl ? (
+                                  <img src={imgUrl} className="w-full h-full object-cover" alt={color} loading="lazy" />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-100" />
+                                )}
                               </div>
                             </div>
                           </button>

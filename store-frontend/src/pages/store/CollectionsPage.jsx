@@ -39,7 +39,7 @@ const CollectionsPage = () => {
 
       <div className="container mx-auto px-10 relative z-10">
         <header className="text-center mb-24 space-y-4">
-           <h1 className="text-7xl font-black uppercase tracking-tighter text-[#1a2d5a]">Collections</h1>
+           <h1 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1a2d5a]">Collections</h1>
            <div className="flex items-center justify-center gap-4">
              <div className="h-[2px] w-20 bg-[#e87825]"></div>
              <p className="text-[0.65rem] text-gray-500 font-bold uppercase tracking-[8px]">Curated Capsules</p>
