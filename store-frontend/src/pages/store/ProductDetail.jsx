@@ -832,7 +832,7 @@ const ProductDetail = () => {
                             <div className={`w-12 h-12 rounded-full border border-gray-100 transition-all duration-300 overflow-hidden shadow-sm`}>
                               <div className="w-full h-full bg-gray-100">
                                 {imgUrl ? (
-                                  <img src={imgUrl} className="w-full h-full object-cover" alt={color} loading="lazy" />
+                                  <img src={imgUrl} className="w-full h-full object-cover" alt={color} loading="eager" />
                                 ) : (
                                   <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-100" />
                                 )}
@@ -1061,7 +1061,7 @@ const ProductDetail = () => {
                               setIsFullscreenOpen(true);
                             }}
                           >
-                            <img src={img} className="w-full h-full object-contain" alt="" loading="lazy" />
+                            <img src={img} className="w-full h-full object-contain" alt="" loading="eager" />
                           </div>
                         ))}
                       </div>
@@ -1101,14 +1101,14 @@ const ProductDetail = () => {
                             src={p.thumbnailUrl || p.images?.[0]}
                             className={`w-full h-full object-contain transition-all duration-700 ${p.hoverThumbnailUrl || p.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : 'group-hover:scale-105'}`}
                             alt={p.name}
-                            loading="lazy"
+                            loading="eager"
                           />
                           {(p.hoverThumbnailUrl || p.images?.[1]) && (
                             <img
                               src={p.hoverThumbnailUrl || p.images?.[1]}
                               className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                               alt={`${p.name} hover`}
-                              loading="lazy"
+                              loading="eager"
                             />
                           )}
                         </div>
