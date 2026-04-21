@@ -3,9 +3,6 @@ import prisma from '../utils/prisma.js';
 export const submitMessage = async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
-    // Assuming we might want to store this in a ContactMessage model
-    // but for now, if the model isn't in schema, we'll return success.
-    // Wait, I should have added it to schema. Let me check.
     const newMessage = await prisma.contactMessage.create({
       data: { name, email, subject, message }
     });
@@ -21,6 +18,29 @@ export const getMessages = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
     res.json(messages);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteMessage = async (req, res) => {
+  try {
+    await prisma.contactMessage.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const toggleRead = async (req, res) => {
+  try {
+    const msg = await prisma.contactMessage.findUnique({ where: { id: req.params.id } });
+    if (!msg) return res.status(404).json({ message: 'Not found' });
+    const updated = await prisma.contactMessage.update({
+      where: { id: req.params.id },
+      data: { isRead: !msg.isRead }
+    });
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

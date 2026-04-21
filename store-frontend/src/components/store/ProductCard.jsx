@@ -99,19 +99,35 @@ const ProductCard = ({ product, isListView = false }) => {
                   .filter((color, index, arr) => 
                     arr.findIndex(c => c.toLowerCase() === color.toLowerCase()) === index
                   )
-                  .map(color => (
-                  <button
-                    key={color}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const variant = variants.find(v => v.title.toLowerCase().includes(`color: ${color.toLowerCase()}`));
-                      if (variant) setSelectedVariant(variant);
-                    }}
-                    className={`w-6 h-6 rounded-full border-2 p-0.5 transition-all ${selectedVariant?.title?.includes(`Color: ${color}`) ? 'border-black' : 'border-transparent'}`}
-                  >
-                    <div className="w-full h-full rounded-full border border-black/5" style={{ backgroundColor: color.toLowerCase() }} />
-                  </button>
-                ))}
+                  .map(color => {
+                    const lowerColor = color.toLowerCase();
+                    const representativeVariant = variants.find(v => {
+                      const match = (v.title || '').match(/color:\s*([^,]+)/i);
+                      return match && match[1].trim().toLowerCase() === lowerColor;
+                    });
+                    const imgUrl = representativeVariant?.thumbnailUrl
+                      || representativeVariant?.images?.[0]
+                      || thumbnailUrl;
+                    const isSelected = selectedVariant?.title?.toLowerCase().includes(lowerColor);
+
+                    return (
+                      <button
+                        key={color}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const variant = variants.find(v => v.title.toLowerCase().includes(`color: ${lowerColor}`));
+                          if (variant) setSelectedVariant(variant);
+                        }}
+                        className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all ${isSelected ? ' ring-1 ring-black ring-offset-1' : 'border-gray-200 hover:border-gray-400'}`}
+                      >
+                        {imgUrl ? (
+                          <img src={imgUrl} className="w-full h-full object-cover" alt={color} loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200" />
+                        )}
+                      </button>
+                    );
+                  })}
               </div>
             )}
           </div>

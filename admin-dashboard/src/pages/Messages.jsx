@@ -24,11 +24,19 @@ const Messages = () => {
   const deleteMessage = async (id) => {
     if (!window.confirm('Are you sure you want to delete this message?')) return;
     try {
-      // Assuming we have a delete endpoint
       await api.delete(`/contact/${id}`);
       setMessages(messages.filter(m => m.id !== id));
     } catch (error) {
       console.error('Error deleting message:', error);
+    }
+  };
+
+  const toggleRead = async (id) => {
+    try {
+      const res = await api.patch(`/contact/${id}/read`);
+      setMessages(messages.map(m => m.id === id ? { ...m, isRead: res.data.isRead } : m));
+    } catch (error) {
+      console.error('Error toggling read status:', error);
     }
   };
 
@@ -55,17 +63,25 @@ const Messages = () => {
             {messages.map((message) => (
               <div 
                 key={message.id}
-                className="group relative bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-2xl p-6 transition-all hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-1"
+                className={`group relative border border-gray-200 dark:border-white/5 rounded-2xl p-6 transition-all hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-1 ${
+                  message.isRead 
+                    ? 'bg-gray-100 dark:bg-[#0d0d0d]' 
+                    : 'bg-white dark:bg-[#111]'
+                }`}
               >
                 <div className="flex items-start justify-between gap-6">
                   <div className="flex gap-6">
-                    <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 shrink-0">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                      message.isRead 
+                        ? 'bg-gray-200 dark:bg-white/5 text-gray-400' 
+                        : 'bg-gray-50 dark:bg-white/5 text-gray-400'
+                    }`}>
                       <User size={20} />
                     </div>
                     <div className="space-y-4">
                       <div>
                         <div className="flex items-center gap-3">
-                          <h3 className="text-sm font-black dark:text-white uppercase tracking-tight">{message.name}</h3>
+                          <h3 className={`text-sm font-black uppercase tracking-tight ${message.isRead ? 'text-gray-400 dark:text-gray-500' : 'dark:text-white'}`}>{message.name}</h3>
                           <span className="w-1 h-1 rounded-full bg-gray-300"></span>
                           <span className="text-[0.65rem] font-bold text-gray-400 capitalize">{message.subject || 'General Inquiry'}</span>
                         </div>
@@ -81,12 +97,23 @@ const Messages = () => {
                         <div className="flex items-center gap-1.5">
                            <MessageSquare size={12} /> ID: {message.id.slice(0, 8)}
                         </div>
+                        {message.isRead && (
+                          <span className="text-emerald-500 font-black">• READ</span>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-2">
-                     <button className="p-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-emerald-500 transition-colors" title="Mark as Read">
+                     <button 
+                       onClick={() => toggleRead(message.id)}
+                       className={`p-2.5 rounded-xl transition-colors ${
+                         message.isRead 
+                           ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' 
+                           : 'hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-gray-300 hover:text-emerald-500'
+                       }`} 
+                       title={message.isRead ? 'Mark as Unread' : 'Mark as Read'}
+                     >
                         <CheckCircle2 size={18} />
                      </button>
                      <button 
