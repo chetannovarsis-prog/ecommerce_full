@@ -160,13 +160,13 @@ const CartPage = () => {
                   >
                     <img
                       src={item.selectedImage}
-                      className={`w-full h-full object-cover transition-all duration-700 ${item.hoverImage ? 'absolute inset-0 group-hover:opacity-0' : ''}`}
+                      className={`w-full h-full object-contain transition-all duration-700 ${item.hoverImage ? 'absolute inset-0 group-hover:opacity-0' : ''}`}
                       alt={item.name}
                     />
                     {item.hoverImage && (
                       <img
                         src={item.hoverImage}
-                        className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                        className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                         alt={`${item.name} hover`}
                       />
                     )}

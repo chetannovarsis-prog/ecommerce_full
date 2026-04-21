@@ -211,14 +211,14 @@ const Home = () => {
                     <div className="aspect-[3/4] overflow-hidden rounded-2xl bg-white relative">
                       <img
                         src={product.thumbnailUrl || product.images?.[0]}
-                        className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${product.hoverThumbnailUrl || product.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : ''}`}
+                        className={`w-full h-full object-contain transition-all duration-700 group-hover:scale-105 ${product.hoverThumbnailUrl || product.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : ''}`}
                         alt={product.name}
                         loading="lazy"
                       />
                       {(product.hoverThumbnailUrl || product.images?.[1]) && (
                         <img
                           src={product.hoverThumbnailUrl || product.images?.[1]}
-                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
+                          className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
                           alt={`${product.name} hover`}
                           loading="lazy"
                         />

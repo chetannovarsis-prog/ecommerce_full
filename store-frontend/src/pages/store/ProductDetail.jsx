@@ -613,7 +613,7 @@ const ProductDetail = () => {
                     onClick={() => setActiveImage(img)}
                     className={`aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${activeImage === img ? 'border-black opacity-100' : 'border-transparent opacity-50 hover:opacity-100'}`}
                   >
-                    <img src={img} className="w-full h-full object-cover" alt="" />
+                    <img src={img} className="w-full h-full object-contain" alt="" />
                   </button>
                 ))}
               </div>
@@ -1054,7 +1054,7 @@ const ProductDetail = () => {
                               setIsFullscreenOpen(true);
                             }}
                           >
-                            <img src={img} className="w-full h-full object-cover" alt="" loading="lazy" />
+                            <img src={img} className="w-full h-full object-contain" alt="" loading="lazy" />
                           </div>
                         ))}
                       </div>
@@ -1092,14 +1092,14 @@ const ProductDetail = () => {
                         <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative">
                           <img
                             src={p.thumbnailUrl || p.images?.[0]}
-                            className={`w-full h-full object-cover transition-all duration-700 ${p.hoverThumbnailUrl || p.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : 'group-hover:scale-105'}`}
+                            className={`w-full h-full object-contain transition-all duration-700 ${p.hoverThumbnailUrl || p.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : 'group-hover:scale-105'}`}
                             alt={p.name}
                             loading="lazy"
                           />
                           {(p.hoverThumbnailUrl || p.images?.[1]) && (
                             <img
                               src={p.hoverThumbnailUrl || p.images?.[1]}
-                              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+                              className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                               alt={`${p.name} hover`}
                               loading="lazy"
                             />
@@ -1204,7 +1204,7 @@ const ProductDetail = () => {
               <div className="flex items-start justify-between p-5 md:p-6 border-b border-gray-100 flex-shrink-0">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
-                    <img src={activeImage} className="w-full h-full object-cover" alt="" />
+                    <img src={activeImage} className="w-full h-full object-contain" alt="" />
                   </div>
                   <div>
                     <h2 className="font-black uppercase text-base tracking-tight leading-tight">{product.name}</h2>
