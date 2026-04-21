@@ -94,7 +94,7 @@ const ProductCard = ({ product, isListView = false }) => {
             </p>
 
             {colors.length > 0 && (
-              <div className="flex gap-2">
+              <div className="flex mb-6 gap-2">
                 {colors
                   .filter((color, index, arr) => 
                     arr.findIndex(c => c.toLowerCase() === color.toLowerCase()) === index
@@ -131,7 +131,7 @@ const ProductCard = ({ product, isListView = false }) => {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex mt-4 md:mt-1 items-center gap-6">
             <button
               onClick={(e) => { e.stopPropagation(); addToCart(product, selectedVariant); }}
               disabled={isOutOfStock}
@@ -141,7 +141,6 @@ const ProductCard = ({ product, isListView = false }) => {
               <span className="hidden md:inline">{isOutOfStock ? 'Out of Stock' : 'Add to Bag'}</span>
               {!isOutOfStock && (
                 <>
-                  <span className="md:hidden">+</span>
                   <ShoppingBag size={14} />
                 </>
               )}
