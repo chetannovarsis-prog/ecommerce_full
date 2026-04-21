@@ -410,7 +410,7 @@ const Checkout = () => {
                       <div key={idx} className="flex items-center justify-between gap-6">
                         <div className="flex items-center gap-4 relative">
                           <div className="w-16 h-20 bg-white border border-gray-100 rounded-md overflow-hidden flex-shrink-0">
-                            <img src={item.selectedImage} className="w-full h-full object-cover" alt={item.name} />
+                            <img src={item.selectedImage} className="w-full h-full object-contain" alt={item.name} />
                             {/* <span className="absolute -top-2 -right-2 w-5 h-5 bg-gray-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">{item.quantity}</span> */}
                           </div>
                           <p className="text-[0.75rem] font-black uppercase">{item.name}</p>

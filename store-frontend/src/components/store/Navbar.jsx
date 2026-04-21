@@ -216,7 +216,7 @@ const Navbar = () => {
                   >
                     <div className="w-10 h-10 bg-gray-50 rounded-md overflow-hidden flex-shrink-0 border border-gray-100">
                       {(product.thumbnailUrl || product.images?.[0]) && (
-                        <img src={product.thumbnailUrl || product.images[0]} className="w-full h-full object-cover" alt="" />
+                        <img src={product.thumbnailUrl || product.images[0]} className="w-full h-full object-contain" alt="" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">

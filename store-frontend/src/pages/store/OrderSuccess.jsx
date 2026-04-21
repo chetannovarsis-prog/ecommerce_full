@@ -137,7 +137,7 @@ const OrderSuccess = () => {
               {order?.items?.map((item, idx) => (
                 <div key={idx} className="flex gap-6 items-start py-2 group">
                    <div className="w-16 h-18 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 flex-shrink-0 group-hover:shadow-md transition-shadow">
-                      <img src={item.product?.thumbnailUrl} className="w-full h-full object-cover" alt={item.product?.name} />
+                      <img src={item.product?.thumbnailUrl} className="w-full h-full object-contain" alt={item.product?.name} />
                    </div>
                    <div className="flex-1 flex justify-between items-start">
                       <div className="space-y-1">

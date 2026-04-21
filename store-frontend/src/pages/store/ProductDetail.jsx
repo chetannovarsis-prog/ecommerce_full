@@ -225,6 +225,18 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id]);
 
+  // RESET mobile gallery scroll when variant or product changes
+  useEffect(() => {
+    const el = document.getElementById('mobile-gallery-inner');
+    if (el) {
+      el.scrollTo({ left: 0 });
+    }
+    // Also reset active image to the first one in the new list to keep dots synced
+    if (allImages.length > 0) {
+      setActiveImage(allImages[0]);
+    }
+  }, [selectedVariant?.id, product?.id, allImages.length]);
+
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     if (reviewImages.length + files.length > 5) {
@@ -538,8 +550,8 @@ const ProductDetail = () => {
                   id="mobile-gallery-inner"
                 >
                   {allImages.map((img, i) => (
-                    <div key={i} className="min-w-full h-full snap-center flex-shrink-0">
-                      <img src={img} className="w-full h-full object-contain" alt={`${product.name} ${i + 1}`} />
+                    <div key={i} className="min-w-full h-full snap-center snap-always flex-shrink-0">
+                      <img src={img} className="w-full h-full object-contain" alt={`${product.name} ${i + 1}`} loading="eager" />
                     </div>
                   ))}
                 </div>
