@@ -85,7 +85,7 @@ const ProductDetail = () => {
 
     const uniqueProductImages = Array.from(new Set(productImages));
     const finalImages = [...variantImages, ...uniqueProductImages];
-    
+
     // Filter out any duplicates or non-unique items one last time to be safe
     return Array.from(new Set(finalImages)).filter(isValidUrl);
   }, [product, selectedVariant]);
@@ -587,11 +587,10 @@ const ProductDetail = () => {
                           if (el) el.scrollTo({ left: i * el.clientWidth, behavior: 'smooth' });
                           setActiveImage(allImages[i]);
                         }}
-                        className={`rounded-full transition-all duration-300 ${
-                          activeImage === allImages[i]
+                        className={`rounded-full transition-all duration-300 ${activeImage === allImages[i]
                             ? 'w-5 h-1.5 bg-black'
                             : 'w-1.5 h-1.5 bg-black/25'
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
@@ -609,6 +608,7 @@ const ProductDetail = () => {
 
             {/* ── DESKTOP: thumbnails + large image ── */}
             <div className="hidden lg:grid grid-cols-12 gap-6">
+              {/* Thumbnail Strip */}
               <div
                 ref={thumbnailContainerRef}
                 className="col-span-2 flex flex-col gap-4 max-h-[700px] overflow-y-auto no-scrollbar"
@@ -618,13 +618,24 @@ const ProductDetail = () => {
                     key={i}
                     ref={el => thumbnailRefs.current[i] = el}
                     onClick={() => setActiveImage(img)}
-                    className={`aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${activeImage === img ? 'border-black opacity-100' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                    className={`flex-shrink-0 rounded-lg border-2 transition-all ${activeImage === img
+                      ? 'border-black opacity-100'
+                      : 'border-transparent opacity-50 hover:opacity-100'
+                      }`}
                   >
-                    <img src={img} className="w-full h-full object-contain" alt="" />
+                    <div className="aspect-[3/4] w-full rounded-lg overflow-hidden relative">
+                      <img
+                        src={img}
+                        className="absolute inset-0 w-full h-full object-contain"
+                        alt=""
+                        loading="lazy"
+                      />
+                    </div>
                   </button>
                 ))}
               </div>
 
+              {/* Main Image */}
               <div className="col-span-10">
                 <div className="aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden relative group">
                   <AnimatePresence mode="wait">
@@ -637,7 +648,7 @@ const ProductDetail = () => {
                       src={activeImage}
                       className="w-full h-full object-contain"
                       alt={product.name}
-                      loading="eager"
+                      loading="lazy"
                       fetchpriority="high"
                     />
                   </AnimatePresence>
@@ -832,7 +843,7 @@ const ProductDetail = () => {
                             <div className={`w-12 h-12 rounded-full border border-gray-100 transition-all duration-300 overflow-hidden shadow-sm`}>
                               <div className="w-full h-full bg-gray-100">
                                 {imgUrl ? (
-                                  <img src={imgUrl} className="w-full h-full object-cover" alt={color} loading="eager" />
+                                  <img src={imgUrl} className="w-full h-full object-cover" alt={color} loading="lazy" />
                                 ) : (
                                   <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-100" />
                                 )}
@@ -1061,7 +1072,7 @@ const ProductDetail = () => {
                               setIsFullscreenOpen(true);
                             }}
                           >
-                            <img src={img} className="w-full h-full object-contain" alt="" loading="eager" />
+                            <img src={img} className="w-full h-full object-contain" alt="" loading="lazy" />
                           </div>
                         ))}
                       </div>
@@ -1101,14 +1112,14 @@ const ProductDetail = () => {
                             src={p.thumbnailUrl || p.images?.[0]}
                             className={`w-full h-full object-contain transition-all duration-700 ${p.hoverThumbnailUrl || p.images?.[1] ? 'absolute inset-0 group-hover:opacity-0' : 'group-hover:scale-105'}`}
                             alt={p.name}
-                            loading="eager"
+                            loading="lazy"
                           />
                           {(p.hoverThumbnailUrl || p.images?.[1]) && (
                             <img
                               src={p.hoverThumbnailUrl || p.images?.[1]}
                               className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 transition-opacity duration-700"
                               alt={`${p.name} hover`}
-                              loading="eager"
+                              loading="lazy"
                             />
                           )}
                         </div>
@@ -1242,9 +1253,8 @@ const ProductDetail = () => {
                           howToMeasureRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }
                       }}
-                      className={`flex-1 py-3.5 text-xs font-black uppercase tracking-widest relative transition-colors ${
-                        isActive ? 'text-black' : 'text-gray-400 hover:text-gray-600'
-                      }`}
+                      className={`flex-1 py-3.5 text-xs font-black uppercase tracking-widest relative transition-colors ${isActive ? 'text-black' : 'text-gray-400 hover:text-gray-600'
+                        }`}
                     >
                       {tab}
                       {isActive && (
@@ -1277,10 +1287,10 @@ const ProductDetail = () => {
                       </thead>
                       <tbody>
                         {[
-                          { s: 'M',   b: '37–38', w: '30–32', h: '38–40', sh: '14.5', l: '40–46' },
-                          { s: 'L',   b: '39–40', w: '32–34', h: '40–42', sh: '15',   l: '40–46' },
-                          { s: 'XL',  b: '41–42', w: '34–36', h: '42–44', sh: '15.5', l: '40–46' },
-                          { s: '2XL', b: '43–44', w: '36–38', h: '44–46', sh: '16',   l: '40–46' },
+                          { s: 'M', b: '37–38', w: '30–32', h: '38–40', sh: '14.5', l: '40–46' },
+                          { s: 'L', b: '39–40', w: '32–34', h: '40–42', sh: '15', l: '40–46' },
+                          { s: 'XL', b: '41–42', w: '34–36', h: '42–44', sh: '15.5', l: '40–46' },
+                          { s: '2XL', b: '43–44', w: '36–38', h: '44–46', sh: '16', l: '40–46' },
                         ].map((row, idx) => {
                           const matchedVariant = findMatchingVariant(row.s, 'size');
                           const isSelected = selectedVariant?.title?.toLowerCase().includes(`size: ${row.s.toLowerCase()}`);
@@ -1294,19 +1304,17 @@ const ProductDetail = () => {
                                   setIsSizeGuideOpen(false);
                                 }
                               }}
-                              className={`group transition-colors cursor-pointer ${
-                                isSelected
+                              className={`group transition-colors cursor-pointer ${isSelected
                                   ? 'bg-orange-50'
                                   : isAvailable
-                                  ? 'hover:bg-gray-50'
-                                  : 'opacity-40 cursor-not-allowed'
-                              }`}
+                                    ? 'hover:bg-gray-50'
+                                    : 'opacity-40 cursor-not-allowed'
+                                }`}
                             >
                               <td className="px-4 py-3.5 border-t border-gray-100 border-r">
                                 <div className="flex items-center gap-2.5">
-                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                                    isSelected ? 'border-[#fc8403]' : 'border-gray-300 group-hover:border-gray-500'
-                                  }`}>
+                                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'border-[#fc8403]' : 'border-gray-300 group-hover:border-gray-500'
+                                    }`}>
                                     {isSelected && <div className="w-2 h-2 rounded-full bg-[#fc8403]" />}
                                   </div>
                                   <span className={`font-black text-sm ${isSelected ? 'text-[#fc8403]' : 'text-gray-900'}`}>{row.s}</span>
