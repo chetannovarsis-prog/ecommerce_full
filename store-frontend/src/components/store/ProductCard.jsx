@@ -10,6 +10,8 @@ const ProductCard = ({ product, isListView = false }) => {
   const { toggleWishlist, wishlist, addToCart } = useStore();
 
   const isFavorited = wishlist.some(p => p.id === id);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const prefetchedRef = React.useRef(false);
 
   // State for selected variant
   const [selectedVariant, setSelectedVariant] = useState(variants && variants.length > 0 ? variants[0] : null);
@@ -33,6 +35,14 @@ const ProductCard = ({ product, isListView = false }) => {
   useEffect(() => {
      isFirstRender.current = false;
   }, []);
+
+  // Prefetch product detail API on hover for snappier navigation
+  const handlePrefetch = () => {
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+    // Fire-and-forget: prime the browser and API cache
+    fetch(`/api/products/${product.handle || id}`, { priority: 'low' }).catch(() => {});
+  };
 
   const currentPrice = (selectedVariant?.price !== null && selectedVariant?.price !== undefined) ? selectedVariant.price : (price || 0);
   const hasDiscount = isDiscountable && discountPrice > 0;
@@ -121,7 +131,11 @@ const ProductCard = ({ product, isListView = false }) => {
   }
 
   return (
-    <div className="relative group cursor-pointer italic-none" onClick={() => navigate(`/products/${product.handle || id}`)}>
+    <div
+      className="relative group cursor-pointer italic-none"
+      onClick={() => navigate(`/products/${product.handle || id}`)}
+      onMouseEnter={handlePrefetch}
+    >
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
         {badge && (
           <div className="bg-black text-white px-3 py-1 text-[0.6rem] font-black uppercase tracking-widest shadow-xl">
@@ -145,19 +159,25 @@ const ProductCard = ({ product, isListView = false }) => {
         <Heart size={16} fill={isFavorited ? "currentColor" : "none"} />
       </button>
 
-      <div className="relative aspect-[3/4] overflow-hidden bg-gray-50 rounded-md ring-1 ring-black/5">
+      <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 rounded-md ring-1 ring-black/5">
+        {/* Skeleton shimmer while image loads */}
+        {!imgLoaded && (
+          <div className="absolute inset-0 z-30 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-[shimmer_1.4s_infinite] bg-[length:200%_100%]" />
+        )}
+
         <div className="w-full h-full relative">
           <motion.img
             initial={false}
-            animate={{ scale: 1, opacity: 1 }}
+            animate={{ scale: 1, opacity: imgLoaded ? 1 : 0 }}
             whileHover={{
               scale: 1.15,
               transition: { scale: { duration: 3, ease: "linear" }, opacity: { duration: 0 } }
             }}
             src={activeImage}
             alt={name}
-            className="w-full h-full object-cover absolute inset-0 z-10"
+            className="w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300"
             loading="lazy"
+            onLoad={() => setImgLoaded(true)}
           />
           {hoverThumbnailUrl && (
             <motion.img
@@ -173,8 +193,6 @@ const ProductCard = ({ product, isListView = false }) => {
               loading="lazy"
             />
           )}
-
-          {/* Decorative Corner Brackets (Images) */}
         </div>
 
         {/* Quick Add Button */}
@@ -194,35 +212,26 @@ const ProductCard = ({ product, isListView = false }) => {
 
       <div className="mt-6 space-y-4">
         <div className="flex justify-between items-start gap-4">
-          <h3 className="text-[0.65rem] font-bold uppercase tracking-tight text-gray-900 leading-tight limit-2-lines flex-1">{name}</h3>
-          <div className="flex flex-col items-end">
-            <span className="text-[0.7rem] font-black text-gray-900 tracking-tight">₹{currentPrice}</span>
-            {originalPrice && (
-              <span className="text-[0.6rem] text-gray-300 line-through font-bold">₹{originalPrice}</span>
-            )}
-          </div>
+          {imgLoaded ? (
+            <>
+              <h3 className="text-[0.65rem] font-bold uppercase tracking-tight text-gray-900 leading-tight line-clamp-2 flex-1">{name}</h3>
+              <div className="flex flex-col items-end">
+                <span className="text-[0.7rem] font-black text-gray-900 tracking-tight">₹{currentPrice}</span>
+                {originalPrice && (
+                  <span className="text-[0.6rem] text-gray-300 line-through font-bold">₹{originalPrice}</span>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex-1 space-y-1.5">
+                <div className="h-2.5 bg-gray-100 rounded animate-pulse w-4/5" />
+                <div className="h-2.5 bg-gray-100 rounded animate-pulse w-3/5" />
+              </div>
+              <div className="h-3 bg-gray-100 rounded animate-pulse w-10" />
+            </>
+          )}
         </div>
-
-        {/* {colors.length > 0 && (
-          <div className="flex gap-1.5 pt-1">
-            {colors.map(color => {
-              const isActive = selectedVariant?.title?.includes(`Color: ${color}`);
-              return (
-                <button
-                  key={color}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const variant = variants.find(v => v.title.includes(`Color: ${color}`));
-                    if (variant) setSelectedVariant(variant);
-                  }}
-                  className={`w-3.5 h-3.5 rounded-full border p-0.5 transition-all ${isActive ? 'border-black' : 'border-transparent'}`}
-                >
-                  <div className="w-full h-full rounded-full" style={{ backgroundColor: color.toLowerCase() }} title={color} />
-                </button>
-              );
-            })}
-          </div>
-        )} */}
       </div>
     </div>
   );

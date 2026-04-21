@@ -24,6 +24,17 @@ const formatCollectionTitle = (value = '') =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
+// Module-level cache — survives re-renders, clears on page refresh
+const _productsCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const getCached = (key) => {
+  const entry = _productsCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL) { _productsCache.delete(key); return null; }
+  return entry.data;
+};
+const setCache = (key, data) => _productsCache.set(key, { data, ts: Date.now() });
+
 const Products = () => {
   const { id: collectionId } = useParams();
   const [products, setProducts] = useState([]);
@@ -47,10 +58,14 @@ const Products = () => {
   }, []);
 
   useEffect(() => {
+    const cacheKey = collectionId || 'all';
+    const cached = getCached(cacheKey);
+
     const fetchData = async () => {
-      setLoading(true);
+      // Show cached data instantly if available, still refresh in background
+      if (!cached) setLoading(true);
+
       try {
-        // Fetch products and optionally collection info
         const [prodRes, collRes] = await Promise.allSettled([
           api.get('/products', {
             params: {
@@ -91,19 +106,40 @@ const Products = () => {
           collectionData = { id: collectionId, name: formatCollectionTitle(collectionId) };
         }
 
-        setCollection(collectionId && collectionId !== 'all' ? collectionData : null);
-        setProducts(filtered);
-        setFilteredProducts(filtered);
+        const result = {
+          products: filtered,
+          collection: collectionId && collectionId !== 'all' ? collectionData : null,
+        };
+
+        // Save to cache
+        setCache(cacheKey, result);
+
+        setCollection(result.collection);
+        setProducts(result.products);
+        setFilteredProducts(result.products);
       } catch (error) {
         console.error('Error fetching products/collection:', error);
-        setProducts([]);
-        setFilteredProducts([]);
-        setCollection(null);
+        if (!cached) {
+          setProducts([]);
+          setFilteredProducts([]);
+          setCollection(null);
+        }
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+
+    // Serve cache immediately
+    if (cached) {
+      setCollection(cached.collection);
+      setProducts(cached.products);
+      setFilteredProducts(cached.products);
+      setLoading(false);
+      // Still refresh in background (silent)
+      fetchData();
+    } else {
+      fetchData();
+    }
   }, [collectionId]);
 
   const handleFilterChange = ({ categories, priceRange, availability }) => {
