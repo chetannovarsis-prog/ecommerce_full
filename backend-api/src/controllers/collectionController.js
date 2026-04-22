@@ -143,7 +143,8 @@ export const getCollectionById = async (req, res) => {
             id: true,
             name: true,
             subtitle: true,
-            thumbnailUrl: true
+            thumbnailUrl: true,
+            price: true
           }
         }
       }
@@ -166,7 +167,8 @@ export const getCollectionById = async (req, res) => {
             id: true,
             name: true,
             subtitle: true,
-            thumbnailUrl: true
+            thumbnailUrl: true,
+            price: true
           }
         }
       }
@@ -198,7 +200,8 @@ export const getCollectionById = async (req, res) => {
             id: true,
             name: true,
             subtitle: true,
-            thumbnailUrl: true
+            thumbnailUrl: true,
+            price: true
           }
         }
       }

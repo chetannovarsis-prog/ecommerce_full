@@ -228,6 +228,11 @@ const Checkout = () => {
         return;
       }
 
+      const restoreScroll = () => {
+        document.body.style.overflow = 'auto';
+        document.documentElement.style.overflow = 'auto';
+      };
+
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_RakpbWkq6HmsMg',
         amount: order.amount,
@@ -243,16 +248,24 @@ const Checkout = () => {
               razorpay_signature: response.razorpay_signature,
             });
             clearCart();
+            restoreScroll();
             navigate(`/order-success/${order.orderId}`);
           } catch (error) {
             setIsProcessing(false);
+            restoreScroll();
             alert('Payment verification failed.');
           }
         },
         modal: {
           ondismiss: () => {
             setLoading(false);
-            document.body.style.overflow = 'auto';
+            restoreScroll();
+          },
+        },
+        error: {
+          onerror: () => {
+            setLoading(false);
+            restoreScroll();
           },
         },
         prefill: {
