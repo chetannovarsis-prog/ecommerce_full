@@ -206,6 +206,12 @@ const Checkout = () => {
             alert('Payment verification failed.');
           }
         },
+        modal: {
+          ondismiss: function() {
+            setLoading(false);
+            document.body.style.overflow = 'auto';
+          }
+        },
         prefill: {
           name: `${values.firstName} ${values.lastName}`,
           email: values.email,
@@ -274,7 +280,7 @@ const Checkout = () => {
             <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2">
               <div className="p-10 lg:p-20 lg:border-r border-gray-100 space-y-16">
                 <header className="flex flex-col gap-6">
-                  <h1 className="text-2xl font-black tracking-tight">KnittingKnot</h1>
+                  <h1 className="text-2xl font-black tracking-tight">Ghar of Ethnics</h1>
                   <nav className="flex items-center gap-2 text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest">
                     <span>Cart</span> <ChevronLeft size={10} className="rotate-180" />
                     <span className="text-black">Information</span> <ChevronLeft size={10} className="rotate-180" />

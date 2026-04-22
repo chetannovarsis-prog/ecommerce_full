@@ -16,7 +16,7 @@ const Wishlist = () => {
           <div className="p-4 bg-red-50 rounded-full">
             <Heart size={32} className="text-red-500" fill="currentColor" />
           </div>
-          <h1 className="text-4xl font-black uppercase tracking-tight">Your Wishlist</h1>
+          <h1 className="md:text-4xl text-2xl font-black uppercase tracking-tight">Your Wishlist</h1>
           <p className="text-gray-400 text-[0.7rem] font-bold uppercase tracking-[2px]">
             {wishlist.length} items saved for later
           </p>

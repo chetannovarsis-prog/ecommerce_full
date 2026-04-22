@@ -71,7 +71,7 @@ const CartPage = () => {
           >
             <ChevronLeft size={16} /> Continue Shopping
           </button>
-          <h1 className="text-5xl font-black uppercase tracking-tighter italic">Shopping Bag</h1>
+          <h1 className="md:text-5xl text-3xl font-black uppercase tracking-tighter italic">Shopping Bag</h1>
         </header>
 
         {!customer ? (
@@ -148,12 +148,17 @@ const CartPage = () => {
                 )}
               </div>
 
-              {displayCart.map((item, idx) => (
-                <motion.div
-                  layout
-                  key={`${item.id}-${item.variantId || idx}`}
-                  className="flex flex-col sm:flex-row gap-8 sm:gap-12 group pb-12 border-b border-gray-100 last:border-0"
-                >
+              {displayCart.map((item, idx) => {
+                const stockCount = item.variantId && item.variants
+                  ? Number(item.variants.find(v => String(v.id) === String(item.variantId))?.stock ?? item.variants.find(v => String(v.id) === String(item.variantId))?.quantity ?? 0)
+                  : Number(item.stock ?? item.quantity ?? 0);
+
+                return (
+                  <motion.div
+                    layout
+                    key={`${item.id}-${item.variantId || idx}`}
+                    className="flex flex-col sm:flex-row gap-8 sm:gap-12 group pb-12 border-b border-gray-100 last:border-0"
+                  >
                   <Link
                     to={`/products/${item.handle || item.id}`}
                     className="w-full sm:w-48 aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden flex-shrink-0 relative shadow-md block"
@@ -218,12 +223,21 @@ const CartPage = () => {
                       <div className="flex items-center gap-16">
                         <div className="space-y-3">
                           <p className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest">Quantity</p>
-                          <div className="flex items-center gap-8 bg-gray-50 px-6 py-4 rounded-xl border border-gray-100 shadow-sm">
-                            <button onClick={() => updateCartQuantity(item.id, item.variantId, item.quantity - 1)} className="text-gray-400 hover:text-black transition-colors">
+                          <div className="flex items-center gap-8 bg-gray-50 px-6 py-4 rounded-xl border border-gray-100 shadow-sm relative">
+                            <button onClick={() => updateCartQuantity(item.id, item.variantId, item.quantity - 1)} className="text-gray-400 hover:text-black transition-colors disabled:opacity-40" disabled={item.quantity <= 1}>
                               <Minus size={14} strokeWidth={3} />
                             </button>
                             <span className="text-md font-black w-6 text-center">{item.quantity}</span>
-                            <button onClick={() => updateCartQuantity(item.id, item.variantId, item.quantity + 1)} className="text-gray-400 hover:text-black transition-colors">
+                            <button 
+                              onClick={() => {
+                                if (item.quantity >= stockCount) {
+                                  showToast(`Only ${stockCount} item(s) left in stock`, 'error');
+                                } else {
+                                  updateCartQuantity(item.id, item.variantId, item.quantity + 1);
+                                }
+                              }} 
+                              className={`text-gray-400 hover:text-black transition-colors ${item.quantity >= stockCount ? 'opacity-40' : ''}`}
+                            >
                               <Plus size={14} strokeWidth={3} />
                             </button>
                           </div>
@@ -241,7 +255,8 @@ const CartPage = () => {
                     </div>
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="lg:col-span-1">

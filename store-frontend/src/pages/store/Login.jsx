@@ -152,7 +152,7 @@ const Login = () => {
         className="w-full max-w-md space-y-10"
       >
         <div className="text-center space-y-2">
-          <h1 className="text-5xl font-black uppercase tracking-tighter">Sign In</h1>
+          <h1 className="md:text-5xl text-3xl font-black uppercase tracking-tighter">Sign In</h1>
           <p className="text-[0.65rem] text-gray-400 font-black uppercase tracking-[3px]">Welcome Back</p>
         </div>
 
@@ -322,10 +322,10 @@ const Login = () => {
           </form>
         )}
 
-        <div className="relative py-4">
+        {/* <div className="relative py-4">
           <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
           <div className="relative flex justify-center text-[0.6rem] uppercase tracking-widest font-black"><span className="bg-white px-4 text-gray-300">or continue with</span></div>
-        </div>
+        </div> */}
 
         {/* <div className="flex justify-center">
           <GoogleLogin

@@ -38,7 +38,7 @@ const getVariantColor = (variant) => {
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, toggleWishlist, wishlist } = useStore();
+  const { addToCart, toggleWishlist, wishlist, showToast } = useStore();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -358,7 +358,7 @@ const ProductDetail = () => {
       try {
         await navigator.share({
           title: product.name,
-          text: `Check out this ${product.name} on KnittingKnot`,
+          text: `Check out this ${product.name} on Ghar of Ethnics`,
           url: window.location.href,
         });
       } catch (error) {
@@ -623,7 +623,7 @@ const ProductDetail = () => {
               {/* Thumbnail Strip */}
               <div
                 ref={thumbnailContainerRef}
-                className="col-span-2 flex flex-col gap-4 max-h-[700px] overflow-y-auto no-scrollbar"
+                className="col-span-2 flex flex-col gap-4 max-h-[700px] overflow-y-auto pr-1"
               >
                 {allImages.map((img, i) => (
                   <button
@@ -713,7 +713,7 @@ const ProductDetail = () => {
           <div className="lg:col-span-5 space-y-8">
             <div className="space-y-4">
               <div className="flex justify-between items-start gap-4">
-                <h1 className="text-4xl font-black uppercase tracking-tight leading-[1.1] flex-1">{product.name}</h1>
+                <h1 className=" text-xl sm:text-2xl md:text-4xl font-black uppercase tracking-tight leading-[1.1] flex-1">{product.name}</h1>
                 <div className="flex gap-3">
                   <button
                     onClick={() => toggleWishlist(product)}
@@ -915,17 +915,39 @@ const ProductDetail = () => {
             {/* Qty & Add to Cart */}
             <div className="pt-8 space-y-4">
               <div className="flex gap-4">
-                <div className="flex items-center bg-white border border-black/10 rounded-lg overflow-hidden">
-                  <button onClick={() => quantity > 1 && setQuantity(prev => prev - 1)} className="p-4 hover:bg-gray-50 disabled:opacity-40" disabled={quantity <= 1}><Minus size={16} /></button>
-                  <span className="w-12 text-center font-black">{quantity}</span>
-                  <button onClick={() => !isOutOfStock && quantity < stockCount && setQuantity(prev => prev + 1)} className="p-4 hover:bg-gray-50 disabled:opacity-40" disabled={isOutOfStock || quantity >= stockCount}><Plus size={16} /></button>
+                <div className="relative">
+                  <div className="flex items-center bg-white border border-black/10 rounded-lg overflow-hidden h-full">
+                    <button onClick={() => quantity > 1 && setQuantity(prev => prev - 1)} className="p-4 hover:bg-gray-50 disabled:opacity-40" disabled={quantity <= 1}><Minus size={16} /></button>
+                    <span className="w-12 text-center font-black">{quantity}</span>
+                    <button 
+                      onClick={() => {
+                        if (isOutOfStock) return;
+                        if (quantity >= stockCount) {
+                          showToast(`Only ${stockCount} item(s) left in stock`, 'error');
+                        } else {
+                          setQuantity(prev => prev + 1);
+                        }
+                      }} 
+                      className={`p-4 hover:bg-gray-50 ${isOutOfStock || quantity >= stockCount ? 'opacity-40' : ''}`} 
+                      disabled={isOutOfStock}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
                 </div>
                 <button
                   disabled={isOutOfStock}
                   onClick={() => addToCart(product, selectedVariant, quantity)}
-                  className={`flex-1 py-5 rounded-lg text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#1a1a1a] text-white hover:bg-black'}`}
+                  className={`flex-1 flex justify-center items-center py-5 rounded-lg text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#1a1a1a] text-white hover:bg-black'}`}
                 >
-                  {isOutOfStock ? 'OUT OF STOCK' : 'ADD TO CART'}
+                  {isOutOfStock ? (
+                    <span className="text-center text-xs md:text-sm">OUT OF STOCK</span>
+                  ) : (
+                    <>
+                      <span className="hidden md:inline">ADD TO CART</span>
+                      <ShoppingBag size={22} className="inline md:hidden" />
+                    </>
+                  )}
                 </button>
               </div>
               <button

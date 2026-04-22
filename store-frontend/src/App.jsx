@@ -66,7 +66,7 @@ function App() {
     <GoogleOAuthProvider clientId={googleClientId}>
       <Router>
         <ScrollToTop />
-        <div className="App selection:bg-black selection:text-white relative min-h-screen">
+        <div className="App selection:bg-black selection:text-white relative min-h-screen overflow-x-hidden w-full max-w-[100vw]">
           <Navbar />
           <MobileNavbar />
           <Toast />

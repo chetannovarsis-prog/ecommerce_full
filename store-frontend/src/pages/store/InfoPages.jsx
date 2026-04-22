@@ -2,7 +2,7 @@ import React from 'react';
 
 const PageLayout = ({ title, children }) => (
   <div className="min-h-screen text-black px-10 py-32 max-w-[80%] mx-auto">
-    <h1 className="text-4xl font-semibold mb-16 border-b-4 border-black pb-4 inline-block">{title}</h1>
+    <h1 className="md:text-4xl text-2xl font-semibold mb-16 border-b-4 border-black pb-4 inline-block">{title}</h1>
     <div className="prose prose-lg max-w-none space-y-12">
       {children}
     </div>

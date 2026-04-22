@@ -62,7 +62,7 @@ export const useStore = create(
             ],
           });
         }
-        get().showToast(`${product.name} added to cart`);
+        get().showToast('Product added to cart');
       },
 
       removeFromCart: (productId, variantId = null) => {

@@ -95,7 +95,7 @@ const Testimonials = () => {
     <section className="py-32 font-['Albert_Sans'] bg-[#fffaf5] overflow-hidden">
       <div className="container mx-auto px-4 md:px-10">
         <div className="text-center mb-20">
-          <h2 className="text-4xl font-black uppercase tracking-tight text-[#1a2d5a] mb-4">Customer Testimonials</h2>
+          <h2 className="md:text-4xl text-2xl font-black uppercase tracking-tight text-[#1a2d5a] mb-4">Customer Testimonials</h2>
           <div className="flex items-center justify-center gap-4">
              <div className="h-px w-12 bg-orange-200" />
              <p className="text-[0.65rem] font-black text-orange-500 uppercase tracking-[4px]">Verified Feedback</p>

@@ -108,7 +108,7 @@ const Footer = () => {
                 href="https://www.threads.com/@gharofethnics?igshid=NTc4MTIwNjQ2YQ=="
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full group/threads flex items-center justify-center border transition-all hover:scale-110"
+                className="w-9 h-9 hidden sm:flex rounded-full group/threads flex items-center justify-center border transition-all hover:scale-110"
                 style={{ borderColor: '#e87825', color: '#e87825' }}
               >
                 <TbBrandThreads size={16} className='group-hover/threads:rotate-[360deg] transition-all duration-500 '/>

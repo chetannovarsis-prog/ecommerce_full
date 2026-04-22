@@ -86,7 +86,7 @@ const ForgotPassword = () => {
         className="w-full max-w-md space-y-10"
       >
         <div className="text-center space-y-2">
-          <h1 className="text-5xl font-black uppercase tracking-tighter">Reset</h1>
+          <h1 className="md:text-5xl text-3xl font-black uppercase tracking-tighter">Reset</h1>
           <p className="text-[0.65rem] text-gray-400 font-black uppercase tracking-[3px]">Verify your identity</p>
         </div>
 

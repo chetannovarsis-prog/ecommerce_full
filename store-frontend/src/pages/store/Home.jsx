@@ -112,7 +112,7 @@ const Home = () => {
 
         <div className="container mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-black uppercase tracking-tight" style={{ color: '#1a2d5a' }}>Shop By Collections</h2>
+            <h2 className="md:text-4xl text-2xl font-black uppercase tracking-tight" style={{ color: '#1a2d5a' }}>Shop By Collections</h2>
             <div className="flex items-center justify-center gap-4 mt-6">
               <div className="h-px w-16" style={{ background: '#e8782540' }} />
               <LotusMotif size={20} color="#e87825" />
@@ -185,7 +185,7 @@ const Home = () => {
                 {activeTab === 'new-arrivals' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-orange-400" />}
               </button>
             </div>
-            <h2 className="text-4xl font-black uppercase tracking-tighter mb-4 italic">
+            <h2 className="md:text-4xl text-2xl font-black uppercase tracking-tighter mb-4 italic">
               {activeTab === 'best-sellers' ? 'Popular Picks' : 'Latest Drops'}
             </h2>
             <p className="text-xs font-black text-gray-400 uppercase tracking-widest">

@@ -101,20 +101,7 @@ const Contact = () => {
                   <p className=" ml-2 font-black leading-relaxed uppercase">Mon - Sat: 10:00 AM - 08:30 PM<br />Sun: 11:00 AM - 06:00 PM</p>
                 </div>
               </div>
-            </div>
-
-            {/* <div className="relative w-full bg-gray-50 rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white ring-1 ring-gray-100">
-              <img 
-                src="images/knitting_knot.png" 
-                className="w-full h-full object-cover" 
-                alt="Indore Store" 
-              />
-              <div className="absolute inset-0 bg-black/10"></div>
-              <div className="absolute bottom-6 left-6 right-6 p-6 bg-white/90 backdrop-blur-md rounded-2xl">
-                 <p className="text-[0.65rem] font-black uppercase tracking-widest leading-none mb-2">Indore Flagship Store</p>
-                 <p className="text-gray-600 ">Come visit our studio for a local touch</p>
-              </div>
-            </div> */}
+            </div>            
           </div>
 
           {/* Form Side */}
