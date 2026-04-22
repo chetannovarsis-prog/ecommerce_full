@@ -228,13 +228,43 @@ const Checkout = () => {
         return;
       }
 
+      // Validate order data before proceeding
+      if (!order?.id || !order?.amount || !order?.currency) {
+        console.error('Invalid order data:', order);
+        alert('Order creation failed. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Order data:', { id: order.id, amount: order.amount, currency: order.currency });
+
       const restoreScroll = () => {
-        document.body.style.overflow = 'auto';
-        document.documentElement.style.overflow = 'auto';
-      };
+  // Remove all possible scroll locks Razorpay adds
+  document.body.style.overflow = '';
+  document.body.style.overflowY = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
+  document.documentElement.style.overflow = '';
+  document.documentElement.style.overflowY = '';
+
+  // Razorpay sometimes adds a class to body
+  document.body.classList.remove('razorpay-container');
+
+  // Remove any leftover Razorpay iframe/backdrop that might block scroll
+  document.querySelectorAll('.razorpay-container, .razorpay-backdrop').forEach(el => el.remove());
+};
+
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        console.warn('VITE_RAZORPAY_KEY_ID not set in environment variables. Please configure it.');
+        alert('Payment configuration error. Please contact support.');
+        setLoading(false);
+        return;
+      }
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_RakpbWkq6HmsMg',
+        key: razorpayKey,
         amount: order.amount,
         currency: order.currency,
         name: 'Ghar of Ethnics',
