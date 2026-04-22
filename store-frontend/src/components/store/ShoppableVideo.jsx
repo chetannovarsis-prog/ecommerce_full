@@ -27,6 +27,7 @@ const ShoppableVideo = () => {
   const [selectedSize, setSelectedSize] = useState('S');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const videoRefs = useRef([]);
   const sectionRef = useRef(null);
@@ -406,17 +407,22 @@ const ShoppableVideo = () => {
                     
                     <div className="flex gap-4">
                       <button 
-                        onClick={() => addToCart(
-                          selectedVideo.product,
-                          activeVariant || {
-                            id: selectedVideo.product.id,
-                            title: `${selectedColor} / ${selectedSize}`,
-                            price: selectedVideo.product.price,
-                          }
-                        )}
-                        className="flex-1 bg-black text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[0.75rem] shadow-2xl shadow-black/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-3 active:scale-95"
+                        onClick={() => {
+                          setIsAddingToCart(true);
+                          addToCart(
+                            selectedVideo.product,
+                            activeVariant || {
+                              id: selectedVideo.product.id,
+                              title: `${selectedColor} / ${selectedSize}`,
+                              price: selectedVideo.product.price,
+                            }
+                          );
+                          setTimeout(() => setIsAddingToCart(false), 1000);
+                        }}
+                        disabled={isAddingToCart}
+                        className={`flex-1 bg-black text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[0.75rem] shadow-2xl shadow-black/20 transition-all flex items-center justify-center gap-3 active:scale-95 ${isAddingToCart ? 'opacity-50 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
                       >
-                        Add to Bag <ShoppingBag size={18} />
+                        {isAddingToCart ? 'Adding...' : 'Add to Bag'} {!isAddingToCart && <ShoppingBag size={18} />}
                       </button>
                       <button className="w-16 h-16 border-2 border-gray-100 rounded-2xl flex items-center justify-center hover:bg-gray-50 transition-all text-gray-400">
                          <Info size={24} />

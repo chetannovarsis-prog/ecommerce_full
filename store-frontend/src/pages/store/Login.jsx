@@ -157,7 +157,7 @@ const Login = () => {
         </div>
 
         <div className="flex justify-center gap-3">
-          <button
+          {/* <button
             type="button"
             onClick={() => handleModeChange('email')}
             className={`px-4 py-2 rounded-2xl text-[0.7rem] font-black uppercase tracking-[3px] transition-all border ${
@@ -165,8 +165,8 @@ const Login = () => {
             }`}
           >
             Email
-          </button>
-          <button
+          </button> */}
+          {/* <button
             type="button"
             onClick={() => handleModeChange('mobile')}
             className={`px-4 py-2 rounded-2xl text-[0.7rem] font-black uppercase tracking-[3px] transition-all border ${
@@ -174,7 +174,7 @@ const Login = () => {
             }`}
           >
             Mobile
-          </button>
+          </button> */}
         </div>
 
         {error && (

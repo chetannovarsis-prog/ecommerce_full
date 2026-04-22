@@ -64,6 +64,7 @@ const ProductDetail = () => {
   const [loadRelated, setLoadRelated] = useState(false);
   const [reviewImages, setReviewImages] = useState([]);
   const [reviewPreviews, setReviewPreviews] = useState([]);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const relatedSectionRef = useRef(null);
 
   const thumbnailRefs = useRef([]);
@@ -936,12 +937,18 @@ const ProductDetail = () => {
                   </div>
                 </div>
                 <button
-                  disabled={isOutOfStock}
-                  onClick={() => addToCart(product, selectedVariant, quantity)}
-                  className={`flex-1 flex justify-center items-center py-5 rounded-lg text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#1a1a1a] text-white hover:bg-black'}`}
+                  disabled={isOutOfStock || isAddingToCart}
+                  onClick={() => {
+                    setIsAddingToCart(true);
+                    addToCart(product, selectedVariant, quantity);
+                    setTimeout(() => setIsAddingToCart(false), 1000);
+                  }}
+                  className={`flex-1 flex justify-center items-center py-5 rounded-lg text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] ${isOutOfStock || isAddingToCart ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-[#1a1a1a] text-white hover:bg-black'}`}
                 >
                   {isOutOfStock ? (
                     <span className="text-center text-xs md:text-sm">OUT OF STOCK</span>
+                  ) : isAddingToCart ? (
+                    <span className="text-center text-xs md:text-sm">ADDING...</span>
                   ) : (
                     <>
                       <span className="hidden md:inline">ADD TO CART</span>
@@ -951,13 +958,16 @@ const ProductDetail = () => {
                 </button>
               </div>
               <button
-                disabled={isOutOfStock}
+                disabled={isOutOfStock || isAddingToCart}
                 onClick={() => {
+                  setIsAddingToCart(true);
                   addToCart(product, selectedVariant, quantity);
-                  if (isOutOfStock) return;
-                  navigate('/checkout');
+                  if (!isOutOfStock) {
+                    setTimeout(() => navigate('/checkout'), 500);
+                  }
+                  setTimeout(() => setIsAddingToCart(false), 1000);
                 }}
-                className={`w-full py-5 rounded-lg text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isOutOfStock ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#dab352] text-white hover:bg-[#c9a241]'}`}
+                className={`w-full py-5 rounded-lg text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isOutOfStock || isAddingToCart ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#dab352] text-white hover:bg-[#c9a241]'}`}
               >
                 ORDER NOW <RightIcon size={18} />
               </button>

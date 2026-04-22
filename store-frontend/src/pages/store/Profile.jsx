@@ -323,7 +323,7 @@ const Profile = () => {
                 placeholder="Email address"
               />
             </div>
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label className="text-[0.65rem] font-black uppercase tracking-widest text-gray-500">Mobile Number</label>
               <input
                 name="mobile"
@@ -335,7 +335,7 @@ const Profile = () => {
                 className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100"
                 placeholder="10-digit mobile number"
               />
-            </div>
+            </div> */}
           </div>
 
           {editingProfile && (

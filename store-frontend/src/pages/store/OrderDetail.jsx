@@ -155,7 +155,7 @@ const OrderDetail = () => {
             <h2 className="text-sm font-black uppercase tracking-tight">Delivery Status</h2>
             <div className="flex items-center gap-2 text-[0.65rem] font-bold text-emerald-600">
               <Clock size={12} />
-              <span>Est. Delivery: {estimatedDelivery}</span>
+              <span></span>
             </div>
           </div>
 

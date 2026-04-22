@@ -16,6 +16,7 @@ const ProductCard = ({ product, isListView = false }) => {
   // State for selected variant
   const [selectedVariant, setSelectedVariant] = useState(variants && variants.length > 0 ? variants[0] : null);
   const [activeImage, setActiveImage] = useState(thumbnailUrl || (images && images.length > 0 ? images[0] : 'https://via.placeholder.com/400x500?text=No+Image'));
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const isFirstRender = React.useRef(true);
 
   // Sync activeImage whenever curated fields change (e.g. from Admin update)
@@ -133,13 +134,18 @@ const ProductCard = ({ product, isListView = false }) => {
           </div>
           <div className="flex mt-4 md:mt-1 items-center gap-6">
             <button
-              onClick={(e) => { e.stopPropagation(); addToCart(product, selectedVariant); }}
-              disabled={isOutOfStock}
-              className={`px-4 md:px-8 py-3.5 text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm transition-all flex items-center justify-center gap-2 active:scale-95 ${isOutOfStock ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:bg-zinc-800 md:hover:bg-zinc-800'}`}
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setIsAddingToCart(true);
+                addToCart(product, selectedVariant);
+                setTimeout(() => setIsAddingToCart(false), 1000);
+              }}
+              disabled={isOutOfStock || isAddingToCart}
+              className={`px-4 md:px-8 py-3.5 text-[0.65rem] font-black uppercase tracking-[3px] rounded-sm transition-all flex items-center justify-center gap-2 active:scale-95 ${isOutOfStock || isAddingToCart ? 'bg-gray-300 text-white cursor-not-allowed' : 'bg-black text-white hover:bg-zinc-800 md:hover:bg-zinc-800'}`}
               title={isOutOfStock ? 'Out of Stock' : 'Add to Bag'}
             >
-              <span className="hidden md:inline">{isOutOfStock ? 'Out of Stock' : 'Add to Bag'}</span>
-              {!isOutOfStock && (
+              <span className="hidden md:inline">{isOutOfStock ? 'Out of Stock' : isAddingToCart ? 'Adding...' : 'Add to Bag'}</span>
+              {!isOutOfStock && !isAddingToCart && (
                 <>
                   <ShoppingBag size={14} />
                 </>
@@ -238,12 +244,14 @@ const ProductCard = ({ product, isListView = false }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              setIsAddingToCart(true);
               addToCart(product, selectedVariant);
+              setTimeout(() => setIsAddingToCart(false), 1000);
             }}
-            disabled={isOutOfStock}
-            className={`w-full backdrop-blur-md py-3 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] transition-all flex items-center justify-center gap-2 shadow-2xl ${isOutOfStock ? 'bg-white/90 text-gray-400 cursor-not-allowed' : 'bg-white/90 text-black hover:bg-black hover:text-white'}`}
+            disabled={isOutOfStock || isAddingToCart}
+            className={`w-full backdrop-blur-md py-3 rounded-sm text-[0.65rem] font-black uppercase tracking-[2px] transition-all flex items-center justify-center gap-2 shadow-2xl ${isOutOfStock || isAddingToCart ? 'bg-white/90 text-gray-400 cursor-not-allowed' : 'bg-white/90 text-black hover:bg-black hover:text-white'}`}
           >
-            {isOutOfStock ? 'Out of Stock' : 'Add to Bag'} <ShoppingBag size={14} />
+            {isOutOfStock ? 'Out of Stock' : isAddingToCart ? 'Adding...' : 'Add to Bag'} <ShoppingBag size={14} />
           </button>
         </div>
 
@@ -252,10 +260,12 @@ const ProductCard = ({ product, isListView = false }) => {
           <button
             onClick={(e) => {
               e.stopPropagation();
+              setIsAddingToCart(true);
               addToCart(product, selectedVariant);
+              setTimeout(() => setIsAddingToCart(false), 1000);
             }}
-            disabled={isOutOfStock}
-            className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md shadow-lg active:scale-95 transition-all ${isOutOfStock ? 'bg-white/80 text-gray-400' : 'bg-white/80 text-black'}`}
+            disabled={isOutOfStock || isAddingToCart}
+            className={`w-9 h-9 flex items-center justify-center rounded-full backdrop-blur-md shadow-lg active:scale-95 transition-all ${isOutOfStock || isAddingToCart ? 'bg-white/80 text-gray-400' : 'bg-white/80 text-black'}`}
           >
             <ShoppingBag size={14} />
           </button>
