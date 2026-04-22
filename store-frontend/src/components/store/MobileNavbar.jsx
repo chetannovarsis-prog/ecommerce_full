@@ -50,7 +50,7 @@ const MobileNavbar = () => {
                 </span>
               )}
             </div>
-            <span className="text-[0.6rem] font-black uppercase tracking-widest">List</span>
+            <span className="text-[0.6rem] font-black uppercase tracking-widest">Wishlist</span>
           </>
         )}
       </NavLink>

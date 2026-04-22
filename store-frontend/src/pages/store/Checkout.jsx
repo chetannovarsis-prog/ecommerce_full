@@ -2,16 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import axios from 'axios';
 import api from '../../utils/api';
 import { useStore } from '../../services/useStore';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 
+// ─── Pincode Cache (module-level, survives re-renders) ───────────────────────
+const _pincodeCache = new Map();
+
+const fetchPincode = async (pincode) => {
+  if (!pincode || !/^[1-9][0-9]{5}$/.test(pincode)) return null;
+  if (_pincodeCache.has(pincode)) return _pincodeCache.get(pincode);
+
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+    const data = await res.json();
+    const result = data?.[0];
+    if (result?.Status === 'Success') {
+      _pincodeCache.set(pincode, result);
+      return result;
+    }
+  } catch (err) {
+    console.error('Pincode fetch failed:', err);
+  }
+  return null;
+};
+
+const isPincodeCached = (pincode) => _pincodeCache.has(pincode);
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 const normalizeIndianPhone = (value = '') => {
   const digits = String(value).replace(/\D/g, '');
-  if (digits.length === 11 && digits.startsWith('0')) {
-    return digits.slice(1);
-  }
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
   return digits;
 };
 
@@ -32,46 +53,63 @@ const validationSchema = Yup.object({
       return /^[6-9]\d{9}$/.test(normalizeIndianPhone(value));
     })
     .required('Phone is required'),
-  paymentMethod: Yup.string().required()
+  paymentMethod: Yup.string().required(),
 });
 
+// ─── PincodeLookup Component ─────────────────────────────────────────────────
 const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched }) => {
   const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
-    const delay = setTimeout(async () => {
-      if (pinCode && pinCode.length === 6 && /^[1-9][0-9]{5}$/.test(pinCode)) {
-        setIsChecking(true);
-        try {
-          const response = await axios.get(`https://api.postalpincode.in/pincode/${pinCode}`);
-          const data = response.data?.[0];
+    if (!pinCode || pinCode.length !== 6 || !/^[1-9][0-9]{5}$/.test(pinCode)) return;
 
-          if (data && data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
-            const { District, State } = data.PostOffice[0];
-            setFieldValue('city', District);
-            setFieldValue('state', State);
-            setFieldError('pinCode', undefined);
-          } else {
-            setFieldError('pinCode', 'Pincode not serviceable');
-          }
-        } catch (error) {
-          console.error('Pincode lookup error:', error);
-        } finally {
-          setIsChecking(false);
+    // Already cached — apply instantly, no spinner, no delay
+    if (isPincodeCached(pinCode)) {
+      fetchPincode(pinCode).then((data) => {
+        if (data?.PostOffice?.[0]) {
+          setFieldValue('city', data.PostOffice[0].District);
+          setFieldValue('state', data.PostOffice[0].State);
+          setFieldError('pinCode', undefined);
           setFieldTouched('pinCode', true);
         }
-      }
-    }, 500);
+      });
+      return;
+    }
 
-    return () => clearTimeout(delay);
-  }, [pinCode, setFieldValue, setFieldError, setFieldTouched]);
+    // Not cached — debounce then fetch
+    const timer = setTimeout(async () => {
+      setIsChecking(true);
+      try {
+        const data = await fetchPincode(pinCode);
+        if (data?.PostOffice?.[0]) {
+          const { District, State } = data.PostOffice[0];
+          setFieldValue('city', District);
+          setFieldValue('state', State);
+          setFieldError('pinCode', undefined);
+          localStorage.setItem('last_pincode', pinCode);
+        } else {
+          setFieldError('pinCode', 'Pincode not serviceable');
+        }
+      } finally {
+        setIsChecking(false);
+        setFieldTouched('pinCode', true);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [pinCode]);
 
   if (isChecking) {
-    return <span className="absolute right-4 top-4 animate-spin text-blue-500"><Loader2 size={16} /></span>;
+    return (
+      <span className="absolute right-4 top-4 animate-spin text-blue-500">
+        <Loader2 size={16} />
+      </span>
+    );
   }
   return null;
 };
 
+// ─── Main Checkout Component ──────────────────────────────────────────────────
 const Checkout = () => {
   const { cart, clearCart, appliedCoupon } = useStore();
   const navigate = useNavigate();
@@ -82,10 +120,14 @@ const Checkout = () => {
   const [savedAddresses, setSavedAddresses] = useState([]);
 
   const subtotal = cart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0);
-  const couponDiscount = appliedCoupon ? Math.round((subtotal * appliedCoupon.percentage) * 100) / 10000 : 0;
+  const couponDiscount = appliedCoupon
+    ? Math.round((subtotal * appliedCoupon.percentage) * 100) / 10000
+    : 0;
   const discountedSubtotal = subtotal - couponDiscount;
 
+  // ── On mount: load settings, customer, and prefetch last pincode ──────────
   useEffect(() => {
+    // Fetch COD setting
     const fetchSettings = async () => {
       try {
         const { data } = await api.get('/settings');
@@ -94,15 +136,20 @@ const Checkout = () => {
         console.error('Failed to fetch settings:', err);
       }
     };
-
     fetchSettings();
 
+    // Load customer
     const savedCustomer = JSON.parse(localStorage.getItem('customer') || 'null');
     if (savedCustomer) {
       setCustomer(savedCustomer);
-      if (savedCustomer.id) {
-        fetchSavedAddresses(savedCustomer.id);
-      }
+      if (savedCustomer.id) fetchSavedAddresses(savedCustomer.id);
+    }
+
+    // Prefetch last used pincode silently in background
+    const lastPincode =
+      localStorage.getItem('last_pincode') || savedCustomer?.pincode;
+    if (lastPincode) {
+      fetchPincode(lastPincode); // fire and forget — just warms the cache
     }
   }, []);
 
@@ -126,7 +173,6 @@ const Checkout = () => {
 
   const handlePayment = async (values) => {
     setLoading(true);
-
     try {
       const normalizedPhone = normalizeIndianPhone(values.phone);
 
@@ -136,7 +182,7 @@ const Checkout = () => {
         pincode: values.pinCode,
         addressLine1: values.address,
         addressLine2: values.apartment,
-        name: `${values.firstName} ${values.lastName}`
+        name: `${values.firstName} ${values.lastName}`,
       });
 
       if (!backendVal.data.success) {
@@ -155,7 +201,7 @@ const Checkout = () => {
         items: cart.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
-          price: item.selectedPrice
+          price: item.selectedPrice,
         })),
         customerId: customer?.id || null,
         customerEmail: values.email || customer?.email || '',
@@ -163,10 +209,7 @@ const Checkout = () => {
         paymentMethod: values.paymentMethod,
         couponCode: appliedCoupon?.code || null,
         couponDiscount,
-        shippingAddress: {
-          ...values,
-          phone: normalizedPhone
-        }
+        shippingAddress: { ...values, phone: normalizedPhone },
       };
 
       const { data: order } = await api.post('/payments/create', orderData);
@@ -197,7 +240,7 @@ const Checkout = () => {
             await api.post('/payments/verify', {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
+              razorpay_signature: response.razorpay_signature,
             });
             clearCart();
             navigate(`/order-success/${order.orderId}`);
@@ -207,17 +250,17 @@ const Checkout = () => {
           }
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: () => {
             setLoading(false);
             document.body.style.overflow = 'auto';
-          }
+          },
         },
         prefill: {
           name: `${values.firstName} ${values.lastName}`,
           email: values.email,
-          contact: normalizedPhone
+          contact: normalizedPhone,
         },
-        theme: { color: '#1a2d5a' }
+        theme: { color: '#1a2d5a' },
       };
 
       const paymentObject = new window.Razorpay(options);
@@ -240,14 +283,19 @@ const Checkout = () => {
     state: '',
     pinCode: '',
     phone: '',
-    paymentMethod: 'razorpay'
+    paymentMethod: 'razorpay',
   };
 
   if (cart.length === 0) {
     return (
       <div className="p-20 text-center">
         <h2 className="text-2xl font-black uppercase mb-6">Your cart is empty</h2>
-        <button onClick={() => navigate('/')} className="px-8 py-4 bg-black text-white uppercase text-[0.7rem] font-black">Shop Now</button>
+        <button
+          onClick={() => navigate('/')}
+          className="px-8 py-4 bg-black text-white uppercase text-[0.7rem] font-black"
+        >
+          Shop Now
+        </button>
       </div>
     );
   }
@@ -257,8 +305,12 @@ const Checkout = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#fdf7f0] space-y-8">
         <Loader2 className="w-20 h-20 text-[#1a2d5a] animate-spin" />
         <div className="text-center">
-          <h2 className="text-2xl font-black uppercase tracking-widest text-[#1a2d5a]">Finalizing Order...</h2>
-          <p className="text-gray-400 font-bold uppercase tracking-[0.2em] mt-2 text-xs">Please do not refresh</p>
+          <h2 className="text-2xl font-black uppercase tracking-widest text-[#1a2d5a]">
+            Finalizing Order...
+          </h2>
+          <p className="text-gray-400 font-bold uppercase tracking-[0.2em] mt-2 text-xs">
+            Please do not refresh
+          </p>
         </div>
       </div>
     );
@@ -278,35 +330,59 @@ const Checkout = () => {
         {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => (
           <Form>
             <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2">
+
+              {/* ── Left: Form ── */}
               <div className="p-10 lg:p-20 lg:border-r border-gray-100 space-y-16">
                 <header className="flex flex-col gap-6">
                   <h1 className="text-2xl font-black tracking-tight">Ghar of Ethnics</h1>
                   <nav className="flex items-center gap-2 text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest">
-                    <span>Cart</span> <ChevronLeft size={10} className="rotate-180" />
-                    <span className="text-black">Information</span> <ChevronLeft size={10} className="rotate-180" />
-                    <span>Shipping</span> <ChevronLeft size={10} className="rotate-180" />
+                    <span>Cart</span>
+                    <ChevronLeft size={10} className="rotate-180" />
+                    <span className="text-black">Information</span>
+                    <ChevronLeft size={10} className="rotate-180" />
+                    <span>Shipping</span>
+                    <ChevronLeft size={10} className="rotate-180" />
                     <span>Payment</span>
                   </nav>
                 </header>
 
+                {/* Contact */}
                 <section className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h2 className="text-lg font-black tracking-tight">Contact</h2>
-                    {!customer && <button onClick={() => navigate('/login')} className="text-[0.65rem] font-bold underline">Sign in</button>}
+                    {!customer && (
+                      <button
+                        onClick={() => navigate('/login')}
+                        className="text-[0.65rem] font-bold underline"
+                      >
+                        Sign in
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Field
                       name="email"
                       placeholder="Email"
-                      className={`w-full p-4 border rounded-sm text-sm outline-none ${touched.email && errors.email ? 'border-red-500 bg-red-50/40' : 'border-gray-200'}`}
+                      className={`w-full p-4 border rounded-sm text-sm outline-none ${
+                        touched.email && errors.email
+                          ? 'border-red-500 bg-red-50/40'
+                          : 'border-gray-200'
+                      }`}
                     />
-                    <ErrorMessage name="email" component="p" className="text-[0.65rem] text-red-600 font-bold uppercase" />
+                    <ErrorMessage
+                      name="email"
+                      component="p"
+                      className="text-[0.65rem] text-red-600 font-bold uppercase"
+                    />
                   </div>
                 </section>
 
+                {/* Delivery */}
                 <section className="space-y-6">
                   <h2 className="text-lg font-black tracking-tight">Delivery</h2>
                   <div className="space-y-4">
+
+                    {/* Saved addresses */}
                     {savedAddresses.length > 0 && (
                       <select
                         onChange={(e) => {
@@ -319,39 +395,91 @@ const Checkout = () => {
                             setFieldValue('state', addr.state);
                             setFieldValue('pinCode', addr.pincode);
                             setFieldValue('phone', addr.phone);
+                            // Prefetch this address's pincode too
+                            if (addr.pincode) fetchPincode(addr.pincode);
                           }
                         }}
                         className="w-full p-4 border border-gray-200 rounded-sm text-sm"
                       >
                         <option value="">Use a saved address</option>
-                        {savedAddresses.map((a) => <option key={a.id} value={a.id}>{a.addressLine1}, {a.city}</option>)}
+                        {savedAddresses.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.addressLine1}, {a.city}
+                          </option>
+                        ))}
                       </select>
                     )}
 
+                    {/* Name */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Field name="firstName" placeholder="First name" className={`w-full p-4 border rounded-sm text-sm ${touched.firstName && errors.firstName ? 'border-red-500' : 'border-gray-200'}`} />
-                        <ErrorMessage name="firstName" component="p" className="text-[0.65rem] text-red-600 font-bold uppercase" />
+                        <Field
+                          name="firstName"
+                          placeholder="First name"
+                          className={`w-full p-4 border rounded-sm text-sm ${
+                            touched.firstName && errors.firstName
+                              ? 'border-red-500'
+                              : 'border-gray-200'
+                          }`}
+                        />
+                        <ErrorMessage
+                          name="firstName"
+                          component="p"
+                          className="text-[0.65rem] text-red-600 font-bold uppercase"
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Field name="lastName" placeholder="Last name" className={`w-full p-4 border rounded-sm text-sm ${touched.lastName && errors.lastName ? 'border-red-500' : 'border-gray-200'}`} />
-                        <ErrorMessage name="lastName" component="p" className="text-[0.65rem] text-red-600 font-bold uppercase" />
+                        <Field
+                          name="lastName"
+                          placeholder="Last name"
+                          className={`w-full p-4 border rounded-sm text-sm ${
+                            touched.lastName && errors.lastName
+                              ? 'border-red-500'
+                              : 'border-gray-200'
+                          }`}
+                        />
+                        <ErrorMessage
+                          name="lastName"
+                          component="p"
+                          className="text-[0.65rem] text-red-600 font-bold uppercase"
+                        />
                       </div>
                     </div>
 
+                    {/* Address */}
                     <div className="space-y-2">
-                      <Field name="address" placeholder="Address" className={`w-full p-4 border rounded-sm text-sm ${touched.address && errors.address ? 'border-red-500' : 'border-gray-200'}`} />
-                      <ErrorMessage name="address" component="p" className="text-[0.65rem] text-red-600 font-bold uppercase" />
+                      <Field
+                        name="address"
+                        placeholder="Address"
+                        className={`w-full p-4 border rounded-sm text-sm ${
+                          touched.address && errors.address ? 'border-red-500' : 'border-gray-200'
+                        }`}
+                      />
+                      <ErrorMessage
+                        name="address"
+                        component="p"
+                        className="text-[0.65rem] text-red-600 font-bold uppercase"
+                      />
                     </div>
 
-                    <Field name="apartment" placeholder="Apartment, suite, etc. (optional)" className="w-full p-4 border border-gray-200 rounded-sm text-sm" />
+                    <Field
+                      name="apartment"
+                      placeholder="Apartment, suite, etc. (optional)"
+                      className="w-full p-4 border border-gray-200 rounded-sm text-sm"
+                    />
 
+                    {/* Pincode / City / State */}
                     <div className="grid grid-cols-3 gap-4">
                       <div className="relative col-span-1">
                         <Field
                           name="pinCode"
                           placeholder="Pincode"
-                          className={`w-full p-4 border rounded-sm text-sm ${touched.pinCode && errors.pinCode ? 'border-red-500' : 'border-gray-200'}`}
+                          maxLength={6}
+                          className={`w-full p-4 border rounded-sm text-sm ${
+                            touched.pinCode && errors.pinCode
+                              ? 'border-red-500'
+                              : 'border-gray-200'
+                          }`}
                         />
                         <PincodeLookup
                           pinCode={values.pinCode}
@@ -359,81 +487,141 @@ const Checkout = () => {
                           setFieldError={setFieldError}
                           setFieldTouched={setFieldTouched}
                         />
-                        <ErrorMessage name="pinCode" component="p" className="text-[0.65rem] text-red-600 font-bold uppercase mt-1" />
+                        <ErrorMessage
+                          name="pinCode"
+                          component="p"
+                          className="text-[0.65rem] text-red-600 font-bold uppercase mt-1"
+                        />
                       </div>
-                      <div className="space-y-2 col-span-1">
-                        <Field name="city" placeholder="City" className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50" readOnly />
+                      <div className="col-span-1">
+                        <Field
+                          name="city"
+                          placeholder="City"
+                          readOnly
+                          className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50"
+                        />
                       </div>
-                      <div className="space-y-2 col-span-1">
-                        <Field name="state" placeholder="State" className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50" readOnly />
+                      <div className="col-span-1">
+                        <Field
+                          name="state"
+                          placeholder="State"
+                          readOnly
+                          className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50"
+                        />
                       </div>
                     </div>
 
+                    {/* Phone */}
                     <div className="space-y-2">
-                      <Field name="phone" placeholder="Phone (10 digits)" className={`w-full p-4 border rounded-sm text-sm ${touched.phone && errors.phone ? 'border-red-500' : 'border-gray-200'}`} />
-                      <ErrorMessage name="phone" component="p" className="text-[0.65rem] text-red-600 font-bold uppercase" />
+                      <Field
+                        name="phone"
+                        placeholder="Phone (10 digits)"
+                        className={`w-full p-4 border rounded-sm text-sm ${
+                          touched.phone && errors.phone ? 'border-red-500' : 'border-gray-200'
+                        }`}
+                      />
+                      <ErrorMessage
+                        name="phone"
+                        component="p"
+                        className="text-[0.65rem] text-red-600 font-bold uppercase"
+                      />
                     </div>
                   </div>
                 </section>
 
+                {/* Payment */}
                 <section className="space-y-6">
                   <h2 className="text-lg font-black tracking-tight">Payment</h2>
                   <div className="border border-gray-200 rounded-sm">
-                    <div className={`p-6 cursor-pointer ${values.paymentMethod === 'razorpay' ? 'bg-blue-50/10' : ''}`} onClick={() => setFieldValue('paymentMethod', 'razorpay')}>
+                    <div
+                      className={`p-6 cursor-pointer ${
+                        values.paymentMethod === 'razorpay' ? 'bg-blue-50/10' : ''
+                      }`}
+                      onClick={() => setFieldValue('paymentMethod', 'razorpay')}
+                    >
                       <div className="flex items-center gap-3">
                         <Field type="radio" name="paymentMethod" value="razorpay" className="w-4 h-4" />
-                        <label className="text-[0.7rem] font-bold uppercase">Razorpay (Cards/UPI/Netbanking)</label>
+                        <label className="text-[0.7rem] font-bold uppercase">
+                          Razorpay (Cards/UPI/Netbanking)
+                        </label>
                       </div>
                     </div>
                     {codEnabled && (
-                      <div className={`p-6 border-t border-gray-100 cursor-pointer ${values.paymentMethod === 'cod' ? 'bg-blue-50/10' : ''}`} onClick={() => setFieldValue('paymentMethod', 'cod')}>
+                      <div
+                        className={`p-6 border-t border-gray-100 cursor-pointer ${
+                          values.paymentMethod === 'cod' ? 'bg-blue-50/10' : ''
+                        }`}
+                        onClick={() => setFieldValue('paymentMethod', 'cod')}
+                      >
                         <div className="flex items-center gap-3">
                           <Field type="radio" name="paymentMethod" value="cod" className="w-4 h-4" />
-                          <label className="text-[0.7rem] font-bold uppercase">Cash on Delivery (₹70 Extra)</label>
+                          <label className="text-[0.7rem] font-bold uppercase">
+                            Cash on Delivery (₹70 Extra)
+                          </label>
                         </div>
                       </div>
                     )}
                   </div>
                 </section>
 
+                {/* Submit */}
                 <button
                   type="submit"
                   disabled={loading}
                   className="w-full bg-blue-600 text-white py-5 rounded-md text-[0.75rem] font-black uppercase tracking-[2px] transition-all hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="animate-spin mx-auto" /> : values.paymentMethod === 'razorpay' ? `Pay ₹${discountedSubtotal + (values.paymentMethod === 'cod' ? 70 : 0)}` : 'Complete Order'}
+                  {loading ? (
+                    <Loader2 className="animate-spin mx-auto" />
+                  ) : values.paymentMethod === 'razorpay' ? (
+                    `Pay ₹${discountedSubtotal}`
+                  ) : (
+                    `Complete Order — ₹${discountedSubtotal + 70}`
+                  )}
                 </button>
 
                 <footer className="pt-10 border-t border-gray-50 flex flex-wrap gap-6 text-[0.65rem] text-blue-600 font-bold underline">
-                  <a href="/returns">Refund policy</a> <a href="/privacy">Privacy policy</a> <a href="/terms">Terms of service</a>
+                  <a href="/returns">Refund policy</a>
+                  <a href="/privacy">Privacy policy</a>
+                  <a href="/terms">Terms of service</a>
                 </footer>
               </div>
 
+              {/* ── Right: Order Summary ── */}
               <div className="bg-gray-50/50 p-10 lg:p-20">
                 <div className="sticky top-20 space-y-10">
                   <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 no-scrollbar">
                     {cart.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between gap-6">
-                        <div className="flex items-center gap-4 relative">
+                        <div className="flex items-center gap-4">
                           <div className="w-16 h-20 bg-white border border-gray-100 rounded-md overflow-hidden flex-shrink-0">
-                            <img src={item.selectedImage} className="w-full h-full object-contain" alt={item.name} />
-                            {/* <span className="absolute -top-2 -right-2 w-5 h-5 bg-gray-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">{item.quantity}</span> */}
+                            <img
+                              src={item.selectedImage}
+                              className="w-full h-full object-contain"
+                              alt={item.name}
+                              loading="lazy"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
                           </div>
                           <p className="text-[0.75rem] font-black uppercase">{item.name}</p>
                         </div>
-                        <p className="text-[0.7rem] font-black">₹{item.selectedPrice * item.quantity}</p>
+                        <p className="text-[0.7rem] font-black">
+                          ₹{item.selectedPrice * item.quantity}
+                        </p>
                       </div>
                     ))}
                   </div>
+
                   <div className="space-y-4 pt-10 border-t border-gray-100">
                     <div className="flex justify-between text-[0.7rem] font-black uppercase text-gray-500">
                       <span>Subtotal</span>
-                      <span className={appliedCoupon ? 'line-through text-gray-300' : ''}>₹{subtotal}</span>
+                      <span className={appliedCoupon ? 'line-through text-gray-300' : ''}>
+                        ₹{subtotal}
+                      </span>
                     </div>
                     {appliedCoupon && (
                       <div className="flex justify-between text-[0.7rem] font-black uppercase text-emerald-600">
                         <span>Coupon ({appliedCoupon.code})</span>
-                        <span>− ₹{couponDiscount.toFixed(2)}</span>
+                        <span>- ₹{couponDiscount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-[0.7rem] font-black uppercase text-gray-500">
@@ -442,11 +630,14 @@ const Checkout = () => {
                     </div>
                     <div className="flex justify-between text-xl font-black uppercase pt-4 border-t">
                       <span>Total</span>
-                      <span>₹{discountedSubtotal + (values.paymentMethod === 'cod' ? 70 : 0)}</span>
+                      <span>
+                        ₹{discountedSubtotal + (values.paymentMethod === 'cod' ? 70 : 0)}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
+
             </div>
           </Form>
         )}
