@@ -22,11 +22,13 @@ const Profile = () => {
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState('');
+  const [profileErrors, setProfileErrors] = useState({});
   const [otpSession, setOtpSession] = useState(null);
   const [profileOtp, setProfileOtp] = useState({ emailOtp: '', mobileOtp: '' });
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [addressForm, setAddressForm] = useState(emptyAddress);
+  const [addressErrors, setAddressErrors] = useState({});
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingAddress, setSavingAddress] = useState(false);
@@ -89,11 +91,75 @@ const Profile = () => {
   const handleAddressInputChange = (e) => {
     const { name, value } = e.target;
     setAddressForm(prev => ({ ...prev, [name]: value }));
+    
+    // Real-time validation
+    const errors = { ...addressErrors };
+    
+    if (name === 'firstName') {
+      if (!value.trim()) {
+        errors.firstName = 'First name is required';
+      } else if (value.trim().length < 2) {
+        errors.firstName = 'First name must be at least 2 characters';
+      } else {
+        delete errors.firstName;
+      }
+    } else if (name === 'lastName') {
+      if (!value.trim()) {
+        errors.lastName = 'Last name is required';
+      } else {
+        delete errors.lastName;
+      }
+    } else if (name === 'address') {
+      if (!value.trim()) {
+        errors.address = 'Address is required';
+      } else if (value.trim().length < 10) {
+        errors.address = 'Address must be at least 10 characters';
+      } else {
+        delete errors.address;
+      }
+    } else if (name === 'city') {
+      if (!value.trim()) {
+        errors.city = 'City is required';
+      } else {
+        delete errors.city;
+      }
+    } else if (name === 'state') {
+      if (!value.trim()) {
+        errors.state = 'State is required';
+      } else {
+        delete errors.state;
+      }
+    } else if (name === 'pinCode') {
+      if (!value.trim()) {
+        errors.pinCode = 'PIN code is required';
+      } else if (!/^[1-9][0-9]{5}$/.test(value.trim())) {
+        errors.pinCode = 'Please enter a valid 6-digit PIN code';
+      } else {
+        delete errors.pinCode;
+      }
+    } else if (name === 'phone') {
+      const cleaned = value.replace(/\D/g, '').slice(0, 10);
+      setAddressForm(prev => ({ ...prev, phone: cleaned }));
+      if (!cleaned) {
+        errors.phone = 'Phone number is required';
+      } else if (!/^[6-9]\d{9}$/.test(cleaned)) {
+        errors.phone = 'Please enter a valid 10-digit phone number starting with 6-9';
+      } else {
+        delete errors.phone;
+      }
+    }
+    
+    setAddressErrors(errors);
   };
 
   const handleSaveAddress = async (e) => {
     e.preventDefault();
     if (!customer?.id) return;
+
+    if (!validateAddressForm()) {
+      setAddressMessage('Please fix the errors below');
+      return;
+    }
 
     setSavingAddress(true);
     setAddressMessage('');
@@ -125,6 +191,7 @@ const Profile = () => {
       setCustomer(nextCustomer);
       localStorage.setItem('customer', JSON.stringify(nextCustomer));
       setAddressForm(emptyAddress);
+      setAddressErrors({});
       setShowAddressForm(false);
       setAddressMessage('Address saved successfully.');
     } catch (err) {
@@ -141,17 +208,125 @@ const Profile = () => {
     navigate('/login');
   };
 
+  const validateProfileForm = () => {
+    const errors = {};
+    
+    if (!profileForm.name.trim()) {
+      errors.name = 'Name is required';
+    } else if (profileForm.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters';
+    } else if (!/^[a-zA-Z\s]+$/.test(profileForm.name.trim())) {
+      errors.name = 'Name can only contain letters';
+    }
+
+    if (profileForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email.trim())) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    if (profileForm.mobile.trim() && !/^[6-9]\d{9}$/.test(profileForm.mobile.trim())) {
+      errors.mobile = 'Please enter a valid 10-digit phone number starting with 6-9';
+    }
+
+    setProfileErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateAddressForm = () => {
+    const errors = {};
+    
+    if (!addressForm.firstName.trim()) {
+      errors.firstName = 'First name is required';
+    } else if (addressForm.firstName.trim().length < 2) {
+      errors.firstName = 'First name must be at least 2 characters';
+    }
+
+    if (!addressForm.lastName.trim()) {
+      errors.lastName = 'Last name is required';
+    }
+
+    if (!addressForm.address.trim()) {
+      errors.address = 'Address is required';
+    } else if (addressForm.address.trim().length < 10) {
+      errors.address = 'Address must be at least 10 characters';
+    }
+
+    if (!addressForm.city.trim()) {
+      errors.city = 'City is required';
+    }
+
+    if (!addressForm.state.trim()) {
+      errors.state = 'State is required';
+    }
+
+    if (!addressForm.pinCode.trim()) {
+      errors.pinCode = 'PIN code is required';
+    } else if (!/^[1-9][0-9]{5}$/.test(addressForm.pinCode.trim())) {
+      errors.pinCode = 'Please enter a valid 6-digit PIN code';
+    }
+
+    if (!addressForm.phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!/^[6-9]\d{9}$/.test(addressForm.phone.trim())) {
+      errors.phone = 'Please enter a valid 10-digit phone number starting with 6-9';
+    }
+
+    setAddressErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+ 
+
   const handleProfileInputChange = (e) => {
     const { name, value } = e.target;
     if (name === 'mobile') {
-      setProfileForm((prev) => ({ ...prev, [name]: value.replace(/\D/g, '').slice(0, 10) }));
+      const cleaned = value.replace(/\D/g, '').slice(0, 10);
+      setProfileForm((prev) => ({ ...prev, [name]: cleaned }));
+      
+      // Real-time validation
+      if (cleaned && !/^[6-9]\d{9}$/.test(cleaned)) {
+        setProfileErrors((prev) => ({ ...prev, mobile: 'Please enter a valid 10-digit phone number starting with 6-9' }));
+      } else {
+        setProfileErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors.mobile;
+          return newErrors;
+        });
+      }
       return;
     }
+    
     setProfileForm((prev) => ({ ...prev, [name]: value }));
+    
+    // Real-time validation
+    const errors = { ...profileErrors };
+    if (name === 'name') {
+      if (!value.trim()) {
+        errors.name = 'Name is required';
+      } else if (value.trim().length < 2) {
+        errors.name = 'Name must be at least 2 characters';
+      } else if (!/^[a-zA-Z\s]+$/.test(value.trim())) {
+        errors.name = 'Name can only contain letters';
+      } else {
+        delete errors.name;
+      }
+    } else if (name === 'email') {
+      if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+        errors.email = 'Please enter a valid email address';
+      } else {
+        delete errors.email;
+      }
+    }
+    setProfileErrors(errors);
   };
 
   const handleSaveProfile = async () => {
     if (!customer?.id) return;
+    
+    if (!validateProfileForm()) {
+      setProfileMessage('Please fix the errors below');
+      return;
+    }
+    
     setSavingProfile(true);
     setProfileMessage('');
 
@@ -186,6 +361,7 @@ const Profile = () => {
       }
 
       setEditingProfile(false);
+      setProfileErrors({});
       setProfileMessage(res.data?.message || 'Profile updated successfully.');
     } catch (err) {
       setProfileMessage(err.response?.data?.message || 'Could not update profile. Please try again.');
@@ -292,9 +468,12 @@ const Profile = () => {
                 value={profileForm.name}
                 onChange={handleProfileInputChange}
                 disabled={!editingProfile}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100"
+                className={`w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100 ${
+                  profileErrors.name ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                }`}
                 placeholder="Your name"
               />
+              {profileErrors.name && <p className="text-xs text-red-500 font-semibold">{profileErrors.name}</p>}
             </div>
             <div className="space-y-2">
               <label className="text-[0.65rem] font-black uppercase tracking-widest text-gray-500">Gender</label>
@@ -319,9 +498,12 @@ const Profile = () => {
                 value={profileForm.email}
                 onChange={handleProfileInputChange}
                 disabled={!editingProfile}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100"
+                className={`w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black disabled:bg-gray-100 ${
+                  profileErrors.email ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                }`}
                 placeholder="Email address"
               />
+              {profileErrors.email && <p className="text-xs text-red-500 font-semibold">{profileErrors.email}</p>}
             </div>
             {/* <div className="space-y-2">
               <label className="text-[0.65rem] font-black uppercase tracking-widest text-gray-500">Mobile Number</label>
@@ -444,17 +626,38 @@ const Profile = () => {
                   <input name="label" value={addressForm.label} onChange={handleAddressInputChange} placeholder="Home, Office, Studio..." className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <input name="firstName" value={addressForm.firstName} onChange={handleAddressInputChange} placeholder="First name" className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" required />
-                  <input name="lastName" value={addressForm.lastName} onChange={handleAddressInputChange} placeholder="Last name" className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" required />
+                  <div className="space-y-1">
+                    <input name="firstName" value={addressForm.firstName} onChange={handleAddressInputChange} placeholder="First name" className={`rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black w-full ${addressErrors.firstName ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`} required />
+                    {addressErrors.firstName && <p className="text-xs text-red-500 font-semibold">{addressErrors.firstName}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <input name="lastName" value={addressForm.lastName} onChange={handleAddressInputChange} placeholder="Last name" className={`rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black w-full ${addressErrors.lastName ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`} required />
+                    {addressErrors.lastName && <p className="text-xs text-red-500 font-semibold">{addressErrors.lastName}</p>}
+                  </div>
                 </div>
-                <input name="address" value={addressForm.address} onChange={handleAddressInputChange} placeholder="Address" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" required />
+                <div className="space-y-1">
+                  <input name="address" value={addressForm.address} onChange={handleAddressInputChange} placeholder="Address" className={`w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black ${addressErrors.address ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`} required />
+                  {addressErrors.address && <p className="text-xs text-red-500 font-semibold">{addressErrors.address}</p>}
+                </div>
                 <input name="apartment" value={addressForm.apartment} onChange={handleAddressInputChange} placeholder="Apartment, suite, etc. (optional)" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" />
                 <div className="grid grid-cols-3 gap-4">
-                  <input name="city" value={addressForm.city} onChange={handleAddressInputChange} placeholder="City" className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" required />
-                  <input name="state" value={addressForm.state} onChange={handleAddressInputChange} placeholder="State" className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" required />
-                  <input name="pinCode" value={addressForm.pinCode} onChange={handleAddressInputChange} placeholder="PIN code" className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" required />
+                  <div className="space-y-1">
+                    <input name="city" value={addressForm.city} onChange={handleAddressInputChange} placeholder="City" className={`rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black w-full ${addressErrors.city ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`} required />
+                    {addressErrors.city && <p className="text-xs text-red-500 font-semibold">{addressErrors.city}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <input name="state" value={addressForm.state} onChange={handleAddressInputChange} placeholder="State" className={`rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black w-full ${addressErrors.state ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`} required />
+                    {addressErrors.state && <p className="text-xs text-red-500 font-semibold">{addressErrors.state}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <input name="pinCode" value={addressForm.pinCode} onChange={handleAddressInputChange} placeholder="PIN code" className={`rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black w-full ${addressErrors.pinCode ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`} required />
+                    {addressErrors.pinCode && <p className="text-xs text-red-500 font-semibold">{addressErrors.pinCode}</p>}
+                  </div>
                 </div>
-                <input name="phone" value={addressForm.phone} onChange={handleAddressInputChange} placeholder="Phone" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium outline-none focus:border-black" required />
+                <div className="space-y-1">
+                  <input name="phone" value={addressForm.phone} onChange={handleAddressInputChange} placeholder="Phone" className={`w-full rounded-xl border px-4 py-3 text-sm font-medium outline-none focus:border-black ${addressErrors.phone ? 'border-red-400 bg-red-50/30' : 'border-gray-200'}`} required />
+                  {addressErrors.phone && <p className="text-xs text-red-500 font-semibold">{addressErrors.phone}</p>}
+                </div>
 
                 {addressMessage && (
                   <p className={`text-sm font-semibold ${addressMessage.includes('successfully') ? 'text-emerald-600' : 'text-red-600'}`}>

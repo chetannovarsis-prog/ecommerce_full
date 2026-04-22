@@ -36,23 +36,27 @@ const normalizeIndianPhone = (value = '') => {
   return digits;
 };
 
+const sanitizeNumberInput = (value) => {
+  return String(value).replace(/\D/g, '');
+};
+
 const validationSchema = Yup.object({
-  email: Yup.string().email('Invalid email format').required('Email is required'),
-  firstName: Yup.string().min(3, 'First name too short').required('First name is required'),
+  email: Yup.string().email('Please enter a valid email address').required('Email is required'),
+  firstName: Yup.string().min(3, 'First name must be at least 3 characters').required('First name is required'),
   lastName: Yup.string().required('Last name is required'),
   address: Yup.string().min(10, 'Address must be at least 10 characters').required('Address is required'),
   apartment: Yup.string(),
   city: Yup.string().required('City is required'),
   state: Yup.string().required('State is required'),
   pinCode: Yup.string()
-    .matches(/^[1-9][0-9]{5}$/, 'Invalid Pincode format')
-    .required('Pincode is required'),
+    .matches(/^[1-9][0-9]{5}$/, 'Please enter a valid 6-digit PIN code')
+    .required('PIN code is required'),
   phone: Yup.string()
-    .test('valid-indian-phone', 'Invalid Indian phone number', (value) => {
+    .test('valid-indian-phone', 'Please enter a valid 10-digit phone number starting with 6-9', (value) => {
       if (!value) return false;
       return /^[6-9]\d{9}$/.test(normalizeIndianPhone(value));
     })
-    .required('Phone is required'),
+    .required('Phone number is required'),
   paymentMethod: Yup.string().required(),
 });
 
@@ -406,17 +410,25 @@ const Checkout = () => {
                     <Field
                       name="email"
                       placeholder="Email"
-                      className={`w-full p-4 border rounded-sm text-sm outline-none ${
+                      className={`w-full p-4 border rounded-sm text-sm outline-none transition-colors ${
                         touched.email && errors.email
-                          ? 'border-red-500 bg-red-50/40'
-                          : 'border-gray-200'
+                          ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                          : 'border-gray-200 focus:border-blue-500'
                       }`}
+                      onBlur={(e) => {
+                        setFieldTouched('email', true);
+                      }}
                     />
                     <ErrorMessage
                       name="email"
                       component="p"
                       className="text-[0.65rem] text-red-600 font-bold uppercase"
                     />
+                    {touched.email && !errors.email && values.email && (
+                      <p className="text-[0.65rem] text-emerald-600 font-bold uppercase">
+                        ✓ Valid email
+                      </p>
+                    )}
                   </div>
                 </section>
 
@@ -459,10 +471,10 @@ const Checkout = () => {
                         <Field
                           name="firstName"
                           placeholder="First name"
-                          className={`w-full p-4 border rounded-sm text-sm ${
+                          className={`w-full p-4 border rounded-sm text-sm outline-none transition-colors ${
                             touched.firstName && errors.firstName
-                              ? 'border-red-500'
-                              : 'border-gray-200'
+                              ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                              : 'border-gray-200 focus:border-blue-500'
                           }`}
                         />
                         <ErrorMessage
@@ -475,10 +487,10 @@ const Checkout = () => {
                         <Field
                           name="lastName"
                           placeholder="Last name"
-                          className={`w-full p-4 border rounded-sm text-sm ${
+                          className={`w-full p-4 border rounded-sm text-sm outline-none transition-colors ${
                             touched.lastName && errors.lastName
-                              ? 'border-red-500'
-                              : 'border-gray-200'
+                              ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                              : 'border-gray-200 focus:border-blue-500'
                           }`}
                         />
                         <ErrorMessage
@@ -494,8 +506,10 @@ const Checkout = () => {
                       <Field
                         name="address"
                         placeholder="Address"
-                        className={`w-full p-4 border rounded-sm text-sm ${
-                          touched.address && errors.address ? 'border-red-500' : 'border-gray-200'
+                        className={`w-full p-4 border rounded-sm text-sm outline-none transition-colors ${
+                          touched.address && errors.address
+                            ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                            : 'border-gray-200 focus:border-blue-500'
                         }`}
                       />
                       <ErrorMessage
@@ -516,13 +530,21 @@ const Checkout = () => {
                       <div className="relative col-span-1">
                         <Field
                           name="pinCode"
-                          placeholder="Pincode"
+                          placeholder="PIN code"
                           maxLength={6}
-                          className={`w-full p-4 border rounded-sm text-sm ${
+                          inputMode="numeric"
+                          className={`w-full p-4 border rounded-sm text-sm outline-none transition-colors ${
                             touched.pinCode && errors.pinCode
-                              ? 'border-red-500'
-                              : 'border-gray-200'
+                              ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                              : 'border-gray-200 focus:border-blue-500'
                           }`}
+                          onChange={(e) => {
+                            const cleaned = sanitizeNumberInput(e.target.value);
+                            setFieldValue('pinCode', cleaned);
+                          }}
+                          onBlur={(e) => {
+                            setFieldTouched('pinCode', true);
+                          }}
                         />
                         <PincodeLookup
                           pinCode={values.pinCode}
@@ -535,6 +557,11 @@ const Checkout = () => {
                           component="p"
                           className="text-[0.65rem] text-red-600 font-bold uppercase mt-1"
                         />
+                        {touched.pinCode && !errors.pinCode && values.pinCode && (
+                          <p className="text-[0.65rem] text-emerald-600 font-bold uppercase mt-1">
+                            ✓ Valid PIN code
+                          </p>
+                        )}
                       </div>
                       <div className="col-span-1">
                         <Field
@@ -559,15 +586,31 @@ const Checkout = () => {
                       <Field
                         name="phone"
                         placeholder="Phone (10 digits)"
-                        className={`w-full p-4 border rounded-sm text-sm ${
-                          touched.phone && errors.phone ? 'border-red-500' : 'border-gray-200'
+                        inputMode="numeric"
+                        maxLength={10}
+                        className={`w-full p-4 border rounded-sm text-sm outline-none transition-colors ${
+                          touched.phone && errors.phone
+                            ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                            : 'border-gray-200 focus:border-blue-500'
                         }`}
+                        onChange={(e) => {
+                          const cleaned = sanitizeNumberInput(e.target.value);
+                          setFieldValue('phone', cleaned);
+                        }}
+                        onBlur={(e) => {
+                          setFieldTouched('phone', true);
+                        }}
                       />
                       <ErrorMessage
                         name="phone"
                         component="p"
-                        className="text-[0.65rem] text-red-600 font-bold uppercase"
+                        className="text-[0.65rem] text-red-600 font-bold uppercase flex items-center gap-1"
                       />
+                      {touched.phone && !errors.phone && values.phone && (
+                        <p className="text-[0.65rem] text-emerald-600 font-bold uppercase flex items-center gap-1">
+                          ✓ Valid phone number
+                        </p>
+                      )}
                     </div>
                   </div>
                 </section>

@@ -761,7 +761,7 @@ const ProductDetail = () => {
                     <span className="text-sm font-bold text-gray-900">
                       {reviews.length > 0
                         ? `${(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} | (${reviews.length} Review${reviews.length > 1 ? 's' : ''})`
-                        : 'Be the first to review'}
+                        : ''}
                     </span>
                     <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -997,7 +997,7 @@ const ProductDetail = () => {
                         : '0.0'
                       }
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-3 flex-1">
                       <div className="flex text-amber-400">
                         {[1, 2, 3, 4, 5].map(s => (
                           <Star
@@ -1009,6 +1009,26 @@ const ProductDetail = () => {
                         ))}
                       </div>
                       <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Based on {reviews.length} reviews</p>
+                      
+                      {/* Rating Distribution */}
+                      <div className="space-y-2 mt-4 pt-4 border-t border-gray-200">
+                        {[5, 4, 3, 2, 1].map(stars => {
+                          const count = reviews.filter(r => r.rating === stars).length;
+                          const percentage = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
+                          return (
+                            <div key={stars} className="flex items-center gap-2">
+                              <span className="text-xs font-black text-gray-500 w-8">{stars}★</span>
+                              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-amber-400 transition-all"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-bold text-gray-500 w-10 text-right">{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </>
                 )}

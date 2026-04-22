@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, ShoppingBag, User, Heart } from 'lucide-react';
+import { Search, ShoppingBag, User, Heart, AlertCircle } from 'lucide-react';
 import { useStore } from '../../services/useStore';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +16,7 @@ const Navbar = () => {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
 
   const searchInputRef = useRef(null);
   const autoCloseTimerRef = useRef(null);
@@ -53,9 +54,11 @@ const Navbar = () => {
     const fetchSuggestions = async () => {
       if (searchQuery.trim().length < 2) {
         setSuggestions([]);
+        setIsSearchLoading(false);
         return;
       }
 
+      setIsSearchLoading(true);
       try {
         const response = await api.get(`/products?search=${searchQuery}`);
         const data = Array.isArray(response.data)
@@ -79,6 +82,9 @@ const Navbar = () => {
         setSuggestions(rankedData.slice(0, 6));
       } catch (error) {
         console.error('Error fetching search results:', error);
+        setSuggestions([]);
+      } finally {
+        setIsSearchLoading(false);
       }
     };
 
@@ -107,7 +113,7 @@ const Navbar = () => {
     navigate(`/products/${product.handle || product.id}`);
   };
 
-  const shouldShowSuggestions = isSearchOpen && searchQuery.trim().length >= 2 && suggestions.length > 0;
+  const shouldShowSuggestions = isSearchOpen && searchQuery.trim().length >= 2 && (isSearchLoading || suggestions.length > 0);
 
   const navClasses = `${isHome ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-[100] transition-all duration-500 ${
     isHome
@@ -144,16 +150,16 @@ const Navbar = () => {
               {isSearchOpen && (
                 <motion.div
                   initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 260, opacity: 1 }}
+                  animate={{ width: 'auto', opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
-                  className="absolute right-0 flex items-center bg-gray-50 rounded-full px-4 py-2 border border-gray-100 shadow-sm text-black"
+                  className="md:absolute md:right-0 flex items-center bg-gray-50 rounded-full px-4 py-2 border border-gray-100 shadow-sm text-black"
                 >
-                  <Search size={16} className="text-gray-400 mr-2" />
+                  <Search size={16} className="text-gray-400 mr-2 flex-shrink-0" />
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Search..."
-                    className="bg-transparent border-none outline-none focus:ring-0 text-xs font-bold w-full"
+                    className="bg-transparent border-none outline-none focus:ring-0 text-xs font-bold w-32 md:w-56"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsInputFocused(true)}
@@ -202,29 +208,55 @@ const Navbar = () => {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
-              className="absolute top-full right-0 md:right-10 mt-3 w-[92vw] max-w-[420px] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-[110] text-black"
+              className="fixed md:absolute top-full left-6 right-6 md:left-auto md:right-10 mt-3 max-w-[calc(100vw-48px)] md:max-w-[420px] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-[9999] text-black"
             >
               <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Suggestions</p>
+                <p className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">
+                  {isSearchLoading ? 'Searching...' : 'Suggestions'}
+                </p>
               </div>
-              <div className="py-1">
-                {suggestions.map((product) => (
-                  <div
-                    key={product.id}
-                    onClick={() => handleSuggestionClick(product)}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-all"
-                  >
-                    <div className="w-10 h-10 bg-gray-50 rounded-md overflow-hidden flex-shrink-0 border border-gray-100">
-                      {(product.thumbnailUrl || product.images?.[0]) && (
-                        <img src={product.thumbnailUrl || product.images[0]} className="w-full h-full object-contain" alt="" />
-                      )}
+              <div className="py-1 max-h-96 overflow-y-auto">
+                {isSearchLoading ? (
+                  // Skeleton Loaders
+                  [1, 2, 3, 4, 5, 6].map((_, idx) => (
+                    <div key={idx} className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-md flex-shrink-0 animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4" />
+                        <div className="h-2 bg-gray-100 rounded animate-pulse w-1/2" />
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-[0.78rem] font-semibold tracking-tight truncate">{product.name}</h4>
-                      <p className="text-[0.72rem] text-gray-500 mt-0.5">Rs {product.price}</p>
+                  ))
+                ) : suggestions.length > 0 ? (
+                  suggestions.map((product) => (
+                    <div
+                      key={product.id}
+                      onClick={() => handleSuggestionClick(product)}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-all"
+                    >
+                      <div className="w-10 h-10 bg-gray-50 rounded-md overflow-hidden flex-shrink-0 border border-gray-100">
+                        {(product.thumbnailUrl || product.images?.[0]) && (
+                          <img src={product.thumbnailUrl || product.images[0]} className="w-full h-full object-contain" alt="" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-[0.78rem] font-semibold tracking-tight truncate">{product.name}</h4>
+                        <p className="text-[0.72rem] text-gray-500 mt-0.5">Rs {product.price}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  // No Results Found
+                  <div className="px-4 py-8 text-center space-y-3">
+                    <div className="flex justify-center">
+                      <AlertCircle size={24} className="text-gray-300" />
+                    </div>
+                    <div>
+                      <p className="text-[0.75rem] font-black text-gray-700 uppercase tracking-tight">Product Not Found</p>
+                      <p className="text-[0.65rem] text-gray-400 mt-1">No products match your search for "{searchQuery}"</p>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             </motion.div>
           )}
