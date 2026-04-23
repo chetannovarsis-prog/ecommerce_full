@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import imageCompression from 'browser-image-compression';
 import api from '../../utils/api';
 import imageCache from '../../utils/imageCache';
@@ -38,10 +38,20 @@ const getVariantColor = (variant) => {
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, toggleWishlist, wishlist, showToast } = useStore();
+  const location = useLocation();
+  const { addToCart, toggleWishlist, wishlist, showToast, getCachedProducts } = useStore();
 
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const initialProduct = useMemo(() => {
+    if (location.state?.product) return location.state.product;
+    const cachedProducts = getCachedProducts();
+    if (cachedProducts) {
+      return cachedProducts.find(p => String(p.id) === String(id) || p.handle === id) || null;
+    }
+    return null;
+  }, [id, location.state, getCachedProducts]);
+
+  const [product, setProduct] = useState(initialProduct);
+  const [loading, setLoading] = useState(!initialProduct);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(null);
@@ -105,19 +115,24 @@ const ProductDetail = () => {
 
   // Reset state IMMEDIATELY on route change to prevent wrong product flashes
   useEffect(() => {
-    setProduct(null);
-    setSelectedVariant(null);
-    setActiveImage(null);
-    setReviews([]);
+    setProduct(initialProduct);
+    if (initialProduct?.variants && initialProduct.variants.length > 0) {
+      setSelectedVariant(initialProduct.variants[0]);
+    } else {
+      setSelectedVariant(null);
+    }
+    setActiveImage(initialProduct?.thumbnailUrl || initialProduct?.images?.[0] || null);
+
+    setReviews(initialProduct?.reviews || []);
     setRelatedProducts([]);
     setRelatedProductsLoading(false);
-    setLoading(true);
-    setReviewsLoading(true);
+    setLoading(!initialProduct);
+    setReviewsLoading(!initialProduct?.reviews);
     // Clear any cached images
     if (window.productImageCache) {
       window.productImageCache.clear();
     }
-  }, [id]);
+  }, [id, initialProduct]);
 
   useEffect(() => {
     const fetchProduct = async () => {

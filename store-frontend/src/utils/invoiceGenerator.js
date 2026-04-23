@@ -4,6 +4,17 @@ export const generateInvoice = (order) => {
   if (!order) return;
 
   const totalQuantity = order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const INR = '\u20B9';
+  const shippingCharge = order.paymentMethod === 'cod' ? 70 : 0;
+  const originalItemsSubtotal =
+    order.items?.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0
+    ) || 0;
+  const paidTotal = Number(order.totalAmount || 0);
+  const paidItemsSubtotal = Math.max(0, paidTotal - shippingCharge);
+  const discountAmount = Math.max(0, originalItemsSubtotal - paidItemsSubtotal);
+  const hasDiscount = discountAmount > 0.01;
 
   const invoiceContent = `
     <!DOCTYPE html>
@@ -344,13 +355,32 @@ export const generateInvoice = (order) => {
             <p><strong>Order Status:</strong> ${order.status}</p>
           </div>
           <div class="summary-box">
+            ${
+              hasDiscount
+                ? `
             <div class="summary-row">
-              <span class="summary-label">Subtotal:</span>
-              <span class="summary-amount">₹${order.totalAmount?.toLocaleString('en-IN') || '0'}</span>
+              <span class="summary-label">Items Total:</span>
+              <span class="summary-amount" style="text-decoration: line-through; opacity: 0.7;">${INR}${originalItemsSubtotal.toLocaleString('en-IN')}</span>
             </div>
             <div class="summary-row">
+              <span class="summary-label">Discount:</span>
+              <span class="summary-amount" style="color:#059669;font-weight:700;">-${INR}${discountAmount.toLocaleString('en-IN')}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Subtotal (After Discount):</span>
+              <span class="summary-amount">${INR}${paidItemsSubtotal.toLocaleString('en-IN')}</span>
+            </div>
+            `
+                : `
+            <div class="summary-row">
+              <span class="summary-label">Subtotal:</span>
+              <span class="summary-amount">${INR}${paidItemsSubtotal.toLocaleString('en-IN')}</span>
+            </div>
+            `
+            }
+            <div class="summary-row">
               <span class="summary-label">Shipping:</span>
-              <span class="summary-amount">${order.paymentMethod === 'cod' ? '₹70' : 'Free'}</span>
+              <span class="summary-amount">${shippingCharge ? `${INR}${shippingCharge}` : 'Free'}</span>
             </div>
             <div class="summary-row">
               <span class="summary-label">Taxes:</span>
@@ -358,7 +388,7 @@ export const generateInvoice = (order) => {
             </div>
             <div class="summary-row total-row">
               <span>TOTAL</span>
-              <span>₹${order.totalAmount?.toLocaleString('en-IN') || '0'}</span>
+              <span>${INR}${paidTotal.toLocaleString('en-IN')}</span>
             </div>
           </div>
         </div>

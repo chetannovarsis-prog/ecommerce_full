@@ -58,6 +58,17 @@ const OrderSuccess = () => {
     { label: 'Delivered', icon: Home, completed: getStatusStep() >= 3 }
   ];
 
+  const shippingCharge = order?.paymentMethod === 'cod' ? 70 : 0;
+  const originalItemsSubtotal =
+    order?.items?.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0
+    ) || 0;
+  const paidTotal = Number(order?.totalAmount || 0);
+  const paidItemsSubtotal = Math.max(0, paidTotal - shippingCharge);
+  const discountAmount = Math.max(0, originalItemsSubtotal - paidItemsSubtotal);
+  const hasDiscount = discountAmount > 0.01;
+
   return (
     <div className="min-h-screen bg-white pb-20 pt-10 px-4 md:px-0 font-sans selection:bg-black selection:text-white">
       <div className="max-w-[700px] mx-auto space-y-10">
@@ -177,28 +188,44 @@ const OrderSuccess = () => {
               </div>
            </section>
 
-           {/* Order Summary */}
-           <section className="space-y-8 pt-12 border-t border-gray-100">
-              <h2 className="text-[0.95rem] font-bold text-gray-900 uppercase tracking-widest">Order Summary</h2>
-              <div className="space-y-4">
-                 <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
-                    <span>Subtotal</span>
-                    <span className="text-gray-900 font-bold">₹{order?.totalAmount}.00</span>
-                 </div>
-                 <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
+            {/* Order Summary */}
+            <section className="space-y-8 pt-12 border-t border-gray-100">
+               <h2 className="text-[0.95rem] font-bold text-gray-900 uppercase tracking-widest">Order Summary</h2>
+               <div className="space-y-4">
+                  {hasDiscount && (
+                    <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
+                      <span>Items Total</span>
+                      <span className="text-gray-900 font-bold line-through opacity-70">
+                        ₹{originalItemsSubtotal.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  )}
+                  {hasDiscount && (
+                    <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
+                      <span>Discount</span>
+                      <span className="text-emerald-600 font-bold">
+                        -₹{discountAmount.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
+                    <span>{hasDiscount ? 'Subtotal (After Discount)' : 'Subtotal'}</span>
+                    <span className="text-gray-900 font-bold">₹{paidItemsSubtotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
                     <span>Shipping</span>
-                    <span className="text-gray-900 font-medium">—</span>
-                 </div>
-                 <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
-                    <span>Taxes</span>
-                    <span className="text-gray-900 font-medium">—</span>
-                 </div>
-                 <div className="flex justify-between items-center pt-6 border-t border-gray-100 text-[1.1rem]">
-                    <span className="font-bold text-gray-900">Total</span>
-                    <span className="font-black text-gray-900 text-2xl tracking-tighter">₹{order?.totalAmount}.00</span>
-                 </div>
-              </div>
-           </section>
+                    <span className="text-gray-900 font-medium">{shippingCharge ? `₹${shippingCharge}` : 'Free'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
+                     <span>Taxes</span>
+                     <span className="text-gray-900 font-medium">—</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-6 border-t border-gray-100 text-[1.1rem]">
+                     <span className="font-bold text-gray-900">Total</span>
+                     <span className="font-black text-gray-900 text-2xl tracking-tighter">₹{paidTotal.toLocaleString('en-IN')}</span>
+                  </div>
+               </div>
+            </section>
 
            {/* Help Section */}
            <section className="space-y-6 pt-12 border-t border-gray-100 mb-20">

@@ -397,14 +397,37 @@ export const trackShipment = async (awb) => {
 export const cancelShipment = async (shipmentId) => {
   logger.info(`[ShiprocketService] Cancelling shipment ${shipmentId}`);
 
+  let shiprocketOrderId = null;
+
+  try {
+    const { data } = await request({
+      method: 'get',
+      url: `/courier/track/shipment/${encodeURIComponent(shipmentId)}`,
+    });
+
+    const track = data?.tracking_data?.shipment_track?.[0] || {};
+    shiprocketOrderId = track?.order_id ? Number(track.order_id) : null;
+  } catch (error) {
+    logger.warn(
+      `[ShiprocketService] Unable to resolve Shiprocket order_id for shipment ${shipmentId}: ${error.message}`
+    );
+  }
+
+  if (!Number.isFinite(shiprocketOrderId) || !shiprocketOrderId) {
+    const err = new Error('Unable to cancel shipment: Shiprocket order_id could not be resolved');
+    err.statusCode = 502;
+    throw err;
+  }
+
   await request({
     method: 'post',
     url: '/orders/cancel',
-    data: { ids: [Number(shipmentId)] },
+    data: { ids: [shiprocketOrderId] },
   });
 
   return {
     shipment_id: String(shipmentId),
+    order_id: shiprocketOrderId ? String(shiprocketOrderId) : null,
     status: 'CANCELLED',
   };
 };

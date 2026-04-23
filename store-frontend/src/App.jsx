@@ -36,7 +36,7 @@ import { MessageCircle } from 'lucide-react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 function App() {
-  const { syncStore } = useStore();
+  const { syncStore, cacheProducts } = useStore();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const whatsappMessage = encodeURIComponent('Hello, I would like to know more about your products.');
 
@@ -55,6 +55,7 @@ function App() {
           : [];
 
         syncStore(products);
+        cacheProducts(products);
       } catch (error) {
         console.error('Error syncing store:', error);
       }

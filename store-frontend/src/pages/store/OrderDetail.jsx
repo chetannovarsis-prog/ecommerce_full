@@ -116,6 +116,17 @@ const OrderDetail = () => {
     ? 'PAID'
     : order.paymentMethod === 'cod' ? 'COD' : 'PENDING';
 
+  const shippingCharge = order.paymentMethod === 'cod' ? 70 : 0;
+  const originalItemsSubtotal =
+    order.items?.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0
+    ) || 0;
+  const paidTotal = Number(order.totalAmount || 0);
+  const paidItemsSubtotal = Math.max(0, paidTotal - shippingCharge);
+  const discountAmount = Math.max(0, originalItemsSubtotal - paidItemsSubtotal);
+  const hasDiscount = discountAmount > 0.01;
+
   return (
     <div className="min-h-screen bg-gray-50/40 py-32 px-4 italic-none">
       <div className="max-w-3xl mx-auto space-y-8">
@@ -371,14 +382,30 @@ const OrderDetail = () => {
             </div>
 
             <div className="space-y-4">
+              {hasDiscount && (
+                <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
+                  <span>Items Total</span>
+                  <span className="text-gray-900 font-bold line-through opacity-70">
+                    ₹{originalItemsSubtotal.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
+              {hasDiscount && (
+                <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
+                  <span>Discount</span>
+                  <span className="text-emerald-600 font-bold">
+                    -₹{discountAmount.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
-                <span>Subtotal</span>
-                <span className="text-gray-900 font-bold">₹{order.totalAmount?.toLocaleString('en-IN') || '0'}</span>
+                <span>{hasDiscount ? 'Subtotal (After Discount)' : 'Subtotal'}</span>
+                <span className="text-gray-900 font-bold">₹{paidItemsSubtotal.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
                 <span>Shipping</span>
                 <span className="text-gray-900 font-medium">
-                  {order.paymentMethod === 'cod' ? '₹70' : 'Free'}
+                  {shippingCharge ? `₹${shippingCharge}` : 'Free'}
                 </span>
               </div>
               <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
@@ -387,7 +414,7 @@ const OrderDetail = () => {
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-gray-50">
                 <span className="text-sm font-black uppercase tracking-tight">Total</span>
-                <span className="text-2xl font-black tracking-tighter">₹{order.totalAmount?.toLocaleString('en-IN') || '0'}</span>
+                <span className="text-2xl font-black tracking-tighter">₹{paidTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
 

@@ -62,8 +62,8 @@ export const getOrderById = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Verify the authenticated user owns this order
-    if (order.customerId !== user.id) {
+    // Customer can only access their own order. Admin can access any order.
+    if (req.auth?.type === 'customer' && order.customerId !== user.id) {
       return res.status(403).json({ message: 'Forbidden: You do not have access to this order' });
     }
 

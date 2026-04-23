@@ -76,7 +76,7 @@ const ProductCard = ({ product, isListView = false }) => {
   if (isListView) {
     return (
       <div
-        onClick={() => navigate(`/products/${product.handle || id}`)}
+        onClick={() => navigate(`/products/${product.handle || id}`, { state: { product } })}
         className="flex flex-col md:flex-row gap-6 md:gap-10 group cursor-pointer py-10 border-b border-gray-50 last:border-0 italic-none"
       >
         <div className="w-full md:w-60 aspect-[3/4] overflow-hidden bg-gray-50 rounded-sm relative flex-shrink-0">
@@ -164,7 +164,7 @@ const ProductCard = ({ product, isListView = false }) => {
   return (
     <div
       className="relative group cursor-pointer italic-none"
-      onClick={() => navigate(`/products/${product.handle || id}`)}
+      onClick={() => navigate(`/products/${product.handle || id}`, { state: { product } })}
       onMouseEnter={handlePrefetch}
     >
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
