@@ -40,6 +40,8 @@ export const getOrders = async (req, res) => {
 
 export const getOrderById = async (req, res) => {
   const { id } = req.params;
+  const { user } = req; // From requireAuth middleware
+
   try {
     const order = await prisma.order.findUnique({
       where: { id },
@@ -60,6 +62,11 @@ export const getOrderById = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
+    // Verify the authenticated user owns this order
+    if (order.customerId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: You do not have access to this order' });
+    }
+
     res.json(order);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -68,9 +75,25 @@ export const getOrderById = async (req, res) => {
 
 export const getCustomerOrders = async (req, res) => {
   const { customerId } = req.params;
+  const { user } = req; // From requireAuth middleware
+
   try {
+    // Verify the authenticated user can only see their own orders
+    if (customerId !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: You can only view your own orders' });
+    }
+
     const orders = await prisma.order.findMany({
-      where: { customerId },
+      // Hide unpaid Razorpay orders from customer history until payment is verified.
+      where: {
+        customerId,
+        NOT: {
+          OR: [
+            { status: 'PAYMENT_PENDING' },
+            { AND: [{ status: 'PENDING' }, { paymentMethod: { not: 'cod' } }] },
+          ],
+        },
+      },
       include: {
         items: {
           include: {

@@ -257,7 +257,19 @@ const Checkout = () => {
 
   // Remove any leftover Razorpay iframe/backdrop that might block scroll
   document.querySelectorAll('.razorpay-container, .razorpay-backdrop').forEach(el => el.remove());
-};
+ };
+
+      const cancelPendingOrder = async () => {
+        try {
+          await api.post('/payments/cancel', {
+            orderId: order.orderId,
+            razorpay_order_id: order.id,
+          });
+        } catch (err) {
+          // Best-effort cleanup; don't block the UI on cancel failures.
+          console.error('Failed to cancel pending order:', err);
+        }
+      };
 
       const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
       if (!razorpayKey) {
@@ -267,51 +279,58 @@ const Checkout = () => {
         return;
       }
 
-      const options = {
-        key: razorpayKey,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'Ghar of Ethnics',
-        order_id: order.id,
-        handler: async (response) => {
-          setIsProcessing(true);
-          try {
-            await api.post('/payments/verify', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            clearCart();
-            restoreScroll();
-            navigate(`/order-success/${order.orderId}`);
-          } catch (error) {
-            setIsProcessing(false);
-            restoreScroll();
-            alert('Payment verification failed.');
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-            restoreScroll();
+        const options = {
+          key: razorpayKey,
+          amount: order.amount,
+          currency: order.currency,
+          name: 'Ghar of Ethnics',
+          order_id: order.id,
+          handler: async (response) => {
+            setIsProcessing(true);
+            try {
+              await api.post('/payments/verify', {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              clearCart();
+              restoreScroll();
+              navigate(`/order-success/${order.orderId}`);
+            } catch (error) {
+              setIsProcessing(false);
+              restoreScroll();
+              alert('Payment verification failed.');
+            }
           },
-        },
-        error: {
-          onerror: () => {
-            setLoading(false);
-            restoreScroll();
+          modal: {
+            ondismiss: async () => {
+              await cancelPendingOrder();
+              setLoading(false);
+              restoreScroll();
+            },
           },
-        },
-        prefill: {
-          name: `${values.firstName} ${values.lastName}`,
-          email: values.email,
-          contact: normalizedPhone,
-        },
-        theme: { color: '#1a2d5a' },
-      };
+          error: {
+            onerror: async () => {
+              await cancelPendingOrder();
+              setLoading(false);
+              restoreScroll();
+            },
+          },
+          prefill: {
+            name: `${values.firstName} ${values.lastName}`,
+            email: values.email,
+            contact: normalizedPhone,
+          },
+          theme: { color: '#1a2d5a' },
+        };
 
-      const paymentObject = new window.Razorpay(options);
-      paymentObject.open();
+        const paymentObject = new window.Razorpay(options);
+        paymentObject.on('payment.failed', async () => {
+          await cancelPendingOrder();
+          setLoading(false);
+          restoreScroll();
+        });
+        paymentObject.open();
     } catch (error) {
       console.error('Checkout error:', error);
       alert(error.response?.data?.message || 'Checkout failed.');

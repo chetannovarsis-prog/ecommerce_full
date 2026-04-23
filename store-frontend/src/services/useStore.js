@@ -19,9 +19,27 @@ export const useStore = create(
         }, 3000);
       },
 
+      getAvailableStock: (product, variant = null) => {
+        const raw =
+          variant?.stock ??
+          variant?.quantity ??
+          product?.stock ??
+          product?.quantity ??
+          product?.maxQuantity ??
+          0;
+        const val = Number(raw);
+        return Number.isFinite(val) ? val : 0;
+      },
+
+      getStockMessage: (availableStock) => {
+        const n = Number(availableStock);
+        if (!Number.isFinite(n) || n <= 0) return 'This product is out of stock';
+        if (n === 1) return 'Only 1 product left';
+        return `Only ${n} products left`;
+      },
+
       addToCart: (product, variant = null, quantity = 1) => {
-        const availableStock =
-          variant?.stock ?? variant?.quantity ?? product?.stock ?? product?.quantity ?? 0;
+        const availableStock = get().getAvailableStock(product, variant);
 
         if (Number(availableStock) <= 0) {
           get().showToast('This product is out of stock', 'error');
@@ -39,14 +57,52 @@ export const useStore = create(
         );
 
         if (existingItem) {
+          const currentQty = Number(existingItem.quantity || 0);
+          const cap = Number(availableStock);
+
+          if (currentQty >= cap) {
+            get().showToast(get().getStockMessage(cap), 'error');
+            return;
+          }
+
+          const addQty = Math.max(0, Math.min(Number(quantity) || 1, cap - currentQty));
+          if (addQty <= 0) {
+            get().showToast(get().getStockMessage(cap), 'error');
+            return;
+          }
+
+          if (addQty < (Number(quantity) || 1)) {
+            get().showToast(get().getStockMessage(cap), 'error');
+          } else {
+            get().showToast('Product added to cart');
+          }
+
           set({
             cart: cart.map((item) =>
               String(item.id) === String(product.id) && String(item.variantId || '') === String(variant?.id || '')
-                ? { ...item, quantity: item.quantity + quantity }
+                ? {
+                    ...item,
+                    quantity: item.quantity + addQty,
+                    maxQuantity: cap,
+                  }
                 : item
             ),
           });
         } else {
+          const cap = Number(availableStock);
+          const addQty = Math.max(0, Math.min(Number(quantity) || 1, cap));
+
+          if (addQty <= 0) {
+            get().showToast(get().getStockMessage(cap), 'error');
+            return;
+          }
+
+          if (addQty < (Number(quantity) || 1)) {
+            get().showToast(get().getStockMessage(cap), 'error');
+          } else {
+            get().showToast('Product added to cart');
+          }
+
           set({
             cart: [
               ...cart,
@@ -57,12 +113,12 @@ export const useStore = create(
                 selectedPrice: variant?.price !== null && variant?.price !== undefined ? variant.price : product.price,
                 selectedImage: variant?.images?.[0] || product.thumbnailUrl || product.images?.[0],
                 hoverImage: variant?.images?.[1] || product.hoverThumbnailUrl || product.images?.[1] || null,
-                quantity,
+                quantity: addQty,
+                maxQuantity: cap,
               },
             ],
           });
         }
-        get().showToast('Product added to cart');
       },
 
       removeFromCart: (productId, variantId = null) => {
@@ -77,6 +133,21 @@ export const useStore = create(
       updateCartQuantity: (productId, variantId, quantity) => {
         const { cart } = get();
         if (quantity < 1) return;
+
+        const item = cart.find(
+          (i) =>
+            String(i.id) === String(productId) &&
+            String(i.variantId || '') === String(variantId || '')
+        );
+
+        if (item) {
+          const cap = Number(item.maxQuantity);
+          if (Number.isFinite(cap) && cap > 0 && quantity > cap) {
+            get().showToast(get().getStockMessage(cap), 'error');
+            quantity = cap;
+          }
+        }
+
         set({
           cart: cart.map((item) =>
             String(item.id) === String(productId) && String(item.variantId || '') === String(variantId || '')
@@ -168,6 +239,12 @@ export const useStore = create(
           const newPrice = currentVariant && currentVariant.price !== null && currentVariant.price !== undefined
             ? currentVariant.price
             : latestProduct.price;
+
+          const newMaxQuantity = get().getAvailableStock(latestProduct, currentVariant);
+          if (Number(item.maxQuantity || 0) !== Number(newMaxQuantity || 0)) {
+            updatedItem.maxQuantity = newMaxQuantity;
+            itemChanged = true;
+          }
 
           if (Number(item.selectedPrice) !== Number(newPrice)) {
             updatedItem.selectedPrice = newPrice;

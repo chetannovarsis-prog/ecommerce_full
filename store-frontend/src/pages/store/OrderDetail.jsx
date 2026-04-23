@@ -2,14 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Check, Package, Home, ArrowLeft, ShoppingBag,
-  MapPin, Phone, Mail, CreditCard, Truck, Clock
+  MapPin, Phone, Mail, CreditCard, Truck, Clock, Download
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../utils/api';
+import { generateInvoice } from '../../utils/invoiceGenerator';
 
 const statusColors = {
   PAID: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   PENDING: 'bg-amber-50 text-amber-600 border-amber-100',
+  PAYMENT_PENDING: 'bg-amber-50 text-amber-600 border-amber-100',
   COD: 'bg-blue-50 text-blue-600 border-blue-100',
   DELIVERED: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   SHIPPED: 'bg-blue-50 text-blue-600 border-blue-100',
@@ -18,6 +20,7 @@ const statusColors = {
 
 const getStatusStep = (status) => {
   switch (status) {
+    case 'PAYMENT_PENDING': return 0;
     case 'DELIVERED': return 3;
     case 'SHIPPED': return 2;
     default: return 1;
@@ -32,19 +35,37 @@ const OrderDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem('customerToken');
+    if (!token) {
+      navigate('/login', { replace: true });
+      return;
+    }
+
     const fetchOrder = async () => {
       try {
         const res = await api.get(`/orders/${id}`);
         setOrder(res.data);
       } catch (err) {
         console.error('Error fetching order:', err);
-        setError('Could not load order details.');
+        
+        // Handle specific error cases
+        if (err.response?.status === 403) {
+          setError('You do not have access to this order.');
+          setTimeout(() => navigate('/profile', { replace: true }), 2000);
+        } else if (err.response?.status === 401) {
+          localStorage.removeItem('customerToken');
+          localStorage.removeItem('customer');
+          navigate('/login', { replace: true });
+        } else {
+          setError('Could not load order details.');
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchOrder();
-  }, [id]);
+  }, [id, navigate]);
 
   if (loading) {
     return (
@@ -80,8 +101,9 @@ const OrderDetail = () => {
   }
 
   const step = getStatusStep(order.status);
+  const isPaymentPending = order.status === 'PAYMENT_PENDING';
   const steps = [
-    { label: 'Order Placed', icon: Check, completed: step >= 1 },
+    { label: isPaymentPending ? 'Payment Pending' : 'Order Placed', icon: isPaymentPending ? Clock : Check, completed: step >= 1 },
     { label: 'Shipped', icon: Truck, completed: step >= 2 },
     { label: 'Delivered', icon: Home, completed: step >= 3 },
   ];
@@ -133,13 +155,20 @@ const OrderDetail = () => {
                 <h1 className="text-2xl font-black uppercase tracking-tighter"># {order.id.slice(-8).toUpperCase()}</h1>
               </div>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col md:flex-row md:items-center flex-wrap gap-3">
               <span className={`text-[0.6rem] px-4 py-2 rounded-xl font-black uppercase tracking-widest border ${statusColors[order.status] || 'bg-gray-50 text-gray-500 border-gray-100'}`}>
                 {order.status}
               </span>
               <span className={`text-[0.6rem] px-4 py-2 rounded-xl font-black uppercase tracking-widest border ${statusColors[paymentStatusKey]}`}>
                 {paymentStatusKey === 'PAID' ? '✓ Paid' : paymentStatusKey === 'COD' ? 'Cash on Delivery' : 'Payment Pending'}
               </span>
+              <button
+                onClick={() => generateInvoice(order)}
+                className="px-4 py-2 bg-black text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center gap-2"
+              >
+                <Download size={14} />
+                Download Invoice
+              </button>
             </div>
           </div>
         </motion.div>
@@ -320,10 +349,31 @@ const OrderDetail = () => {
             <h2 className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
               <CreditCard size={16} className="text-gray-400" /> Order Summary
             </h2>
+            
+            {/* Items Breakdown */}
+            <div className="bg-gray-50/60 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[0.7rem] font-black uppercase tracking-wider text-gray-600">Total Items Ordered</span>
+                <span className="text-lg font-black text-gray-900">{order.items?.length || 0}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[0.7rem] font-black uppercase tracking-wider text-gray-600">Total Quantity</span>
+                <span className="text-lg font-black text-gray-900">{order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0} units</span>
+              </div>
+              <div className="pt-3 border-t border-gray-200 space-y-2">
+                {order.items?.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[0.65rem]">
+                    <span className="text-gray-600 truncate max-w-[60%]">{item.product?.name || 'Product'}</span>
+                    <span className="font-semibold text-gray-900 whitespace-nowrap ml-2">x{item.quantity} @ ₹{item.price.toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
                 <span>Subtotal</span>
-                <span className="text-gray-900 font-bold">₹{order.totalAmount}</span>
+                <span className="text-gray-900 font-bold">₹{order.totalAmount?.toLocaleString('en-IN') || '0'}</span>
               </div>
               <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
                 <span>Shipping</span>
@@ -337,7 +387,7 @@ const OrderDetail = () => {
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-gray-50">
                 <span className="text-sm font-black uppercase tracking-tight">Total</span>
-                <span className="text-2xl font-black tracking-tighter">₹{order.totalAmount}</span>
+                <span className="text-2xl font-black tracking-tighter">₹{order.totalAmount?.toLocaleString('en-IN') || '0'}</span>
               </div>
             </div>
 

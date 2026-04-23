@@ -19,7 +19,7 @@ const Toast = () => {
           <div className="p-1 bg-emerald-500 rounded-full flex-shrink-0">
             <CheckCircle2 size={16} strokeWidth={3} />
           </div>
-          <p className="text-[0.6rem] md:text-[0.65rem] font-black uppercase tracking-widest flex-1 line-clamp-2">
+          <p className="text-[0.6rem] md:text-[0.65rem] w-full font-bold uppercase flex-1">
             {toast.message}
           </p>
           <button className="text-white/40 hover:text-white transition-colors flex-shrink-0">

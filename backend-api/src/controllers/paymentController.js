@@ -36,7 +36,6 @@ export const createRazorpayOrder = async (req, res) => {
     currency = 'INR',
     receipt,
     items,
-    customerId,
     customerEmail,
     customerName,
     paymentMethod,
@@ -44,12 +43,12 @@ export const createRazorpayOrder = async (req, res) => {
   } = req.body;
 
   console.log('--- CREATING ORDER ---');
-  console.log('Body:', { amount, currency, receipt, customerId, customerEmail, paymentMethod });
+  console.log('Body:', { amount, currency, receipt, customerEmail, paymentMethod });
   console.log('Items Count:', items?.length);
 
   try {
     let razorpayOrder = null;
-    let resolvedCustomerId = null;
+    const resolvedCustomerId = req.user?.id || null;
 
     // Only create Razorpay order if it's not COD
     if (paymentMethod !== 'cod') {
@@ -63,36 +62,13 @@ export const createRazorpayOrder = async (req, res) => {
       console.log('Razorpay Order Created:', razorpayOrder.id);
     }
 
-    // Resolve the customer from a trusted DB lookup instead of relying on cached frontend IDs.
-    if (customerId) {
-      const existingCustomer = await prisma.customer.findUnique({
-        where: { id: customerId },
-        select: { id: true }
-      });
-      resolvedCustomerId = existingCustomer?.id || null;
-    }
-
-    if (!resolvedCustomerId && customerEmail) {
-      const customerByEmail = await prisma.customer.findUnique({
-        where: { email: customerEmail },
-        select: { id: true }
-      });
-      resolvedCustomerId = customerByEmail?.id || null;
-    }
-
-    if (!resolvedCustomerId && customerEmail && customerId) {
-      console.warn(`Ignoring stale customerId "${customerId}" for email "${customerEmail}"`);
-    }
-
     // Create a pending order in our database
     console.log('Creating database order...');
     const order = await prisma.order.create({
       data: {
         totalAmount: amount,
-        status: paymentMethod === 'cod' ? 'COD_PENDING' : 'PENDING',
-        customer: resolvedCustomerId
-          ? { connect: { id: resolvedCustomerId } }
-          : undefined,
+        status: paymentMethod === 'cod' ? 'COD_PENDING' : 'PAYMENT_PENDING',
+        customer: { connect: { id: resolvedCustomerId } },
         razorpayOrderId: razorpayOrder ? razorpayOrder.id : null,
         paymentMethod: paymentMethod,
         shippingAddress: {
@@ -115,19 +91,28 @@ export const createRazorpayOrder = async (req, res) => {
     });
     console.log('Database Order Created:', order.id);
 
-    // SMS notification: should never block order creation
-    try {
-      await notifyOrderCreated(order);
-    } catch (error) {
-      console.error('notifyOrderCreated failed:', error?.message || error);
-    }
+    if (paymentMethod === 'cod') {
+      // SMS notification: should never block order creation
+      try {
+        await notifyOrderCreated(order);
+      } catch (error) {
+        console.error('notifyOrderCreated failed:', error?.message || error);
+      }
 
-    // Log activity
-    await logActivity(
-      order.id,
-      paymentMethod === 'cod' ? 'ORDER_PLACED_COD' : 'ORDER_PLACED_PENDING',
-      `Order placed successfully via ${paymentMethod.toUpperCase()}.`
-    );
+      // Log activity
+      await logActivity(
+        order.id,
+        'ORDER_PLACED_COD',
+        'Order placed successfully via COD.'
+      );
+    } else {
+      // For Razorpay: do not mark as "order placed" until payment is verified.
+      await logActivity(
+        order.id,
+        'PAYMENT_PENDING',
+        'Payment initiated via Razorpay. Complete payment to confirm your order.'
+      );
+    }
 
     if (paymentMethod === 'cod') {
       const emailToSend = shippingAddress?.email || customerEmail || null;
@@ -206,6 +191,23 @@ export const verifyPayment = async (req, res) => {
 
   if (razorpay_signature === expectedSign) {
     try {
+      const existing = await prisma.order.findUnique({
+        where: { razorpayOrderId: razorpay_order_id },
+        select: { id: true, customerId: true, status: true, razorpayPaymentId: true }
+      });
+
+      if (!existing) {
+        return res.status(404).json({ message: 'Order not found for this Razorpay order id' });
+      }
+
+      if (existing.customerId && req.user?.id && existing.customerId !== req.user.id) {
+        return res.status(403).json({ message: 'Forbidden: You do not have access to this order' });
+      }
+
+      if (existing.razorpayPaymentId || existing.status === 'PAID') {
+        return res.json({ message: 'Payment already verified', orderId: existing.id });
+      }
+
       // Update order status to PAID
       const order = await prisma.order.update({
         where: { razorpayOrderId: razorpay_order_id },
@@ -215,6 +217,13 @@ export const verifyPayment = async (req, res) => {
           razorpaySignature: razorpay_signature
         }
       });
+
+      // Order created notification (after payment success)
+      try {
+        await notifyOrderCreated(order);
+      } catch (error) {
+        console.error('notifyOrderCreated failed:', error?.message || error);
+      }
 
       // SMS notification: should never block payment verification
       try {
@@ -262,4 +271,38 @@ export const verifyPayment = async (req, res) => {
   } else {
     res.status(400).json({ message: "Invalid signature sent!" });
   }
+};
+
+export const cancelPayment = async (req, res) => {
+  const { orderId, razorpay_order_id } = req.body || {};
+
+  if (!orderId && !razorpay_order_id) {
+    return res.status(400).json({ message: 'orderId or razorpay_order_id is required' });
+  }
+
+  const order = await prisma.order.findUnique({
+    where: orderId ? { id: orderId } : { razorpayOrderId: razorpay_order_id },
+    select: { id: true, customerId: true, status: true, paymentMethod: true, razorpayPaymentId: true }
+  });
+
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+
+  if (order.customerId && req.user?.id && order.customerId !== req.user.id) {
+    return res.status(403).json({ message: 'Forbidden: You do not have access to this order' });
+  }
+
+  if (order.paymentMethod === 'cod') {
+    return res.status(400).json({ message: 'COD payments cannot be cancelled via this endpoint' });
+  }
+
+  if (order.status === 'PAID' || order.razorpayPaymentId) {
+    return res.status(400).json({ message: 'Paid orders cannot be cancelled' });
+  }
+
+  // Remove the unpaid order so it doesn't show as "placed" for the customer.
+  await prisma.order.delete({ where: { id: order.id } });
+
+  return res.json({ success: true });
 };
