@@ -271,9 +271,18 @@ const Checkout = () => {
         }
       };
 
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      let razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
       if (!razorpayKey) {
-        console.warn('VITE_RAZORPAY_KEY_ID not set in environment variables. Please configure it.');
+        console.warn('VITE_RAZORPAY_KEY_ID not set in environment variables. Falling back to backend config.');
+        try {
+          const { data } = await api.get('/payments/config');
+          razorpayKey = data?.razorpayKeyId || null;
+        } catch (err) {
+          console.error('Failed to fetch Razorpay config from backend:', err);
+        }
+      }
+
+      if (!razorpayKey) {
         alert('Payment configuration error. Please contact support.');
         setLoading(false);
         return;

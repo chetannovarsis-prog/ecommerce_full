@@ -10,6 +10,12 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+export const getPaymentConfig = async (req, res) => {
+  res.json({
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || null,
+  });
+};
+
 const normalizeAddressForSave = (shippingAddress = {}, customerName = '', customerEmail = '') => ({
   id: shippingAddress.id || `addr_${Date.now()}`,
   label: shippingAddress.label || 'Saved Address',
