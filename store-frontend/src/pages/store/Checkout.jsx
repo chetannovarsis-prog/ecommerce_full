@@ -67,8 +67,8 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
   useEffect(() => {
     // If pincode is empty or invalid format, clear city and state
     if (!pinCode || pinCode.length !== 6 || !/^[1-9][0-9]{5}$/.test(pinCode)) {
-      if (!pinCode) {
-        // Only clear if pinCode is completely empty, to avoid clearing on each keystroke during typing
+      if ( pinCode.length < 6) {
+        // Only clear if pinCode is completely empty or too short, to avoid clearing on each keystroke during typing
         setFieldValue('city', '');
         setFieldValue('state', '');
         setFieldError('pinCode', undefined);
