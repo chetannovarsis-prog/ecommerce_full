@@ -14,7 +14,31 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
+
+  const MIN_PASSWORD_LENGTH = 6;
+  const PASSWORD_RULES = {
+    uppercase: /[A-Z]/,
+    number: /[0-9]/,
+    special: /[^A-Za-z0-9]/
+  };
+
+  const getPasswordValidation = (password) => {
+    const minLength = password.length >= MIN_PASSWORD_LENGTH;
+    const uppercase = PASSWORD_RULES.uppercase.test(password);
+    const number = PASSWORD_RULES.number.test(password);
+    const special = PASSWORD_RULES.special.test(password);
+
+    return {
+      minLength,
+      uppercase,
+      number,
+      special,
+      isValid: minLength && uppercase && number && special,
+      message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters and include 1 uppercase letter, 1 number, and 1 special character.`
+    };
+  };
 
   const persistCustomerSession = (data) => {
     localStorage.setItem('customerToken', data.token);
@@ -26,6 +50,14 @@ const Signup = () => {
     setLoading(true);
     setError('');
     setMessage('');
+    setPasswordError('');
+
+    const passwordCheck = getPasswordValidation(formData.password);
+    if (!passwordCheck.isValid) {
+      setPasswordError(passwordCheck.message);
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await api.post('/auth/customer/signup', formData);
@@ -33,7 +65,13 @@ const Signup = () => {
       setStep('otp');
       setMessage(res.data.message || 'OTP sent to your email.');
     } catch (err) {
-      setError(err.response?.data?.message || 'Signup failed');
+      let errorMessage = err.response?.data?.message || 'Signup failed';
+      // Replace "Email already registered" with custom message
+      if (errorMessage.toLowerCase().includes('email already registered') || 
+          errorMessage.toLowerCase().includes('email already exists')) {
+        errorMessage = 'This email already exists. Please Sign In';
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -73,6 +111,8 @@ const Signup = () => {
     }
   };
 
+  const passwordValidation = getPasswordValidation(formData.password);
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center bg-white px-6 py-20">
       <motion.div
@@ -86,8 +126,14 @@ const Signup = () => {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-500 p-4 rounded-xl text-[0.7rem] font-bold text-center border border-red-100 uppercase tracking-tighter">
+          <div className="bg-red-50 text-red-500 p-4 rounded-xl text-[0.7rem] font-bold text-center border border-red-100 tracking-tighter">
             {error}
+          </div>
+        )}
+
+        {passwordError && (
+          <div className="bg-red-50 text-red-500 p-4 rounded-xl text-sm font-bold text-center border border-red-100  tracking-tighter">
+            {passwordError}
           </div>
         )}
 
@@ -108,7 +154,11 @@ const Signup = () => {
                     placeholder="Full Name"
                     className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:border-black transition-all focus:ring-4 focus:ring-black/5"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      // Only allow alphabetic characters and spaces
+                      const alphabeticOnly = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                      setFormData({ ...formData, name: alphabeticOnly });
+                    }}
                     required
                   />
                 </div>
@@ -130,7 +180,10 @@ const Signup = () => {
                     placeholder="Password"
                     className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:border-black transition-all focus:ring-4 focus:ring-black/5"
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      if (passwordError) setPasswordError('');
+                    }}
                     required
                   />
                   <button
@@ -142,6 +195,22 @@ const Signup = () => {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
+                {formData.password && (
+                  <div className="space-y-1 text-xs font-bold tracking-tight">
+                    <p className={passwordValidation.minLength ? 'text-emerald-600' : 'text-red-500'}>
+                      At least {MIN_PASSWORD_LENGTH} characters ({formData.password.length}/{MIN_PASSWORD_LENGTH})
+                    </p>
+                    <p className={passwordValidation.uppercase ? 'text-emerald-600' : 'text-red-500'}>
+                      At least 1 uppercase letter (A-Z)
+                    </p>
+                    <p className={passwordValidation.number ? 'text-emerald-600' : 'text-red-500'}>
+                      At least 1 number (0-9)
+                    </p>
+                    <p className={passwordValidation.special ? 'text-emerald-600' : 'text-red-500'}>
+                      At least 1 special character (!@#$...)
+                    </p>
+                  </div>
+                )}
               </div>
 
               <button
@@ -149,7 +218,7 @@ const Signup = () => {
                 disabled={loading}
                 className="w-full bg-black text-white py-5 rounded-2xl text-[0.7rem] font-black uppercase tracking-[3px] flex items-center justify-center gap-3 hover:scale-[1.02] transition-all shadow-2xl shadow-black/20 active:scale-95 disabled:opacity-50"
               >
-                {loading ? 'Sending OTP...' : 'Become a Member'} <ArrowRight size={18} />
+                {loading ? 'Sending OTP...' : 'Sign Up'} <ArrowRight size={18} />
               </button>
             </form>
 

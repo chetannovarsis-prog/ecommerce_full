@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Check, Package, Truck, Home, X, HelpCircle, Phone, ArrowLeftRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../utils/api';
+import InvoiceGenerator from '../../components/InvoiceGenerator';
 
 const OrderSuccess = () => {
   const { id } = useParams();
@@ -14,24 +15,52 @@ const OrderSuccess = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get(`/orders/${id}`);
+        let orderId = id;
+        
+        // If URL is /order-success/thank-you, fetch the latest order for the customer
+        if (id === 'thank-you') {
+          try {
+            const profileRes = await api.get('/auth/customer/profile');
+            const customer = profileRes.data;
+            
+            if (customer?.id) {
+              const ordersRes = await api.get(`/orders`);
+              const orders = Array.isArray(ordersRes.data) ? ordersRes.data : [];
+              
+              if (orders.length > 0) {
+                // Get the most recent order
+                const latestOrder = orders.reduce((latest, current) => {
+                  return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
+                });
+                orderId = latestOrder.id;
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching customer profile or orders:', err);
+            navigate('/');
+            return;
+          }
+        }
+        
+        const res = await api.get(`/orders/${orderId}`);
         setOrder(res.data);
         
         // Try fetching shipment
         try {
-           const shipRes = await api.get(`/shipping/order/${id}`);
+           const shipRes = await api.get(`/shipping/order/${orderId}`);
            setShipment(shipRes.data.shipment);
         } catch {
            setShipment(null);
         }
       } catch (err) {
         console.error('Error fetching order:', err);
+        navigate('/');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, navigate]);
 
   if (loading) {
     return (
@@ -74,14 +103,17 @@ const OrderSuccess = () => {
       <div className="max-w-[700px] mx-auto space-y-10">
         
         {/* Header */}
-        <header className="flex items-center justify-between pb-6 border-b border-gray-100">
+        <header className="flex items-center justify-between pb-6 border-b border-gray-100 gap-4 flex-wrap">
            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Order details</h1>
-           <button 
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
-           >
-             <X size={14} /> Back to overview
-           </button>
+           <div className="flex items-center gap-2">
+             {order && <InvoiceGenerator order={order} customer={order?.customer} responsive={true} />}
+             <button 
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 transition-all active:scale-95"
+             >
+               <X size={14} /> <span className="hidden sm:inline">Back to overview</span>
+             </button>
+           </div>
         </header>
 
         {/* Main Content Card */}

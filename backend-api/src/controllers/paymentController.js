@@ -2,7 +2,8 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import prisma from '../utils/prisma.js';
 import { logActivity } from '../services/activityService.js';
-import { sendMail, TEMPLATES } from '../utils/mailer.js';
+import { sendMail, TEMPLATES, sendInvoiceEmail } from '../utils/mailer.js';
+import { generateInvoice } from '../utils/invoiceGenerator.js';
 import { notifyOrderCreated, notifyPaymentSuccess } from '../services/notificationService.js';
 
 const razorpay = new Razorpay({
@@ -255,6 +256,23 @@ export const verifyPayment = async (req, res) => {
         if (destEmail) {
           await sendMail(destEmail, 'Payment Success - Ghar of Ethnics', TEMPLATES.PAYMENT_SUCCESS());
           await sendMail(destEmail, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
+          
+          // Generate and send invoice with PDF attachment
+          try {
+            const invoicePDF = await generateInvoice(order.id);
+            const invoiceFileName = `Invoice_${order.id}.pdf`;
+            await sendInvoiceEmail(
+              destEmail, 
+              'Your Invoice - Ghar of Ethnics', 
+              TEMPLATES.INVOICE(order.id),
+              invoicePDF,
+              invoiceFileName
+            );
+          } catch (invoiceError) {
+            console.error('Error generating or sending invoice:', invoiceError);
+            // Still send a notification even if invoice generation fails
+            await sendMail(destEmail, 'Your Invoice - Ghar of Ethnics', TEMPLATES.INVOICE(order.id));
+          }
         }
       }
 

@@ -65,7 +65,16 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
   const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
-    if (!pinCode || pinCode.length !== 6 || !/^[1-9][0-9]{5}$/.test(pinCode)) return;
+    // If pincode is empty or invalid format, clear city and state
+    if (!pinCode || pinCode.length !== 6 || !/^[1-9][0-9]{5}$/.test(pinCode)) {
+      if (!pinCode) {
+        // Only clear if pinCode is completely empty, to avoid clearing on each keystroke during typing
+        setFieldValue('city', '');
+        setFieldValue('state', '');
+        setFieldError('pinCode', undefined);
+      }
+      return;
+    }
 
     // Already cached — apply instantly, no spinner, no delay
     if (isPincodeCached(pinCode)) {
@@ -93,6 +102,8 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
           localStorage.setItem('last_pincode', pinCode);
         } else {
           setFieldError('pinCode', 'Pincode not serviceable');
+          setFieldValue('city', '');
+          setFieldValue('state', '');
         }
       } finally {
         setIsChecking(false);
@@ -221,7 +232,7 @@ const Checkout = () => {
       if (values.paymentMethod === 'cod') {
         setIsProcessing(true);
         clearCart();
-        setTimeout(() => navigate(`/order-success/${order.orderId}`), 1000);
+        setTimeout(() => navigate(`/order-success/thank-you`), 1000);
         return;
       }
 
@@ -304,7 +315,7 @@ const Checkout = () => {
               });
               clearCart();
               restoreScroll();
-              navigate(`/order-success/${order.orderId}`);
+              navigate(`/order-success/thank-you`);
             } catch (error) {
               setIsProcessing(false);
               restoreScroll();
@@ -693,11 +704,11 @@ const Checkout = () => {
                   )}
                 </button>
 
-                <footer className="pt-10 border-t border-gray-50 flex flex-wrap gap-6 text-[0.65rem] text-blue-600 font-bold underline">
+                {/* <footer className="pt-10 border-t border-gray-50 flex flex-wrap gap-6 text-[0.65rem] text-blue-600 font-bold underline">
                   <a href="/returns">Refund policy</a>
                   <a href="/privacy">Privacy policy</a>
                   <a href="/terms">Terms of service</a>
-                </footer>
+                </footer> */}
               </div>
 
               {/* ── Right: Order Summary ── */}

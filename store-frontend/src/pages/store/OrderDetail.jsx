@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../utils/api';
-import { generateInvoice } from '../../utils/invoiceGenerator';
+import InvoiceGenerator from '../../components/InvoiceGenerator';
 
 const statusColors = {
   PAID: 'bg-emerald-50 text-emerald-600 border-emerald-100',
@@ -173,13 +173,7 @@ const OrderDetail = () => {
               <span className={`text-[0.6rem] px-4 py-2 rounded-xl font-black uppercase tracking-widest border ${statusColors[paymentStatusKey]}`}>
                 {paymentStatusKey === 'PAID' ? '✓ Paid' : paymentStatusKey === 'COD' ? 'Cash on Delivery' : 'Payment Pending'}
               </span>
-              <button
-                onClick={() => generateInvoice(order)}
-                className="px-4 py-2 bg-black text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-gray-800 transition-all flex items-center gap-2"
-              >
-                <Download size={14} />
-                Download Invoice
-              </button>
+              <InvoiceGenerator order={order} customer={order?.customer} />
             </div>
           </div>
         </motion.div>
