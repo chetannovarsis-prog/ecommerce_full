@@ -202,66 +202,66 @@ const Navbar = () => {
           </Link>
         </div>
 
-        <AnimatePresence>
-          {shouldShowSuggestions && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="fixed md:absolute top-full left-6 right-6 md:left-auto md:right-10 mt-3 max-w-[calc(100vw-48px)] md:max-w-[420px] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-[9999] text-black"
-            >
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">
-                  {isSearchLoading ? 'Searching...' : 'Suggestions'}
-                </p>
-              </div>
-              <div className="py-1 max-h-96 overflow-y-auto">
-                {isSearchLoading ? (
-                  // Skeleton Loaders
-                  [1, 2, 3, 4, 5, 6].map((_, idx) => (
-                    <div key={idx} className="flex items-center gap-3 px-4 py-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-md flex-shrink-0 animate-pulse" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4" />
-                        <div className="h-2 bg-gray-100 rounded animate-pulse w-1/2" />
-                      </div>
-                    </div>
-                  ))
-                ) : suggestions.length > 0 ? (
-                  suggestions.map((product) => (
-                    <div
-                      key={product.id}
-                      onClick={() => handleSuggestionClick(product)}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-all"
-                    >
-                      <div className="w-10 h-10 bg-gray-50 rounded-md overflow-hidden flex-shrink-0 border border-gray-100">
-                        {(product.thumbnailUrl || product.images?.[0]) && (
-                          <img src={product.thumbnailUrl || product.images[0]} className="w-full h-full object-contain" alt="" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-[0.78rem] font-semibold tracking-tight truncate">{product.name}</h4>
-                        <p className="text-[0.72rem] text-gray-500 mt-0.5">Rs {product.price}</p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  // No Results Found
-                  <div className="px-4 py-8 text-center space-y-3">
-                    <div className="flex justify-center">
-                      <AlertCircle size={24} className="text-gray-300" />
-                    </div>
-                    <div>
-                      <p className="text-[0.75rem] font-black text-gray-700 uppercase tracking-tight">Product Not Found</p>
-                      <p className="text-[0.65rem] text-gray-400 mt-1">No products match your search for "{searchQuery}"</p>
-                    </div>
+            <AnimatePresence>
+              {shouldShowSuggestions && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  className="absolute top-full right-0 mt-3 w-[calc(100vw-48px)] md:w-[420px] bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-[9999] text-black"
+                >
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">
+                      {isSearchLoading ? 'Searching...' : 'Suggestions'}
+                    </p>
                   </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                  <div className="py-1 max-h-96 overflow-y-auto">
+                    {isSearchLoading ? (
+                      // Skeleton Loaders
+                      [1, 2, 3, 4, 5, 6].map((_, idx) => (
+                        <div key={idx} className="flex items-center gap-3 px-4 py-3">
+                          <div className="w-10 h-10 bg-gray-200 rounded-md flex-shrink-0 animate-pulse" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4" />
+                            <div className="h-2 bg-gray-100 rounded animate-pulse w-1/2" />
+                          </div>
+                        </div>
+                      ))
+                    ) : suggestions.length > 0 ? (
+                      suggestions.map((product) => (
+                        <div
+                          key={product.id}
+                          onClick={() => handleSuggestionClick(product)}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-all"
+                        >
+                          <div className="w-10 h-10 bg-gray-50 rounded-md overflow-hidden flex-shrink-0 border border-gray-100">
+                            {(product.thumbnailUrl || product.images?.[0]) && (
+                              <img src={product.thumbnailUrl || product.images[0]} className="w-full h-full object-contain" alt="" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-[0.78rem] font-semibold tracking-tight truncate">{product.name}</h4>
+                            <p className="text-[0.72rem] text-gray-500 mt-0.5">Rs {product.price}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      // No Results Found
+                      <div className="px-4 py-8 text-center space-y-3">
+                        <div className="flex justify-center">
+                          <AlertCircle size={24} className="text-gray-300" />
+                        </div>
+                        <div>
+                          <p className="text-[0.75rem] font-black text-gray-700 uppercase tracking-tight">Product Not Found</p>
+                          <p className="text-[0.65rem] text-gray-400 mt-1">No products match your search for "{searchQuery}"</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
     </nav>
   );
 };

@@ -25,7 +25,7 @@ export const generateInvoice = async (orderId) => {
 
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ margin: 50, size: 'A4' });
       let buffers = [];
 
       doc.on('data', (data) => {
@@ -40,88 +40,105 @@ export const generateInvoice = async (orderId) => {
         reject(err);
       });
 
-      // Header
-      doc.fontSize(24).font('Helvetica-Bold').text('INVOICE', 50, 50);
+      // --- HEADER ---
+      doc.fontSize(28).font('Helvetica-Bold').text('INVOICE', 50, 60);
+      doc.fontSize(10).font('Helvetica').text('Ghar of Ethnics', 50, 95);
       
-      // Invoice details - arranged in columns to prevent overlapping
-      doc.fontSize(10).font('Helvetica');
-      
-      // Column 1: Invoice #
-      doc.fontSize(9).font('Helvetica-Bold').text('Invoice #', 350, 50);
-      doc.fontSize(10).font('Helvetica').text(order.id.substring(0, 20), 350, 65, { width: 100 });
-      
-      // Column 2: Date
-      doc.fontSize(9).font('Helvetica-Bold').text('Date', 100, 50);
-      doc.fontSize(10).font('Helvetica').text(new Date(order.createdAt).toLocaleDateString('en-IN'), 100, 65);
-      
-      // Column 3: Status
-      doc.fontSize(9).font('Helvetica-Bold').text('Status', 200, 50);
-      doc.fontSize(10).font('Helvetica').text(order.status, 200, 65);
+      doc.moveTo(50, 115).lineTo(550, 115).lineWidth(1).strokeColor('#000000').stroke();
 
-      // Customer details
-      doc.fontSize(12).font('Helvetica-Bold').text('Bill To:', 50, 130);
-      doc.fontSize(10).font('Helvetica');
-      doc.text(order.customer?.name || 'N/A', 50, 150);
-      doc.text(order.customer?.email || 'N/A', 50, 165);
+      // --- INVOICE INFO ROW ---
+      const infoY = 140;
+      doc.fontSize(9).font('Helvetica-Bold').text('Invoice #', 50, infoY);
+      doc.fontSize(10).font('Helvetica').text(order.id, 50, infoY + 15, { width: 250 });
+
+      doc.fontSize(9).font('Helvetica-Bold').text('Date', 380, infoY);
+      doc.fontSize(10).font('Helvetica').text(new Date(order.createdAt).toLocaleDateString('en-IN'), 380, infoY + 15);
+
+      doc.fontSize(9).font('Helvetica-Bold').text('Status', 500, infoY);
+      doc.fontSize(10).font('Helvetica').text(order.status || 'PAID', 500, infoY + 15);
+
+      // --- BILL TO SECTION ---
+      const billToY = 200;
+      doc.fontSize(9).font('Helvetica-Bold').text('BILL TO:', 50, billToY);
+      
+      doc.fontSize(11).font('Helvetica-Bold').text(order.shippingAddress?.fullName || order.customer?.name || 'Customer', 50, billToY + 20);
+      doc.fontSize(10).font('Helvetica').text(order.customer?.email || '', 50, billToY + 35);
       
       if (order.shippingAddress) {
-        doc.text(`${order.shippingAddress.address || ''} ${order.shippingAddress.apartment || ''}`, 50, 180);
-        doc.text(`${order.shippingAddress.city || ''}, ${order.shippingAddress.state || ''} ${order.shippingAddress.pinCode || ''}`, 50, 195);
-        doc.text(`Phone: ${order.shippingAddress.phone || 'N/A'}`, 50, 210);
+        let currentY = billToY + 50;
+        doc.text(`${order.shippingAddress.addressLine1 || order.shippingAddress.address || ''}`, 50, currentY);
+        currentY += 15;
+        if (order.shippingAddress.addressLine2 || order.shippingAddress.apartment) {
+          doc.text(`${order.shippingAddress.addressLine2 || order.shippingAddress.apartment}`, 50, currentY);
+          currentY += 15;
+        }
+        doc.text(`${order.shippingAddress.city || ''}, ${order.shippingAddress.state || ''} ${order.shippingAddress.pincode || order.shippingAddress.pinCode || ''}`, 50, currentY);
+        currentY += 15;
+        doc.text(`Phone: ${order.shippingAddress.phone || 'N/A'}`, 50, currentY);
       }
 
-      // Table headers
-      const tableTop = 250;
-      const col1 = 50;
-      const col2 = 280;
-      const col3 = 380;
-      const col4 = 480;
+      // --- TABLE HEADERS ---
+      const tableTop = 330;
+      const col1 = 50;   // Product
+      const col2 = 350;  // Quantity
+      const col3 = 430;  // Price
+      const col4 = 510;  // Amount
 
-      doc.fontSize(11).font('Helvetica-Bold');
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#000000');
       doc.text('Product', col1, tableTop);
       doc.text('Quantity', col2, tableTop);
       doc.text('Price', col3, tableTop);
       doc.text('Amount', col4, tableTop);
 
-      // Draw line
-      doc.moveTo(col1, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+      doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).lineWidth(1).strokeColor('#000000').stroke();
 
-      // Table content
-      doc.fontSize(10).font('Helvetica');
+      // --- TABLE CONTENT ---
+      doc.fontSize(10).font('Helvetica').fillColor('#333333');
       let yPosition = tableTop + 30;
       let subtotal = 0;
 
       order.items.forEach((item) => {
-        const amount = item.quantity * item.price;
-        subtotal += amount;
+        const itemPrice = item.price;
+        const itemTotal = item.quantity * itemPrice;
+        subtotal += itemTotal;
 
-        doc.text(item.product.name.substring(0, 30), col1, yPosition, { width: 200 });
-        doc.text(String(item.quantity), col2, yPosition);
-        doc.text(`₹${item.price.toFixed(2)}`, col3, yPosition);
-        doc.text(`₹${amount.toFixed(2)}`, col4, yPosition);
+        // Product name and variant
+        doc.fontSize(10).font('Helvetica').text(item.product.name, col1, yPosition, { width: 280 });
+        if (item.variantTitle) {
+          doc.fontSize(8).text(`(${item.variantTitle})`, col1, yPosition + 12, { width: 280 });
+        }
 
-        yPosition += 25;
+        doc.fontSize(10).text(String(item.quantity), col2, yPosition);
+        doc.text(`₹${itemPrice.toLocaleString('en-IN')}`, col3, yPosition);
+        doc.text(`₹${itemTotal.toLocaleString('en-IN')}`, col4, yPosition);
+
+        yPosition += 35; // Increased spacing for items
       });
 
-      // Summary
+      // --- SUMMARY ---
+      doc.moveTo(50, yPosition).lineTo(550, yPosition).lineWidth(0.5).strokeColor('#EEEEEE').stroke();
+      
       const summaryY = yPosition + 20;
-      doc.moveTo(col1, summaryY - 10).lineTo(550, summaryY - 10).stroke();
+      doc.fontSize(10).font('Helvetica').fillColor('#000000');
+      
+      doc.text('Subtotal:', 400, summaryY, { width: 80, align: 'right' });
+      doc.text(`₹${subtotal.toLocaleString('en-IN')}`, col4, summaryY, { width: 80, align: 'left' });
 
-      doc.fontSize(10).font('Helvetica');
-      doc.text('Subtotal:', col3, summaryY);
-      doc.text(`₹${subtotal.toFixed(2)}`, col4, summaryY);
+      doc.text('Shipping:', 400, summaryY + 20, { width: 80, align: 'right' });
+      doc.text('Free', col4, summaryY + 20, { width: 80, align: 'left' });
 
-      doc.text('Shipping:', col3, summaryY + 20);
-      doc.text('Free', col4, summaryY + 20);
+      doc.text('Taxes:', 400, summaryY + 40, { width: 80, align: 'right' });
+      doc.text('—', col4, summaryY + 40, { width: 80, align: 'left' });
+
+      doc.moveTo(350, summaryY + 65).lineTo(550, summaryY + 65).lineWidth(1).strokeColor('#000000').stroke();
 
       doc.fontSize(12).font('Helvetica-Bold');
-      doc.text('Total:', col3, summaryY + 50);
-      doc.text(`₹${order.totalAmount.toFixed(2)}`, col4, summaryY + 50);
+      doc.text('TOTAL:', 400, summaryY + 80, { width: 80, align: 'right' });
+      doc.text(`₹${order.totalAmount.toLocaleString('en-IN')}`, col4, summaryY + 80, { width: 80, align: 'left' });
 
-      // Footer
-      doc.fontSize(9).font('Helvetica');
-      doc.text('Thank you for your purchase!', 50, 700);
-      doc.text('Ghar of Ethnics - Your trusted ethnic wear store', 50, 715);
+      // --- FOOTER ---
+      doc.fontSize(8).font('Helvetica').fillColor('#999999');
+      doc.text('Thank you for your purchase!', 50, 780, { align: 'center', width: 500 });
 
       doc.end();
     } catch (error) {
@@ -129,3 +146,4 @@ export const generateInvoice = async (orderId) => {
     }
   });
 };
+

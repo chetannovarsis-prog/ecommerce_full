@@ -422,18 +422,12 @@ const Checkout = () => {
 
               {/* ── Left: Form ── */}
               <div className="p-10 lg:p-20 lg:border-r border-gray-100 space-y-16">
-                
+                <div className="flex flex-col justify-between space-y-3 ">
                   <h1 className="text-2xl font-black tracking-tight">Ghar of Ethnics</h1>
                   <span className="flex items-center text-sm text-gray-400 font-bold  tracking-widest">
-                    {/* <span>Cart</span>
-                    <ChevronLeft size={10} className="rotate-180" />
-                    <span className="text-black">Information</span>
-                    <ChevronLeft size={10} className="rotate-180" />
-                    <span>Shipping</span>
-                    <ChevronLeft size={10} className="rotate-180" />
-                    <span>Payment</span> */}
                     Checkout
                   </span>
+                </div>
                 
                 {/* Contact */}
                 <section className="space-y-6">
