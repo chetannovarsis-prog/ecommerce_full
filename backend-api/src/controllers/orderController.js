@@ -63,7 +63,8 @@ export const getOrderById = async (req, res) => {
     }
 
     // Customer can only access their own order. Admin can access any order.
-    if (req.auth?.type === 'customer' && order.customerId !== user.id) {
+    // Guests (no req.auth) can access the order if they have the UUID.
+    if (req.auth?.type === 'customer' && order.customerId && order.customerId !== user?.id) {
       return res.status(403).json({ message: 'Forbidden: You do not have access to this order' });
     }
 

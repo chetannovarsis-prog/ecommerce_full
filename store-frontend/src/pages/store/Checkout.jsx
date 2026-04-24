@@ -316,8 +316,8 @@ const Checkout = () => {
               });
               clearCart();
               restoreScroll();
-              // verification returns { order: { ... } }
-              const finalOrderId = verifyRes.data?.order?.id || order.id;
+              // verification returns { order: { ... } } or { orderId: '...' }
+              const finalOrderId = verifyRes.data?.order?.id || verifyRes.data?.orderId || order.orderId;
               navigate(`/order-success/${finalOrderId}`);
             } catch (error) {
               setIsProcessing(false);

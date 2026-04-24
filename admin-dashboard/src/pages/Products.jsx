@@ -261,10 +261,16 @@ const Products = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${(product.inventory || product.stock) > 10 ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                          <span className="text-[0.65rem] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{(product.inventory || product.stock || 0)} units</span>
-                        </div>
+                        {(() => {
+                          const variantStock = product.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
+                          const totalUnits = variantStock + (product.stock || 0);
+                          return (
+                            <div className="flex items-center gap-2">
+                              <div className={`w-1.5 h-1.5 rounded-full ${totalUnits > 10 ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                              <span className="text-[0.65rem] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{totalUnits} units</span>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button 

@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.get('/', requireAdmin, getOrders);
 router.get('/customer/:customerId', requireAuth, getCustomerOrders);
-router.get('/:id', requireCustomerOrAdmin, getOrderById);
+router.get('/:id', getOrderById);
 router.put('/:id', requireAdmin, updateOrderStatus);
 
 export default router;

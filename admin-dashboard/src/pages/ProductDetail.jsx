@@ -393,7 +393,12 @@ const ProductDetail = () => {
                 <div className="flex items-center gap-2 text-gray-400 font-bold uppercase tracking-tight">
                   <Package size={16} /> Inventory
                 </div>
-                <div className="text-gray-900 font-black">{product.stock} Units</div>
+                <div className="text-gray-900 font-black">
+                  {(() => {
+                    const variantStock = product.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
+                    return variantStock + (product.stock || 0);
+                  })()} Units
+                </div>
              </div>
              <div className="pt-4 border-t border-gray-50">
                <button 
