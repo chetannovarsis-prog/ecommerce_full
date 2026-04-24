@@ -49,7 +49,7 @@ export const generateInvoice = async (orderId) => {
       // --- INVOICE INFO ROW ---
       const infoY = 140;
       doc.fontSize(9).font('Helvetica-Bold').text('Invoice #', 50, infoY);
-      doc.fontSize(10).font('Helvetica').text(order.id, 50, infoY + 15, { width: 250 });
+      doc.fontSize(10).font('Helvetica').text(order.invoiceNumber || order.id, 50, infoY + 15, { width: 250 });
 
       doc.fontSize(9).font('Helvetica-Bold').text('Date', 380, infoY);
       doc.fontSize(10).font('Helvetica').text(new Date(order.createdAt).toLocaleDateString('en-IN'), 380, infoY + 15);

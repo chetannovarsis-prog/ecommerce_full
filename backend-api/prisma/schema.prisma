@@ -123,6 +123,7 @@ model Order {
   razorpayPaymentId String?         @unique
   razorpaySignature String?
   paymentMethod     String?
+  invoiceNumber     String?         @unique
   shippingAddress   Json?
   customer          Customer?       @relation(fields: [customerId], references: [id])
   items             OrderItem[]

@@ -702,7 +702,7 @@ const Profile = () => {
                         <ShoppingBag size={24} strokeWidth={1.5} />
                       </div>
                       <div>
-                        <p className="text-sm font-black uppercase tracking-tight">Order #{order.id.slice(-6).toUpperCase()}</p>
+                        <p className="text-sm font-black uppercase tracking-tight">Order #{order.invoiceNumber || order.id.slice(-6).toUpperCase()}</p>
                         <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest mt-1">Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>

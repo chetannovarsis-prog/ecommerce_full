@@ -47,6 +47,30 @@ const reduceInventory = async (orderId) => {
   }
 };
 
+const generateNextInvoiceNumber = async () => {
+  try {
+    const lastOrder = await prisma.order.findFirst({
+      where: { invoiceNumber: { startsWith: 'Gof-INV-' } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    let nextNumber = 1;
+    if (lastOrder && lastOrder.invoiceNumber) {
+      const lastInvoice = lastOrder.invoiceNumber;
+      const parts = lastInvoice.split('-');
+      const lastNum = parseInt(parts[parts.length - 1]);
+      if (!isNaN(lastNum)) {
+        nextNumber = lastNum + 1;
+      }
+    }
+
+    return `Gof-INV-${String(nextNumber).padStart(4, '0')}`;
+  } catch (error) {
+    console.error('Error generating invoice number:', error);
+    return `Gof-INV-${Date.now().toString().slice(-4)}`;
+  }
+};
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -97,6 +121,7 @@ export const createRazorpayOrder = async (req, res) => {
   try {
     let razorpayOrder = null;
     const resolvedCustomerId = req.user?.id || null;
+    const invoiceNumber = await generateNextInvoiceNumber();
 
     // Only create Razorpay order if it's not COD
     if (paymentMethod !== 'cod') {
@@ -117,6 +142,7 @@ export const createRazorpayOrder = async (req, res) => {
         totalAmount: amount,
         status: paymentMethod === 'cod' ? 'COD_PENDING' : 'PAYMENT_PENDING',
         customerId: resolvedCustomerId,
+        invoiceNumber,
         razorpayOrderId: razorpayOrder ? razorpayOrder.id : null,
         paymentMethod: paymentMethod,
         shippingAddress: {

@@ -203,7 +203,7 @@ const OrderDetail = () => {
           </button>
           <div>
             <h1 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Order Details</h1>
-            <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest mt-1">Order #{order.id.slice(-6).toUpperCase()}</p>
+            <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest mt-1">Order #{order.invoiceNumber || order.id.slice(-6).toUpperCase()}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

@@ -90,7 +90,7 @@ const Orders = () => {
                         onClick={() => navigate(`/orders/${order.id}`)}
                         className="hover:bg-gray-50/80 dark:hover:bg-white/2 transition-colors cursor-pointer text-xs font-bold"
                       >
-                        <td className="px-6 py-4 text-gray-900 dark:text-white uppercase tracking-tighter">#{order.id.slice(-6).toUpperCase()}</td>
+                        <td className="px-6 py-4 text-gray-900 dark:text-white uppercase tracking-tighter">#{order.invoiceNumber || order.id.slice(-6).toUpperCase()}</td>
                         <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{order.customer?.name || 'Guest'}</td>
                         <td className="px-6 py-4 text-gray-500 dark:text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
                         <td className="px-6 py-4 text-gray-900 dark:text-white font-black">₹{order.total}</td>

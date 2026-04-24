@@ -27,7 +27,7 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px;">
           <div style="word-break: break-word;">
             <p style="margin: 0; font-weight: bold; font-size: 12px;">Invoice #</p>
-            <p style="margin: 5px 0 0 0; font-size: 14px; word-break: break-all;">${order.id}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px; word-break: break-all;">${order.invoiceNumber || order.id}</p>
           </div>
           <div>
             <p style="margin: 0; font-weight: bold; font-size: 12px;">Date</p>
@@ -136,7 +136,7 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
 
     const opt = {
       margin: 10,
-      filename: `Invoice_${order.id}.pdf`,
+      filename: `Invoice_${order.invoiceNumber || order.id}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },

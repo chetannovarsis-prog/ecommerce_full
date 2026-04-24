@@ -163,7 +163,7 @@ const OrderDetail = () => {
               </div>
               <div className="space-y-1">
                 <p className="text-[0.6rem] text-gray-400 font-black uppercase tracking-[3px]">Order</p>
-                <h1 className="text-2xl font-black uppercase tracking-tighter"># {order.id.slice(-8).toUpperCase()}</h1>
+                <h1 className="text-2xl font-black uppercase tracking-tighter"># {order.invoiceNumber || order.id.slice(-8).toUpperCase()}</h1>
               </div>
             </div>
             <div className="flex flex-col md:flex-row md:items-center flex-wrap gap-3">

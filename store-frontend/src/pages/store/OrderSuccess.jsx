@@ -136,7 +136,7 @@ const OrderSuccess = () => {
                   Order date: <span className="text-gray-900">{new Date(order?.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: '2-digit', year: 'numeric' })}</span>
                 </p>
                 <Link to={`/profile`} className="text-[0.9rem] text-blue-600 hover:underline">
-                  Order number: {order?.id?.slice(-1) || '1'}
+                  Order number: {order?.invoiceNumber || order?.id}
                 </Link>
               </div>
            </div>
