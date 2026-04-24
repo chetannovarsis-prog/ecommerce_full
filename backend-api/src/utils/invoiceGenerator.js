@@ -43,11 +43,20 @@ export const generateInvoice = async (orderId) => {
       // Header
       doc.fontSize(24).font('Helvetica-Bold').text('INVOICE', 50, 50);
       
-      // Invoice details
+      // Invoice details - arranged in columns to prevent overlapping
       doc.fontSize(10).font('Helvetica');
-      doc.text(`Invoice #: ${order.id}`, 400, 50);
-      doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-IN')}`, 400, 65);
-      doc.text(`Status: ${order.status}`, 400, 80);
+      
+      // Column 1: Invoice #
+      doc.fontSize(9).font('Helvetica-Bold').text('Invoice #', 350, 50);
+      doc.fontSize(10).font('Helvetica').text(order.id.substring(0, 20), 350, 65, { width: 100 });
+      
+      // Column 2: Date
+      doc.fontSize(9).font('Helvetica-Bold').text('Date', 100, 50);
+      doc.fontSize(10).font('Helvetica').text(new Date(order.createdAt).toLocaleDateString('en-IN'), 100, 65);
+      
+      // Column 3: Status
+      doc.fontSize(9).font('Helvetica-Bold').text('Status', 200, 50);
+      doc.fontSize(10).font('Helvetica').text(order.status, 200, 65);
 
       // Customer details
       doc.fontSize(12).font('Helvetica-Bold').text('Bill To:', 50, 130);

@@ -20,10 +20,9 @@ const OrderSuccess = () => {
         // If URL is /order-success/thank-you, fetch the latest order for the customer
         if (id === 'thank-you') {
           try {
-            const profileRes = await api.get('/auth/customer/profile');
-            const customer = profileRes.data;
+            const savedCustomer = JSON.parse(localStorage.getItem('customer') || 'null');
             
-            if (customer?.id) {
+            if (savedCustomer?.id) {
               const ordersRes = await api.get(`/orders`);
               const orders = Array.isArray(ordersRes.data) ? ordersRes.data : [];
               
@@ -33,10 +32,20 @@ const OrderSuccess = () => {
                   return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
                 });
                 orderId = latestOrder.id;
+              } else {
+                // No orders found
+                console.error('No orders found for customer');
+                navigate('/');
+                return;
               }
+            } else {
+              // No customer in localStorage
+              console.error('Customer not found in localStorage');
+              navigate('/');
+              return;
             }
           } catch (err) {
-            console.error('Error fetching customer profile or orders:', err);
+            console.error('Error fetching orders:', err);
             navigate('/');
             return;
           }
