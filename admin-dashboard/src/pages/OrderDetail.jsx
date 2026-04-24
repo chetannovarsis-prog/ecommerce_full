@@ -238,6 +238,18 @@ const OrderDetail = () => {
                     </div>
                     <div>
                       <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">{item.product?.name}</h4>
+                      {item.variantTitle && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.variantTitle.split(',').map((part, pIdx) => {
+                            const [key, val] = part.split(':').map(s => s.trim());
+                            return (
+                              <span key={pIdx} className="text-[0.5rem] px-2 py-0.5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-lg font-black uppercase tracking-wider text-gray-400">
+                                {val ? `${key}: ${val}` : part}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                       <p className="text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest mt-1">₹{item.price} × {item.quantity}</p>
                     </div>
                   </div>

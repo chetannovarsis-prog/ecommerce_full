@@ -134,11 +134,11 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
 
-  const subtotal = cart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0);
+  const subtotal = Math.round(cart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0));
   const couponDiscount = appliedCoupon
-    ? Math.round((subtotal * appliedCoupon.percentage) * 100) / 10000
+    ? Math.round((subtotal * appliedCoupon.percentage) / 100)
     : 0;
-  const discountedSubtotal = subtotal - couponDiscount;
+  const discountedSubtotal = Math.round(subtotal - couponDiscount);
 
   // ── On mount: load settings, customer, and prefetch last pincode ──────────
   useEffect(() => {
@@ -217,6 +217,7 @@ const Checkout = () => {
           productId: item.id,
           quantity: item.quantity,
           price: item.selectedPrice,
+          variantTitle: item.variantTitle,
         })),
         customerId: customer?.id || null,
         customerEmail: values.email || customer?.email || '',
@@ -419,19 +420,19 @@ const Checkout = () => {
 
               {/* ── Left: Form ── */}
               <div className="p-10 lg:p-20 lg:border-r border-gray-100 space-y-16">
-                <header className="flex flex-col gap-6">
+                
                   <h1 className="text-2xl font-black tracking-tight">Ghar of Ethnics</h1>
-                  <nav className="flex items-center gap-2 text-[0.6rem] text-gray-400 font-bold uppercase tracking-widest">
-                    <span>Cart</span>
+                  <span className="flex items-center text-sm text-gray-400 font-bold  tracking-widest">
+                    {/* <span>Cart</span>
                     <ChevronLeft size={10} className="rotate-180" />
                     <span className="text-black">Information</span>
                     <ChevronLeft size={10} className="rotate-180" />
                     <span>Shipping</span>
                     <ChevronLeft size={10} className="rotate-180" />
-                    <span>Payment</span>
-                  </nav>
-                </header>
-
+                    <span>Payment</span> */}
+                    Checkout
+                  </span>
+                
                 {/* Contact */}
                 <section className="space-y-6">
                   <div className="flex justify-between items-center">
@@ -463,11 +464,6 @@ const Checkout = () => {
                       component="p"
                       className="text-[0.65rem] text-red-600 font-bold uppercase"
                     />
-                    {touched.email && !errors.email && values.email && (
-                      <p className="text-[0.65rem] text-emerald-600 font-bold uppercase">
-                        ✓ Valid email
-                      </p>
-                    )}
                   </div>
                 </section>
 
@@ -565,7 +561,7 @@ const Checkout = () => {
                     />
 
                     {/* Pincode / City / State */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="relative col-span-1">
                         <Field
                           name="pinCode"
@@ -596,18 +592,14 @@ const Checkout = () => {
                           component="p"
                           className="text-[0.65rem] text-red-600 font-bold uppercase mt-1"
                         />
-                        {touched.pinCode && !errors.pinCode && values.pinCode && (
-                          <p className="text-[0.65rem] text-emerald-600 font-bold uppercase mt-1">
-                            ✓ Valid PIN code
-                          </p>
-                        )}
                       </div>
                       <div className="col-span-1">
                         <Field
                           name="city"
                           placeholder="City"
                           readOnly
-                          className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50"
+                          className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50 truncate"
+                          title={values.city}
                         />
                       </div>
                       <div className="col-span-1">
@@ -615,7 +607,8 @@ const Checkout = () => {
                           name="state"
                           placeholder="State"
                           readOnly
-                          className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50"
+                          className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50 truncate"
+                          title={values.state}
                         />
                       </div>
                     </div>
@@ -645,64 +638,9 @@ const Checkout = () => {
                         component="p"
                         className="text-[0.65rem] text-red-600 font-bold uppercase flex items-center gap-1"
                       />
-                      {touched.phone && !errors.phone && values.phone && (
-                        <p className="text-[0.65rem] text-emerald-600 font-bold uppercase flex items-center gap-1">
-                          ✓ Valid phone number
-                        </p>
-                      )}
                     </div>
                   </div>
                 </section>
-
-                {/* Payment */}
-                <section className="space-y-6">
-                  <h2 className="text-lg font-black tracking-tight">Payment</h2>
-                  <div className="border border-gray-200 rounded-sm">
-                    <div
-                      className={`p-6 cursor-pointer ${
-                        values.paymentMethod === 'razorpay' ? 'bg-blue-50/10' : ''
-                      }`}
-                      onClick={() => setFieldValue('paymentMethod', 'razorpay')}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Field type="radio" name="paymentMethod" value="razorpay" className="w-4 h-4" />
-                        <label className="text-[0.7rem] font-bold uppercase">
-                          Razorpay (Cards/UPI/Netbanking)
-                        </label>
-                      </div>
-                    </div>
-                    {codEnabled && (
-                      <div
-                        className={`p-6 border-t border-gray-100 cursor-pointer ${
-                          values.paymentMethod === 'cod' ? 'bg-blue-50/10' : ''
-                        }`}
-                        onClick={() => setFieldValue('paymentMethod', 'cod')}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Field type="radio" name="paymentMethod" value="cod" className="w-4 h-4" />
-                          <label className="text-[0.7rem] font-bold uppercase">
-                            Cash on Delivery (₹70 Extra)
-                          </label>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </section>
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 text-white py-5 rounded-md text-[0.75rem] font-black uppercase tracking-[2px] transition-all hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin mx-auto" />
-                  ) : values.paymentMethod === 'razorpay' ? (
-                    `Pay ₹${discountedSubtotal}`
-                  ) : (
-                    `Complete Order — ₹${discountedSubtotal + 70}`
-                  )}
-                </button>
 
                 {/* <footer className="pt-10 border-t border-gray-50 flex flex-wrap gap-6 text-[0.65rem] text-blue-600 font-bold underline">
                   <a href="/returns">Refund policy</a>
@@ -730,7 +668,7 @@ const Checkout = () => {
                           <p className="text-[0.75rem] font-black uppercase">{item.name}</p>
                         </div>
                         <p className="text-[0.7rem] font-black">
-                          ₹{item.selectedPrice * item.quantity}
+                          ₹{Math.round(item.selectedPrice * item.quantity)}
                         </p>
                       </div>
                     ))}
@@ -740,25 +678,85 @@ const Checkout = () => {
                     <div className="flex justify-between text-[0.7rem] font-black uppercase text-gray-500">
                       <span>Subtotal</span>
                       <span className={appliedCoupon ? 'line-through text-gray-300' : ''}>
-                        ₹{subtotal}
+                        ₹{Math.round(subtotal)}
                       </span>
                     </div>
                     {appliedCoupon && (
                       <div className="flex justify-between text-[0.7rem] font-black uppercase text-emerald-600">
                         <span>Coupon ({appliedCoupon.code})</span>
-                        <span>- ₹{couponDiscount.toFixed(2)}</span>
+                        <span>- ₹{couponDiscount}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-[0.7rem] font-black uppercase text-gray-500">
                       <span>Shipping</span>
-                      <span>{values.paymentMethod === 'cod' ? '₹70.00' : 'FREE'}</span>
+                      <span>{values.paymentMethod === 'cod' ? (
+                        <>
+                          <span className="line-through text-gray-300 mr-2">₹100</span>
+                          <span className="text-black">₹0</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="line-through text-gray-300 mr-2">₹100</span>
+                          <span className="text-black">₹0</span>
+                        </>
+                      )}</span>
                     </div>
                     <div className="flex justify-between text-xl font-black uppercase pt-4 border-t">
                       <span>Total</span>
                       <span>
-                        ₹{discountedSubtotal + (values.paymentMethod === 'cod' ? 70 : 0)}
+                        ₹{Math.round(discountedSubtotal + (values.paymentMethod === 'cod' ? 70 : 0))}
                       </span>
                     </div>
+
+                    {/* Payment Section */}
+                    <div className="pt-8 space-y-6">
+                      <h3 className="text-lg font-black tracking-tight">Payment Method</h3>
+                      <div className="border border-gray-200 rounded-sm">
+                        <div
+                          className={`p-6 cursor-pointer ${
+                            values.paymentMethod === 'razorpay' ? 'bg-blue-50/10' : ''
+                          }`}
+                          onClick={() => setFieldValue('paymentMethod', 'razorpay')}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Field type="radio" name="paymentMethod" value="razorpay" className="w-4 h-4" />
+                            <label className="text-[0.7rem] font-bold uppercase">
+                              Razorpay (Cards/UPI/Netbanking)
+                            </label>
+                          </div>
+                        </div>
+                        {codEnabled && (
+                          <div
+                            className={`p-6 border-t border-gray-100 cursor-pointer ${
+                              values.paymentMethod === 'cod' ? 'bg-blue-50/10' : ''
+                            }`}
+                            onClick={() => setFieldValue('paymentMethod', 'cod')}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Field type="radio" name="paymentMethod" value="cod" className="w-4 h-4" />
+                              <label className="text-[0.7rem] font-bold uppercase">
+                                Cash on Delivery (₹70 Extra)
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-blue-600 text-white py-5 rounded-md text-[0.75rem] font-black uppercase tracking-[2px] transition-all hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50 mt-8"
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin mx-auto" />
+                      ) : values.paymentMethod === 'razorpay' ? (
+                        `Pay ₹${Math.round(discountedSubtotal)}`
+                      ) : (
+                        `Complete Order — ₹${Math.round(discountedSubtotal + 70)}`
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>

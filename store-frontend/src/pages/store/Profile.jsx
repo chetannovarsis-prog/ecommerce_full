@@ -205,7 +205,9 @@ const Profile = () => {
   const handleLogout = () => {
     localStorage.removeItem('customerToken');
     localStorage.removeItem('customer');
+    localStorage.removeItem('store-storage'); // Clear zustand persist storage
     navigate('/login');
+    window.location.reload(); // Reload to reset the store
   };
 
   const validateProfileForm = () => {

@@ -122,9 +122,9 @@ const OrderDetail = () => {
       (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
       0
     ) || 0;
-  const paidTotal = Number(order.totalAmount || 0);
-  const paidItemsSubtotal = Math.max(0, paidTotal - shippingCharge);
-  const discountAmount = Math.max(0, originalItemsSubtotal - paidItemsSubtotal);
+  const paidTotal = Math.round(Number(order.totalAmount || 0));
+  const paidItemsSubtotal = Math.round(Math.max(0, paidTotal - shippingCharge));
+  const discountAmount = Math.round(Math.max(0, originalItemsSubtotal - paidItemsSubtotal));
   const hasDiscount = discountAmount > 0.01;
 
   return (
@@ -296,8 +296,8 @@ const OrderDetail = () => {
                     </p>
                   </div>
                   <div className="text-right space-y-1 shrink-0">
-                    <p className="text-[0.65rem] text-gray-400 font-bold">₹{item.price} × {item.quantity}</p>
-                    <p className="text-base font-black tracking-tight">₹{item.price * item.quantity}</p>
+                    <p className="text-[0.65rem] text-gray-400 font-bold">₹{Math.round(item.price)} × {item.quantity}</p>
+                    <p className="text-base font-black tracking-tight">₹{Math.round(item.price * item.quantity)}</p>
                   </div>
                 </div>
               </div>
@@ -380,7 +380,7 @@ const OrderDetail = () => {
                 <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
                   <span>Items Total</span>
                   <span className="text-gray-900 font-bold line-through opacity-70">
-                    ₹{originalItemsSubtotal.toLocaleString('en-IN')}
+                    ₹{Math.round(originalItemsSubtotal).toLocaleString('en-IN')}
                   </span>
                 </div>
               )}
@@ -388,13 +388,13 @@ const OrderDetail = () => {
                 <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
                   <span>Discount</span>
                   <span className="text-emerald-600 font-bold">
-                    -₹{discountAmount.toLocaleString('en-IN')}
+                    -₹{Math.round(discountAmount).toLocaleString('en-IN')}
                   </span>
                 </div>
               )}
               <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
                 <span>{hasDiscount ? 'Subtotal (After Discount)' : 'Subtotal'}</span>
-                <span className="text-gray-900 font-bold">₹{paidItemsSubtotal.toLocaleString('en-IN')}</span>
+                <span className="text-gray-900 font-bold">₹{Math.round(paidItemsSubtotal).toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between items-center text-[0.8rem] font-medium text-gray-500">
                 <span>Shipping</span>
@@ -408,7 +408,7 @@ const OrderDetail = () => {
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-gray-50">
                 <span className="text-sm font-black uppercase tracking-tight">Total</span>
-                <span className="text-2xl font-black tracking-tighter">₹{paidTotal.toLocaleString('en-IN')}</span>
+                <span className="text-2xl font-black tracking-tighter">₹{Math.round(paidTotal).toLocaleString('en-IN')}</span>
               </div>
             </div>
 

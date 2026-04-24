@@ -91,42 +91,34 @@ export const createRazorpayOrder = async (req, res) => {
           create: items.map(item => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: item.price
+            price: item.price,
+            variantTitle: item.variantTitle
           }))
         }
       }
     });
     console.log('Database Order Created:', order.id);
 
-    if (paymentMethod === 'cod') {
-      // SMS notification: should never block order creation
-      try {
-        await notifyOrderCreated(order);
-      } catch (error) {
-        console.error('notifyOrderCreated failed:', error?.message || error);
-      }
+      if (paymentMethod === 'cod') {
+        // SMS notification: should never block order creation
+        try {
+          await notifyOrderCreated(order);
+        } catch (error) {
+          console.error('notifyOrderCreated failed:', error?.message || error);
+        }
 
-      // Log activity
-      await logActivity(
-        order.id,
-        'ORDER_PLACED_COD',
-        'Order placed successfully via COD.'
-      );
-    } else {
-      // For Razorpay: do not mark as "order placed" until payment is verified.
-      await logActivity(
-        order.id,
-        'PAYMENT_PENDING',
-        'Payment initiated via Razorpay. Complete payment to confirm your order.'
-      );
-    }
+        // Log activity
+        await logActivity(
+          order.id,
+          'ORDER_PLACED_COD',
+          'Order placed successfully via COD.'
+        );
 
-    if (paymentMethod === 'cod') {
-      const emailToSend = shippingAddress?.email || customerEmail || null;
-      if (emailToSend) {
-        await sendMail(emailToSend, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
+        const emailToSend = shippingAddress?.email || customerEmail || null;
+        if (emailToSend) {
+          await sendMail(emailToSend, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
+        }
       }
-    }
 
     // Save address to customer profile relational table if user is logged in
     if (resolvedCustomerId && shippingAddress) {
@@ -180,7 +172,7 @@ export const createRazorpayOrder = async (req, res) => {
       orderId: order.id,
       paymentMethod
     });
-  } catch (error) {
+  }catch (error) {
     console.error('--- ORDER CREATION ERROR ---');
     console.error(error);
     res.status(500).json({ message: error.message, stack: error.stack });

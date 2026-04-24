@@ -31,7 +31,7 @@ const CartPage = () => {
   const displayCart = Object.values(groupedCart);
   const totalQty = displayCart.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = displayCart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0);
-  const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.percentage) * 100) / 10000 : 0;
+  const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.percentage) / 100) : 0;
   const finalTotal = subtotal - discountAmount;
 
   const handleApplyCoupon = async () => {
@@ -202,7 +202,7 @@ const CartPage = () => {
                         </div>
                         <div className="text-right">
                           <p className={`text-2xl font-black ${appliedCoupon ? 'line-through text-gray-300' : 'text-gray-900'}`}>
-                            ₹{(item.selectedPrice * item.quantity).toFixed(2)}
+                            ₹{Math.round(item.selectedPrice * item.quantity)}
                           </p>
                           {appliedCoupon && (
                             <motion.p
@@ -210,7 +210,7 @@ const CartPage = () => {
                               animate={{ opacity: 1, y: 0 }}
                               className="text-2xl font-black text-gray-900 mt-1"
                             >
-                              ₹{(item.selectedPrice * item.quantity * (1 - appliedCoupon.percentage / 100)).toFixed(2)}
+                              ₹{Math.round(item.selectedPrice * item.quantity * (1 - appliedCoupon.percentage / 100))}
                             </motion.p>
                           )}
                           {item.quantity > 1 && (
@@ -225,7 +225,15 @@ const CartPage = () => {
                         <div className="space-y-3">
                           <p className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest">Quantity</p>
                           <div className="flex items-center gap-8 bg-gray-50 px-6 py-4 rounded-xl border border-gray-100 shadow-sm relative">
-                            <button onClick={() => updateCartQuantity(item.id, item.variantId, item.quantity - 1)} className="text-gray-400 hover:text-black transition-colors disabled:opacity-40" disabled={item.quantity <= 1}>
+                            <button onClick={() => {
+                              const newQty = item.quantity - 1;
+                              if (newQty <= 0) {
+                                removeFromCart(item.id, item.variantId);
+                                showToast('Item removed from cart', 'success');
+                              } else {
+                                updateCartQuantity(item.id, item.variantId, newQty);
+                              }
+                            }} className="text-gray-400 hover:text-black transition-colors">
                               <Minus size={14} strokeWidth={3} />
                             </button>
                             <span className="text-md font-black w-6 text-center">{item.quantity}</span>
@@ -246,14 +254,14 @@ const CartPage = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center pt-10">
+                    {/* <div className="flex items-center pt-10">
                       <button
                         onClick={() => removeFromCart(item.id, item.variantId)}
                         className="flex items-center gap-3 text-[0.65rem] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors"
                       >
                         <Trash2 size={16} /> Remove Item
                       </button>
-                    </div>
+                    </div> */}
                   </div>
                 </motion.div>
                 );
@@ -265,10 +273,10 @@ const CartPage = () => {
                 <h2 className="text-2xl font-black text-center pb-8 border-b border-gray-200">Order Summary</h2>
 
                 <div className="space-y-5">
-                  <div className="flex justify-between font-black text-gray-400">
-                    <span>Subtotal ({totalQty} items)</span>
+                  <div className="flex justify-between font-black">
+                    <span className="text-gray-900">Subtotal ({totalQty} items)</span>
                     <span className={appliedCoupon ? 'line-through text-gray-300' : 'text-gray-900'}>
-                      ₹{subtotal.toFixed(2)}
+                      ₹{Math.round(subtotal)}
                     </span>
                   </div>
 
@@ -279,7 +287,7 @@ const CartPage = () => {
                       className="flex justify-between text-[0.75rem] font-black tracking-widest"
                     >
                       <span className="text-emerald-600">Coupon ({appliedCoupon.code})</span>
-                      <span className="text-emerald-600">− ₹{discountAmount.toFixed(2)}</span>
+                      <span className="text-emerald-600">− ₹{Math.round(discountAmount)}</span>
                     </motion.div>
                   )}
 
@@ -292,7 +300,7 @@ const CartPage = () => {
                 <div className="pt-10 border-t border-gray-200 space-y-8">
                   <div className="flex justify-between text-2xl font-bold uppercase italic">
                     <span>Total</span>
-                    <span>₹{finalTotal.toFixed(2)}</span>
+                    <span>₹{Math.round(finalTotal)}</span>
                   </div>
 
                   {appliedCoupon && (
@@ -302,7 +310,7 @@ const CartPage = () => {
                       className="bg-emerald-50 border border-emerald-100 rounded-2xl px-6 py-4 flex items-center justify-between"
                     >
                       <span className="text-[0.65rem] font-black uppercase tracking-widest text-emerald-700">You&apos;re saving</span>
-                      <span className="text-lg font-black text-emerald-600">₹{discountAmount.toFixed(2)}</span>
+                      <span className="text-lg font-black text-emerald-600">₹{Math.round(discountAmount)}</span>
                     </motion.div>
                   )}
 

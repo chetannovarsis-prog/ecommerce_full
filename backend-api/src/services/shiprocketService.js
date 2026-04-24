@@ -3,7 +3,8 @@ import { logger } from '../utils/logger.js';
 
 const DEFAULT_BASE_URL = 'https://apiv2.shiprocket.in';
 const API_PREFIX = '/v1/external';
-const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = 15_000;
+const SERVICEABILITY_TIMEOUT_MS = 5_000;
 const TOKEN_EXPIRY_SAFETY_MS = 5 * 60 * 1000;
 
 let tokenCache = {
@@ -279,6 +280,7 @@ const getCourierForShipment = async ({ shipmentId, orderData }) => {
       method: 'get',
       url: '/courier/serviceability/',
       params: serviceabilityParams,
+      timeout: SERVICEABILITY_TIMEOUT_MS,
     });
 
     const selectedCourier = pickCourierOption(data?.data?.available_courier_companies);
@@ -350,21 +352,13 @@ export const createShipment = async (orderData) => {
     throw error;
   }
 
-  let labelUrl = null;
-  try {
-    const labelResult = await generateLabel(shipmentId);
-    labelUrl = labelResult.label_url;
-  } catch (error) {
-    logger.warn(`[ShiprocketService] Label generation skipped for shipment ${shipmentId}: ${error.message}`);
-  }
-
   return {
     awb,
     shipment_id: String(shipmentId),
     order_id: shiprocketOrderId ? String(shiprocketOrderId) : null,
     courier: awbData.courier_name || courierRequest.courier_name || 'Shiprocket',
     status: 'AWB_ASSIGNED',
-    label_url: labelUrl,
+    label_url: null,
   };
 };
 

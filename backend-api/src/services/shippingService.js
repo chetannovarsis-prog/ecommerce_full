@@ -62,7 +62,7 @@ const buildItemsFromOrder = (order, requestItems) => {
 
   return (order?.items || []).map((item) => ({
     productId: item.productId,
-    name: item.product?.name,
+    name: item.variantTitle ? `${item.product?.name} (${item.variantTitle})` : item.product?.name,
     sku: item.product?.slug || item.productId,
     quantity: item.quantity,
     price: item.price,
@@ -186,7 +186,39 @@ export const createShipment = async (input) => {
   }
 
   const provider = await getProvider();
-  const result = await provider.createShipment(payload);
+  
+  // Add retry logic for transient failures
+  let result;
+  let lastError;
+  const maxRetries = 2;
+  const baseDelay = 1000; // 1 second
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      result = await provider.createShipment(payload);
+      break; // Success, exit retry loop
+    } catch (error) {
+      lastError = error;
+      const statusCode = error?.statusCode || 500;
+      
+      // Retry on 502, 503, 504 (gateway errors) and timeouts
+      if ((statusCode >= 502 && statusCode <= 504) || error?.code === 'ECONNABORTED') {
+        if (attempt < maxRetries - 1) {
+          const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
+          console.log(`[ShippingService] Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+      }
+      
+      // Don't retry on other errors
+      throw error;
+    }
+  }
+  
+  if (!result && lastError) {
+    throw lastError;
+  }
 
   const shipment = await prisma.shipment.create({
     data: {

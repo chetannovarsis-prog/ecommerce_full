@@ -58,7 +58,7 @@ const Login = () => {
     try {
       const res = await api.post('/auth/email-login', { email, password });
       persistCustomerSession(res.data);
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
@@ -116,7 +116,7 @@ const Login = () => {
       }
 
       persistCustomerSession(res.data);
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'OTP verification failed');
     } finally {
@@ -135,7 +135,7 @@ const Login = () => {
     try {
       const res = await api.post('/auth/customer/google-login', { credential: response.credential });
       persistCustomerSession(res.data);
-      navigate('/profile');
+      navigate('/');
     } catch (err) {
       const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Google login failed';
       setError(`Google login failed: ${msg}`);
