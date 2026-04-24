@@ -183,8 +183,9 @@ const AuthTabs = () => {
       if (errorMessage.toLowerCase().includes('email already registered') || 
           errorMessage.toLowerCase().includes('email already exists')) {
         errorMessage = 'This email already exists. Please Sign In';
-        triggerShake('signup'); // Shake signup tab
-        setActiveTab('signin'); // Switch to signin tab
+        triggerShake('signup');
+        // Switch to sign-in tab after a short delay so user can see the message
+        setTimeout(() => setActiveTab('signin'), 1500);
       } else {
         triggerShake('signup');
       }
@@ -297,20 +298,20 @@ const AuthTabs = () => {
         {/* Error Message */}
         {error && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-red-50 text-red-500 p-4 rounded-xl text-[0.7rem] font-bold text-center border border-red-100 uppercase tracking-tighter"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-red-50 text-red-500 p-4 rounded-xl text-[0.7rem] font-bold text-center border border-red-100 tracking-tight uppercase"
           >
             {error}
           </motion.div>
         )}
 
-        {/* Message */}
+        {/* Success Message */}
         {message && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-emerald-50 text-emerald-600 p-4 rounded-xl text-[0.7rem] font-bold text-center border border-emerald-100 uppercase tracking-tighter"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-emerald-50 text-emerald-600 p-4 rounded-xl text-[0.7rem] font-bold text-center border border-emerald-100 uppercase tracking-widest"
           >
             {message}
           </motion.div>

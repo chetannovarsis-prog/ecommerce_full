@@ -239,12 +239,17 @@ const OrderDetail = () => {
                     <div>
                       <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">{item.product?.name}</h4>
                       {item.variantTitle && (
-                        <div className="flex flex-wrap gap-1 mt-1">
+                        <div className="flex flex-wrap gap-2 mt-2">
                           {item.variantTitle.split(',').map((part, pIdx) => {
                             const [key, val] = part.split(':').map(s => s.trim());
                             return (
-                              <span key={pIdx} className="text-[0.5rem] px-2 py-0.5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-lg font-black uppercase tracking-wider text-gray-400">
-                                {val ? `${key}: ${val}` : part}
+                              <span key={pIdx} className="px-2.5 py-1 bg-black dark:bg-white dark:text-black text-white text-[0.65rem] font-black uppercase tracking-widest rounded-lg shadow-sm">
+                                {val ? (
+                                  <>
+                                    <span className="opacity-50 mr-1">{key}:</span>
+                                    {val}
+                                  </>
+                                ) : part}
                               </span>
                             );
                           })}

@@ -6,6 +6,47 @@ import { sendMail, TEMPLATES, sendInvoiceEmail } from '../utils/mailer.js';
 import { generateInvoice } from '../utils/invoiceGenerator.js';
 import { notifyOrderCreated, notifyPaymentSuccess } from '../services/notificationService.js';
 
+const reduceInventory = async (orderId) => {
+  try {
+    const items = await prisma.orderItem.findMany({
+      where: { orderId }
+    });
+
+    for (const item of items) {
+      if (item.variantTitle) {
+        // Try to find the exact variant first
+        const variant = await prisma.productVariant.findFirst({
+          where: {
+            productId: item.productId,
+            title: item.variantTitle
+          }
+        });
+
+        if (variant) {
+          await prisma.productVariant.update({
+            where: { id: variant.id },
+            data: { stock: { decrement: item.quantity } }
+          });
+        } else {
+          // Fallback to global product stock if variant not found by title
+          await prisma.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } }
+          });
+        }
+      } else {
+        // Decrease global product stock
+        await prisma.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to reduce inventory:', error);
+  }
+};
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -75,7 +116,7 @@ export const createRazorpayOrder = async (req, res) => {
       data: {
         totalAmount: amount,
         status: paymentMethod === 'cod' ? 'COD_PENDING' : 'PAYMENT_PENDING',
-        customer: { connect: { id: resolvedCustomerId } },
+        customerId: resolvedCustomerId,
         razorpayOrderId: razorpayOrder ? razorpayOrder.id : null,
         paymentMethod: paymentMethod,
         shippingAddress: {
@@ -118,6 +159,15 @@ export const createRazorpayOrder = async (req, res) => {
         if (emailToSend) {
           await sendMail(emailToSend, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
         }
+
+        // Reduce Inventory for COD
+        await reduceInventory(order.id);
+
+        res.json({
+          orderId: order.id,
+          paymentMethod
+        });
+        return;
       }
 
     // Save address to customer profile relational table if user is logged in
@@ -278,6 +328,9 @@ export const verifyPayment = async (req, res) => {
           }
         })
       ));
+
+      // Reduce Inventory for Razorpay
+      await reduceInventory(order.id);
 
       res.json({ message: "Payment verified successfully", order });
     } catch (error) {

@@ -233,7 +233,7 @@ const Checkout = () => {
       if (values.paymentMethod === 'cod') {
         setIsProcessing(true);
         clearCart();
-        setTimeout(() => navigate(`/order-success/thank-you`), 1000);
+        setTimeout(() => navigate(`/order-success/${order.orderId}`), 1500);
         return;
       }
 
@@ -309,14 +309,16 @@ const Checkout = () => {
           handler: async (response) => {
             setIsProcessing(true);
             try {
-              await api.post('/payments/verify', {
+              const verifyRes = await api.post('/payments/verify', {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
               });
               clearCart();
               restoreScroll();
-              navigate(`/order-success/thank-you`);
+              // verification returns { order: { ... } }
+              const finalOrderId = verifyRes.data?.order?.id || order.id;
+              navigate(`/order-success/${finalOrderId}`);
             } catch (error) {
               setIsProcessing(false);
               restoreScroll();

@@ -5,8 +5,8 @@ import { requireAuth } from '../middleware/requireAuth.js';
 const router = express.Router();
 
 router.get('/config', getPaymentConfig);
-router.post('/create', requireAuth, createRazorpayOrder);
-router.post('/verify', requireAuth, verifyPayment);
-router.post('/cancel', requireAuth, cancelPayment);
+router.post('/create', createRazorpayOrder);
+router.post('/verify', verifyPayment);
+router.post('/cancel', cancelPayment);
 
 export default router;

@@ -23,8 +23,8 @@ const OrderSuccess = () => {
             const savedCustomer = JSON.parse(localStorage.getItem('customer') || 'null');
             
             if (savedCustomer?.id) {
-              const ordersRes = await api.get(`/orders`);
-              const orders = Array.isArray(ordersRes.data) ? ordersRes.data : [];
+              const ordersRes = await api.get(`/orders/customer/${savedCustomer.id}`);
+              const orders = Array.isArray(ordersRes.data) ? ordersRes.data : (Array.isArray(ordersRes.data?.orders) ? ordersRes.data.orders : []);
               
               if (orders.length > 0) {
                 // Get the most recent order
@@ -33,13 +33,11 @@ const OrderSuccess = () => {
                 });
                 orderId = latestOrder.id;
               } else {
-                // No orders found
                 console.error('No orders found for customer');
                 navigate('/');
                 return;
               }
             } else {
-              // No customer in localStorage
               console.error('Customer not found in localStorage');
               navigate('/');
               return;
