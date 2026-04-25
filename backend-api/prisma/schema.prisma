@@ -113,21 +113,24 @@ model Banner {
 }
 
 model Order {
-  id                String          @id @default(uuid())
-  totalAmount       Float
-  status            String          @default("PENDING")
-  customerId        String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  razorpayOrderId   String?         @unique
-  razorpayPaymentId String?         @unique
-  razorpaySignature String?
-  paymentMethod     String?
-  invoiceNumber     String?         @unique
-  shippingAddress   Json?
-  customer          Customer?       @relation(fields: [customerId], references: [id])
-  items             OrderItem[]
-  activities        OrderActivity[]
+  id                  String           @id @default(uuid())
+  totalAmount         Float
+  status              String           @default("PENDING")
+  customerId          String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  razorpayOrderId     String?          @unique
+  razorpayPaymentId   String?          @unique
+  razorpaySignature   String?
+  paymentMethod       String?
+  invoiceNumber       String?          @unique
+  shippingAddress     Json?
+  deliveryDate        DateTime?
+  cancellationReason  String?
+  customer            Customer?        @relation(fields: [customerId], references: [id])
+  items               OrderItem[]
+  activities          OrderActivity[]
+  returnRequests      ReturnRequest[]
 
   @@schema("public")
 }
@@ -287,6 +290,25 @@ model Shipment {
 
   @@index([orderId])
   @@index([awb])
+  @@index([status])
+  @@schema("public")
+}
+
+model ReturnRequest {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reason          String
+  description     String?
+  returnDate      DateTime
+  status          String   @default("PENDING")
+  adminResponse   String?
+  refundAmount    Float?
+  returnShipmentId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([orderId])
   @@index([status])
   @@schema("public")
 }

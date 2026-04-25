@@ -271,17 +271,8 @@ const Checkout = () => {
   document.querySelectorAll('.razorpay-container, .razorpay-backdrop').forEach(el => el.remove());
  };
 
-      const cancelPendingOrder = async () => {
-        try {
-          await api.post('/payments/cancel', {
-            orderId: order.orderId,
-            razorpay_order_id: order.id,
-          });
-        } catch (err) {
-          // Best-effort cleanup; don't block the UI on cancel failures.
-          console.error('Failed to cancel pending order:', err);
-        }
-      };
+  };
+
 
       let razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
       if (!razorpayKey) {
@@ -313,11 +304,11 @@ const Checkout = () => {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
+                orderData: orderData // Pass the full order data for creation
               });
               clearCart();
               restoreScroll();
-              // verification returns { order: { ... } } or { orderId: '...' }
-              const finalOrderId = verifyRes.data?.order?.id || verifyRes.data?.orderId || order.orderId;
+              const finalOrderId = verifyRes.data?.order?.id || verifyRes.data?.orderId;
               navigate(`/order-success/${finalOrderId}`);
             } catch (error) {
               setIsProcessing(false);
@@ -325,16 +316,15 @@ const Checkout = () => {
               alert('Payment verification failed.');
             }
           },
+
           modal: {
-            ondismiss: async () => {
-              await cancelPendingOrder();
+            ondismiss: () => {
               setLoading(false);
               restoreScroll();
             },
           },
           error: {
-            onerror: async () => {
-              await cancelPendingOrder();
+            onerror: () => {
               setLoading(false);
               restoreScroll();
             },
@@ -347,9 +337,9 @@ const Checkout = () => {
           theme: { color: '#1a2d5a' },
         };
 
+
         const paymentObject = new window.Razorpay(options);
-        paymentObject.on('payment.failed', async () => {
-          await cancelPendingOrder();
+        paymentObject.on('payment.failed', () => {
           setLoading(false);
           restoreScroll();
         });

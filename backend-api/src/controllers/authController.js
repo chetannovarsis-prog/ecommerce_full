@@ -197,6 +197,28 @@ export const toggle2FA = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+export const getAdminProfile = async (req, res) => {
+  try {
+    const admin = await prisma.admin.findUnique({
+      where: { id: req.user.id }
+    });
+
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    res.json({
+      profile: {
+        id: admin.id,
+        email: admin.email,
+        role: 'admin' // Admins in the Admin table are always 'admin'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // --- Customer Authentication ---
 
 export const customerSignup = async (req, res) => {

@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { supabase } from '../services/supabaseClient';
 
 const normalizeBaseUrl = (value) => {
   const fallback = 'http://localhost:5000/api';
@@ -33,13 +32,14 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// Add interceptor for token if needed in future
-api.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
+// Add interceptor to inject adminToken into every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('adminToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
 
 export default api;

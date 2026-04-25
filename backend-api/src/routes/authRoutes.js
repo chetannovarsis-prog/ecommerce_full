@@ -19,8 +19,10 @@ import {
   getCustomerProfile,
   updateCustomerAddresses,
   requestCustomerProfileUpdateOtp,
-  verifyCustomerProfileUpdateOtp
+  verifyCustomerProfileUpdateOtp,
+  getAdminProfile
 } from '../controllers/authController.js';
+import { requireAdmin } from '../middleware/requireAdmin.js';
 
 const router = express.Router();
 
@@ -34,6 +36,7 @@ router.post('/verify-otp', (req, res) => {
   return verifyOtp(req, res);
 });
 router.post('/toggle-2fa', toggle2FA);
+router.get('/profile', requireAdmin, getAdminProfile);
 
 // Email wrappers (new endpoints)
 router.post('/email-login', emailLogin);

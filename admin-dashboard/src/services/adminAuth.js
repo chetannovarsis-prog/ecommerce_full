@@ -1,48 +1,62 @@
-import { getSupabaseConfigError, supabase } from './supabaseClient';
+import api from '../utils/api';
 
-function ensureSupabaseConfigured() {
-  const configError = getSupabaseConfigError();
-  if (configError) throw configError;
-}
-
+/**
+ * Handles initial login step.
+ * Returns { requires2FA: true, email: '...' } if 2FA is needed,
+ * or { success: true, token: '...', email: '...' } if logged in directly.
+ */
 export async function loginAdmin(email, password) {
-  ensureSupabaseConfigured();
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  const { data } = await api.post('/auth/login', { email, password });
+  
+  if (data.token) {
+    localStorage.setItem('adminToken', data.token);
+    localStorage.setItem('adminAuth', 'true');
+    localStorage.setItem('adminEmail', data.email);
+  }
+  
   return data;
 }
 
+/**
+ * Verifies the 2FA OTP.
+ */
+export async function verifyAdminOtp(email, otp) {
+  const { data } = await api.post('/auth/verify-otp', { email, otp });
+  
+  if (data.token) {
+    localStorage.setItem('adminToken', data.token);
+    localStorage.setItem('adminAuth', 'true');
+    localStorage.setItem('adminEmail', data.email);
+  }
+  
+  return data;
+}
+
+/**
+ * Logs out the admin.
+ */
 export async function logoutAdmin() {
-  await supabase.auth.signOut();
+  localStorage.removeItem('adminToken');
   localStorage.removeItem('adminAuth');
   localStorage.removeItem('adminEmail');
 }
 
+/**
+ * Fetches the admin profile from our backend.
+ */
 export async function getAdminProfile() {
-  ensureSupabaseConfigured();
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error) throw error;
-  if (!session) return null;
-
-  const { data, error: profileError } = await supabase
-    .from('profiles')
-    .select('role,email')
-    .eq('id', session.user.id)
-    .single();
-
-  if (profileError) throw profileError;
-  return { session, profile: data };
-}
-
-export async function resetAdminPassword(email) {
-  ensureSupabaseConfigured();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/login`,
-  });
-
-  if (error) throw error;
+  const token = localStorage.getItem('adminToken');
+  if (!token) return null;
+  
+  try {
+    const { data } = await api.get('/auth/profile');
+    return data; // { profile: { id, email, role } }
+  } catch (error) {
+    console.error('Failed to fetch admin profile:', error);
+    // If token is invalid, clear it
+    if (error.response?.status === 401) {
+      logoutAdmin();
+    }
+    throw error;
+  }
 }

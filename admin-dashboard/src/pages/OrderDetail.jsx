@@ -26,11 +26,24 @@ const OrderDetail = () => {
   const [labelLoading, setLabelLoading] = useState(false);
   const [pickupLoading, setPickupLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [orderCancelLoading, setOrderCancelLoading] = useState(false);
+  const [codConfirmLoading, setCodConfirmLoading] = useState(false);
+  const [returnRequest, setReturnRequest] = useState(null);
 
   useEffect(() => {
     fetchOrder();
     fetchShipment();
+    fetchReturnRequest();
   }, [id]);
+
+  const fetchReturnRequest = async () => {
+    try {
+      const res = await api.get(`/orders/${id}/return`);
+      setReturnRequest(res.data);
+    } catch {
+      setReturnRequest(null);
+    }
+  };
 
   const fetchShipment = async () => {
     try {
@@ -128,6 +141,42 @@ const OrderDetail = () => {
       alert(error.response?.data?.message || 'Error cancelling shipment');
     } finally {
       setCancelLoading(false);
+    }
+  };
+
+  const cancelOrder = async () => {
+    const confirmed = window.confirm('Are you sure you want to cancel this order? This action cannot be undone.');
+    if (!confirmed) return;
+
+    setOrderCancelLoading(true);
+    try {
+      await api.post(`/orders/${id}/cancel`, {
+        reason: 'Cancelled by admin'
+      });
+      alert('Order cancelled successfully. Inventory has been restored.');
+      fetchOrder();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error cancelling order');
+    } finally {
+      setOrderCancelLoading(false);
+    }
+  };
+
+  const confirmCODPayment = async () => {
+    const confirmed = window.confirm('Confirm that COD payment has been received for this order?');
+    if (!confirmed) return;
+
+    setCodConfirmLoading(true);
+    try {
+      await api.post('/payments/confirm-cod', {
+        orderId: id
+      });
+      alert('COD payment confirmed. Order is now active.');
+      fetchOrder();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error confirming COD payment');
+    } finally {
+      setCodConfirmLoading(false);
     }
   };
 
@@ -309,6 +358,24 @@ const OrderDetail = () => {
                     Capture Payment
                   </button>
                 )}
+                {order.status === 'COD_PENDING' && (
+                  <button 
+                    onClick={confirmCODPayment}
+                    disabled={codConfirmLoading}
+                    className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {codConfirmLoading ? 'Confirming...' : 'Confirm COD Payment'}
+                  </button>
+                )}
+                {['PAID', 'COD_CONFIRMED', 'PENDING', 'PAYMENT_PENDING', 'COD_PENDING'].includes(order.status) && (
+                  <button 
+                    onClick={cancelOrder}
+                    disabled={orderCancelLoading}
+                    className="w-full py-4 bg-red-50 text-red-600 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {orderCancelLoading ? 'Cancelling...' : 'Cancel Order'}
+                  </button>
+                )}
              </div>
           </div>
         </div>
@@ -457,6 +524,41 @@ const OrderDetail = () => {
                 )}
              </div>
           </div>
+
+          {/* Return Request Card */}
+          {returnRequest && (
+            <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl p-8 shadow-sm">
+              <h3 className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400 border-b dark:border-white/5 pb-4 mb-6">Return Request</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[0.6rem] font-bold text-gray-500 uppercase">Status</span>
+                  <span className={`px-3 py-1 rounded-lg text-[0.6rem] font-black uppercase tracking-widest ${
+                    returnRequest.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-500' :
+                    returnRequest.status === 'REJECTED' ? 'bg-red-500/10 text-red-500' :
+                    'bg-amber-500/10 text-amber-500'
+                  }`}>
+                    {returnRequest.status}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[0.6rem] font-bold text-gray-500 uppercase block mb-1">Reason</span>
+                  <p className="text-xs font-bold dark:text-white">{returnRequest.reason}</p>
+                </div>
+                {returnRequest.description && (
+                  <div>
+                    <span className="text-[0.6rem] font-bold text-gray-500 uppercase block mb-1">Description</span>
+                    <p className="text-xs font-bold dark:text-white">{returnRequest.description}</p>
+                  </div>
+                )}
+                {returnRequest.refundAmount && (
+                  <div>
+                    <span className="text-[0.6rem] font-bold text-gray-500 uppercase block mb-1">Refund Amount</span>
+                    <p className="text-xs font-bold dark:text-white">₹{returnRequest.refundAmount.toFixed(2)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
       </main>

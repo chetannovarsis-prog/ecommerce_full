@@ -27,14 +27,17 @@ const Orders = () => {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'paid':
+      case 'cod_confirmed':
       case 'completed': return 'text-emerald-500 bg-emerald-500/10';
       case 'pending':
+      case 'cod_pending':
       case 'processing': return 'text-amber-500 bg-amber-500/10';
       case 'cancelled':
       case 'failed': return 'text-red-500 bg-red-500/10';
       default: return 'text-gray-500 bg-gray-500/10';
     }
   };
+
 
 
   return (

@@ -5,140 +5,345 @@ import { Download } from 'lucide-react';
 const InvoiceGenerator = ({ order, customer, responsive = false }) => {
   const getInvoiceHTML = (order, customer) => {
     const shippingCharge = order?.paymentMethod === 'cod' ? 70 : 0;
-    const originalItemsSubtotal =
-      order?.items?.reduce(
-        (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
-        0
-      ) || 0;
+    const orderDate = new Date(order.createdAt);
+    const dateStr = orderDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+    const itemsSubtotal = order?.items?.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0
+    ) || 0;
+    
     const paidTotal = Number(order?.totalAmount || 0);
-    const paidItemsSubtotal = Math.max(0, paidTotal - shippingCharge);
-    const discountAmount = Math.max(0, originalItemsSubtotal - paidItemsSubtotal);
-    const hasDiscount = discountAmount > 0.01;
+    
+    // Payment status mapping
+    const paymentStatusMap = {
+      'PAID': 'PAID',
+      'COD_CONFIRMED': 'PAID',
+      'COD_PENDING': 'PENDING',
+      'PAYMENT_PENDING': 'PENDING'
+    };
+    const paymentStatus = paymentStatusMap[order.status] || order.status;
 
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 20px;">
-          <h1 style="margin: 0; font-size: 28px; font-weight: bold;">INVOICE</h1>
-          <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">Ghar of Ethnics</p>
-        </div>
-
-        <!-- Invoice Details -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-          <div style="word-break: break-word;">
-            <p style="margin: 0; font-weight: bold; font-size: 12px;">Invoice #</p>
-            <p style="margin: 5px 0 0 0; font-size: 14px; word-break: break-all;">${order.invoiceNumber || order.id}</p>
-          </div>
-          <div>
-            <p style="margin: 0; font-weight: bold; font-size: 12px;">Date</p>
-            <p style="margin: 5px 0 0 0; font-size: 14px;">${new Date(order.createdAt).toLocaleDateString('en-IN')}</p>
-          </div>
-          <div>
-            <p style="margin: 0; font-weight: bold; font-size: 12px;">Status</p>
-            <p style="margin: 5px 0 0 0; font-size: 14px;">${order.status}</p>
-          </div>
-        </div>
-
-        <!-- Bill To -->
-        <div style="margin-bottom: 30px;">
-          <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 12px;">BILL TO:</p>
-          <p style="margin: 0; font-size: 14px; font-weight: bold;">${customer?.name || 'N/A'}</p>
-          <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${customer?.email || 'N/A'}</p>
-          ${
-            order.shippingAddress
-              ? `
-              <p style="margin: 5px 0 0 0; font-size: 12px;">
-                ${order.shippingAddress.address || ''} ${order.shippingAddress.apartment || ''}
-              </p>
-              <p style="margin: 5px 0 0 0; font-size: 12px;">
-                ${order.shippingAddress.city || ''}, ${order.shippingAddress.state || ''} ${order.shippingAddress.pinCode || ''}
-              </p>
-              <p style="margin: 5px 0 0 0; font-size: 12px;">Phone: ${order.shippingAddress.phone || 'N/A'}</p>
-              `
-              : ''
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
           }
-        </div>
-
-        <!-- Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-          <thead>
-            <tr style="border-bottom: 2px solid #000;">
-              <th style="text-align: left; padding: 10px; font-size: 12px; font-weight: bold;">Product</th>
-              <th style="text-align: center; padding: 10px; font-size: 12px; font-weight: bold;">Quantity</th>
-              <th style="text-align: right; padding: 10px; font-size: 12px; font-weight: bold;">Price</th>
-              <th style="text-align: right; padding: 10px; font-size: 12px; font-weight: bold;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${order.items
-              ?.map(
-                (item) => `
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 10px; font-size: 12px;">${item.product?.name?.substring(0, 50) || 'Product'}</td>
-                <td style="text-align: center; padding: 10px; font-size: 12px;">${item.quantity}</td>
-                <td style="text-align: right; padding: 10px; font-size: 12px;">₹${item.price?.toFixed(2) || '0.00'}</td>
-                <td style="text-align: right; padding: 10px; font-size: 12px;">₹${(item.quantity * item.price)?.toFixed(2) || '0.00'}</td>
-              </tr>
-            `
-              )
-              .join('')}
-          </tbody>
-        </table>
-
-        <!-- Summary -->
-        <div style="text-align: right; margin-bottom: 20px;">
-          ${
-            hasDiscount
-              ? `
-            <div style="margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 20px;">
-              <span style="font-size: 12px;">Items Total:</span>
-              <span style="font-size: 12px; text-decoration: line-through; color: #999;">₹${originalItemsSubtotal?.toLocaleString('en-IN')}</span>
-            </div>
-            <div style="margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 20px;">
-              <span style="font-size: 12px;">Discount:</span>
-              <span style="font-size: 12px; color: #22c55e;">-₹${discountAmount?.toLocaleString('en-IN')}</span>
-            </div>
-            `
-              : ''
+          body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f2e9;
+            color: #4a4a4a;
           }
-          <div style="margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
-            <span style="font-size: 12px; font-weight: bold;">Subtotal:</span>
-            <span style="font-size: 12px; font-weight: bold;">₹${paidItemsSubtotal?.toLocaleString('en-IN')}</span>
-          </div>
-          <div style="margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 20px;">
-            <span style="font-size: 12px;">Shipping:</span>
-            <span style="font-size: 12px;">${shippingCharge ? `₹${shippingCharge}` : 'Free'}</span>
-          </div>
-          <div style="margin-bottom: 10px; display: flex; justify-content: flex-end; gap: 20px;">
-            <span style="font-size: 12px;">Taxes:</span>
-            <span style="font-size: 12px;">—</span>
-          </div>
-          <div style="display: flex; justify-content: flex-end; gap: 20px; padding-top: 10px; border-top: 2px solid #000;">
-            <span style="font-size: 14px; font-weight: bold;">TOTAL:</span>
-            <span style="font-size: 14px; font-weight: bold;">₹${paidTotal?.toLocaleString('en-IN')}</span>
-          </div>
-        </div>
+          .invoice-container {
+            width: 794px; /* A4 width */
+            min-height: 1123px; /* A4 height */
+            margin: 0 auto;
+            padding: 50px;
+            background: #f5f2e9;
+            position: relative;
+            overflow: hidden;
+          }
+          .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            opacity: 0.08;
+            z-index: 0;
+            pointer-events: none;
+          }
+          .content {
+            position: relative;
+            z-index: 1;
+          }
+          /* Header */
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+          }
+          .logo {
+            width: 120px;
+          }
+          .invoice-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 64px;
+            color: #e08d4a;
+            line-height: 1;
+            margin-bottom: 10px;
+          }
+          .title-divider {
+            width: 250px;
+            height: 1px;
+            background: #9a9cd8;
+            margin-left: auto;
+          }
+          /* Info Section */
+          .info-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 60px;
+            margin-bottom: 40px;
+          }
+          .invoice-to {
+            max-width: 300px;
+          }
+          .label {
+            color: #e08d4a;
+            font-weight: 800;
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+          .customer-name {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #2c2c2c;
+          }
+          .customer-address {
+            font-size: 14px;
+            line-height: 1.6;
+          }
+          .invoice-meta {
+            text-align: right;
+            margin-top: 40px;
+          }
+          .meta-row {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #2c2c2c;
+          }
+          /* Table */
+          .table-container {
+            background: white;
+            border-radius: 4px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+            margin-bottom: 40px;
+            min-height: 400px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          th {
+            text-align: left;
+            color: #e08d4a;
+            font-weight: 800;
+            font-size: 12px;
+            padding: 15px 10px;
+            border-bottom: 1px solid #9a9cd8;
+            text-transform: uppercase;
+          }
+          td {
+            padding: 15px 10px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #2c2c2c;
+          }
+          .col-no { width: 50px; text-align: center; }
+          .col-desc { width: auto; }
+          .col-price { width: 100px; text-align: right; }
+          .col-qty { width: 80px; text-align: center; }
+          .col-total { width: 120px; text-align: right; }
+          .table-footer-divider {
+            border-top: 1px solid #9a9cd8;
+            margin: 20px 10px;
+          }
+          /* Summary */
+          .summary-section {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+          }
+          .payment-status-box .status-value {
+            font-weight: 800;
+            font-size: 18px;
+            color: #2c2c2c;
+            margin-top: 5px;
+          }
+          .totals-table {
+            width: 300px;
+          }
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+          }
+          .total-label {
+            color: #e08d4a;
+            font-weight: 800;
+          }
+          .total-value {
+            font-weight: 800;
+            color: #2c2c2c;
+          }
+          .grand-total {
+            border-top: 1px solid #9a9cd8;
+            margin-top: 10px;
+            padding-top: 10px;
+            font-size: 16px;
+          }
+          /* Footer */
+          .invoice-footer {
+            margin-top: 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .thank-you {
+            font-family: 'Playfair Display', serif;
+            font-size: 48px;
+            line-height: 1;
+          }
+          .thank { color: #1a2d5a; }
+          .you { color: #e08d4a; margin-left: -10px; }
+          .company-info {
+            text-align: right;
+          }
+          .company-info .name {
+            color: #e08d4a;
+            font-weight: 800;
+            font-size: 18px;
+            margin-bottom: 5px;
+          }
+          .company-info .phone {
+            color: #e08d4a;
+            font-weight: 800;
+            font-size: 16px;
+            margin-bottom: 15px;
+          }
+          .company-info .web, .company-info .email {
+            font-size: 12px;
+            color: #2c2c2c;
+            margin-bottom: 3px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="invoice-container">
+          <img src="/images/mandala_motif.png" class="watermark" />
+          
+          <div class="content">
+            <div class="header">
+              <img src="/images/logo3.png" class="logo" />
+              <div class="title-section">
+                <div class="invoice-title">INVOICE</div>
+                <div class="title-divider"></div>
+              </div>
+            </div>
 
-        <!-- Footer -->
-        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666;">
-          <p style="margin: 0;">Thank you for your purchase!</p>
-          <p style="margin: 5px 0 0 0;">Ghar of Ethnics - Your trusted ethnic wear store</p>
+            <div class="info-section">
+              <div class="invoice-to">
+                <div class="label">Invoice To :</div>
+                <div class="customer-name">${order.shippingAddress?.fullName || customer?.name || 'Customer'}</div>
+                <div class="customer-name">${order.shippingAddress?.fullName || customer?.name || 'Customer'}</div>
+                <div class="customer-address">
+                  ${order.shippingAddress?.address || ''}<br>
+                  ${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''} ${order.shippingAddress?.pinCode || ''}
+                </div>
+              </div>
+              <div class="invoice-meta">
+                <div class="meta-row">Invoice No.${order.invoiceNumber || order.id.slice(-6).toUpperCase()}</div>
+                <div class="meta-row">${dateStr}</div>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="col-no">No.</th>
+                    <th class="col-desc">Product Description</th>
+                    <th class="col-price">Price</th>
+                    <th class="col-qty">Qty</th>
+                    <th class="col-total">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${order.items?.map((item, index) => `
+                    <tr>
+                      <td class="col-no">${index + 1}</td>
+                      <td class="col-desc">${item.product?.name || 'Product'}${item.variantTitle ? ` (${item.variantTitle})` : ''}</td>
+                      <td class="col-price">Rs.${Number(item.price).toFixed(2)}</td>
+                      <td class="col-qty">${item.quantity}</td>
+                      <td class="col-total">Rs.${(Number(item.price) * Number(item.quantity)).toFixed(2)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              <div class="table-footer-divider"></div>
+              
+              <div class="summary-section">
+                <div class="payment-status-box">
+                  <div class="label">Payment Status :</div>
+                  <div class="status-value">${paymentStatus}</div>
+                </div>
+                <div class="totals-table">
+                  <div class="total-row">
+                    <span class="total-label">Subtotal</span>
+                    <span class="total-value">Rs.${itemsSubtotal.toFixed(2)}</span>
+                  </div>
+                  <div class="total-row">
+                    <span class="total-label">Shipping</span>
+                    <span class="total-value">${shippingCharge ? `Rs.${shippingCharge.toFixed(2)}` : 'Free'}</span>
+                  </div>
+                  <div class="total-row grand-total">
+                    <span class="total-label">Total</span>
+                    <span class="total-value">Rs.${paidTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="invoice-footer">
+              <div class="thank-you">
+                <span class="thank">Thank</span> <span class="you">You</span>
+              </div>
+              <div class="company-info">
+                <div class="name">Ghar of Ethnics</div>
+                <div class="phone">+ 91 9845634734</div>
+                <div class="web">www.gharofethnics.com</div>
+                <div class="email">support@gharofethnics.com</div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
     `;
   };
 
   const generateAndDownloadPDF = () => {
     if (!order) return;
 
+    const htmlString = getInvoiceHTML(order, customer);
     const element = document.createElement('div');
-    element.innerHTML = getInvoiceHTML(order, customer);
+    element.innerHTML = htmlString;
 
     const opt = {
-      margin: 10,
+      margin: 0,
       filename: `Invoice_${order.invoiceNumber || order.id}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
+      image: { type: 'jpeg', quality: 1 },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true,
+        letterRendering: true,
+        backgroundColor: '#f5f2e9'
+      },
       jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
     };
 
@@ -148,7 +353,6 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
   const baseClasses = "flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-all active:scale-95";
 
   if (!responsive) {
-    // Non-responsive version (for OrderDetail)
     return (
       <button
         onClick={generateAndDownloadPDF}
@@ -160,10 +364,8 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
     );
   }
 
-  // Responsive version (for OrderSuccess)
   return (
     <>
-      {/* Desktop version with text */}
       <button
         onClick={generateAndDownloadPDF}
         className={`${baseClasses} hidden md:flex text-sm`}
@@ -172,7 +374,6 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
         Download Invoice
       </button>
 
-      {/* Mobile version with icon only */}
       <button
         onClick={generateAndDownloadPDF}
         className={`${baseClasses} md:hidden px-2`}

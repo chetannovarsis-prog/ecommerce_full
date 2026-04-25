@@ -33,6 +33,25 @@ const OrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnForm, setReturnForm] = useState({ reason: '', description: '' });
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+
+  const handleReturnSubmit = async () => {
+    setSubmittingReturn(true);
+    try {
+      await api.post(`/orders/${id}/return`, returnForm);
+      alert('Return request submitted successfully.');
+      setShowReturnModal(false);
+      // Refresh order to show status
+      const res = await api.get(`/orders/${id}`);
+      setOrder(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to submit return request.');
+    } finally {
+      setSubmittingReturn(false);
+    }
+  };
 
   useEffect(() => {
     // Check if user is authenticated
@@ -426,34 +445,134 @@ const OrderDetail = () => {
           </motion.div>
         </div>
 
-        {/* Need Help */}
+        {/* Return Items / Help Section */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-black/5 p-8 flex flex-col md:flex-row items-center justify-between gap-6"
+          className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-black/5 p-8"
         >
-          <div className="space-y-1">
-            <h3 className="text-sm font-black uppercase tracking-tight">Need Help?</h3>
-            <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest">Our team is here for you</p>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-1">
+              <h3 className="text-sm font-black uppercase tracking-tight">Need Help?</h3>
+              <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest">Our team is here for you</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {order.status === 'DELIVERED' && !order.returnRequest && (
+                (() => {
+                  const deliveryDate = new Date(order.deliveryDate || order.updatedAt);
+                  const daysSinceDelivery = Math.floor((new Date() - deliveryDate) / (1000 * 60 * 60 * 24));
+                  if (daysSinceDelivery <= 7) {
+                    return (
+                      <button
+                        onClick={() => setShowReturnModal(true)}
+                        className="px-6 py-3 bg-red-600 text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200"
+                      >
+                        Return Items
+                      </button>
+                    );
+                  }
+                  return null;
+                })()
+              )}
+              <Link
+                to="/contact"
+                className="px-6 py-3 border border-gray-200 rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-black hover:text-white hover:border-black transition-all"
+              >
+                Contact Support
+              </Link>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/contact"
-              className="px-6 py-3 border border-gray-200 rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-black hover:text-white hover:border-black transition-all"
-            >
-              Contact Support
-            </Link>
-            <Link
-              to="/returns"
-              className="px-6 py-3 border border-gray-200 rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-black hover:text-white hover:border-black transition-all"
-            >
-              Returns & Exchanges
-            </Link>
-          </div>
+
+          {/* Existing Return Request Status */}
+          {order.returnRequest && (
+            <div className="mt-8 pt-8 border-t border-gray-50">
+              <div className="flex items-center justify-between p-6 bg-gray-50 rounded-2xl">
+                <div>
+                  <p className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest">Return Request Status</p>
+                  <p className="text-sm font-black uppercase tracking-tight mt-1">{order.returnRequest.status}</p>
+                </div>
+                <div className={`px-4 py-2 rounded-xl text-[0.6rem] font-black uppercase tracking-widest ${
+                  order.returnRequest.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600' : 
+                  order.returnRequest.status === 'REJECTED' ? 'bg-red-100 text-red-600' : 
+                  'bg-amber-100 text-amber-600'
+                }`}>
+                  {order.returnRequest.status}
+                </div>
+              </div>
+            </div>
+          )}
         </motion.div>
 
       </div>
+
+      {/* Return Request Modal */}
+      {showReturnModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowReturnModal(false)}
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl relative z-10 space-y-8"
+          >
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black uppercase tracking-tight">Return Request</h2>
+              <p className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+                Please tell us why you'd like to return these items. Our team will review your request within 24-48 hours.
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Reason for Return</label>
+                <select 
+                  value={returnForm.reason}
+                  onChange={(e) => setReturnForm({...returnForm, reason: e.target.value})}
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-black outline-none transition-all"
+                >
+                  <option value="">Select a reason</option>
+                  <option value="Wrong size">Wrong size</option>
+                  <option value="Defective product">Defective product</option>
+                  <option value="Changed my mind">Changed my mind</option>
+                  <option value="Not as described">Not as described</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Additional Details</label>
+                <textarea 
+                  value={returnForm.description}
+                  onChange={(e) => setReturnForm({...returnForm, description: e.target.value})}
+                  placeholder="Tell us more about the issue..."
+                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-black outline-none transition-all min-h-[120px] resize-none"
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setShowReturnModal(false)}
+                  className="flex-1 py-4 border border-gray-200 rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleReturnSubmit}
+                  disabled={submittingReturn || !returnForm.reason}
+                  className="flex-1 py-4 bg-black text-white rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {submittingReturn ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

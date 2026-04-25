@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabaseClient';
 import { getAdminProfile } from '../services/adminAuth';
 
 export const useAdminAuth = () => {
@@ -9,13 +8,8 @@ export const useAdminAuth = () => {
 
   useEffect(() => {
     let isMounted = true;
-    let hasResolvedInitialCheck = false;
 
-    async function check(showLoader = false) {
-      if (showLoader && isMounted) {
-        setLoading(true);
-      }
-
+    async function check() {
       try {
         const data = await getAdminProfile();
         if (!isMounted) return;
@@ -23,50 +17,35 @@ export const useAdminAuth = () => {
         if (data?.profile?.role === 'admin') {
           setIsAdmin(true);
           setEmail(data.profile.email);
-          localStorage.setItem('adminAuth', 'true');
-          localStorage.setItem('adminEmail', data.profile.email);
         } else {
           setIsAdmin(false);
           setEmail(null);
-          localStorage.removeItem('adminAuth');
-          localStorage.removeItem('adminEmail');
         }
-      } catch {
+      } catch (error) {
         if (!isMounted) return;
         setIsAdmin(false);
         setEmail(null);
-        localStorage.removeItem('adminAuth');
-        localStorage.removeItem('adminEmail');
       } finally {
         if (isMounted) {
           setLoading(false);
-          hasResolvedInitialCheck = true;
         }
       }
     }
 
-    check(true);
+    check();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
+    // Listen for manual logout events or token changes if needed
+    const handleStorage = () => {
+      if (!localStorage.getItem('adminToken')) {
         setIsAdmin(false);
         setEmail(null);
-        localStorage.removeItem('adminAuth');
-        localStorage.removeItem('adminEmail');
-        setLoading(false);
-        return;
       }
-
-      if (!['INITIAL_SESSION', 'SIGNED_IN', 'USER_UPDATED'].includes(event)) {
-        return;
-      }
-
-      void check(!hasResolvedInitialCheck);
-    });
+    };
+    window.addEventListener('storage', handleStorage);
 
     return () => {
       isMounted = false;
-      authListener?.subscription?.unsubscribe();
+      window.removeEventListener('storage', handleStorage);
     };
   }, []);
 

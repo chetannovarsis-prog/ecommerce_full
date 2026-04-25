@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginAdmin, resetAdminPassword } from '../services/adminAuth';
+import { loginAdmin, verifyAdminOtp, resetAdminPassword } from '../services/adminAuth';
 import { Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
@@ -29,18 +29,34 @@ const Login = () => {
     setError('');
     
     try {
-      await loginAdmin(email, password);
-      // Admin role check happens in useAdminAuth via profile.
-      localStorage.setItem('adminAuth', 'true');
-      localStorage.setItem('adminEmail', email);
-      setRequires2FA(false);
-      navigate('/');
-    } catch {
-      setError('ID or password is incorrect.');
+      const data = await loginAdmin(email, password);
+      if (data.requires2FA) {
+        setRequires2FA(true);
+        setOtp('');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'ID or password is incorrect.');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      await verifyAdminOtp(email, otp);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid or expired OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleResetPassword = async (e) => {
     e.preventDefault();

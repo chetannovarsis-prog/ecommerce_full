@@ -1,5 +1,10 @@
 import PDFDocument from 'pdfkit';
 import prisma from './prisma.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const generateInvoice = async (orderId) => {
   // Fetch order details from database
@@ -25,7 +30,10 @@ export const generateInvoice = async (orderId) => {
 
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50, size: 'A4' });
+      const doc = new PDFDocument({ 
+        margin: 0, // We'll manage margins manually
+        size: 'A4' 
+      });
       let buffers = [];
 
       doc.on('data', (data) => {
@@ -40,105 +48,228 @@ export const generateInvoice = async (orderId) => {
         reject(err);
       });
 
-      // --- HEADER ---
-      doc.fontSize(28).font('Helvetica-Bold').text('INVOICE', 50, 60);
-      doc.fontSize(10).font('Helvetica').text('Ghar of Ethnics', 50, 95);
-      
-      doc.moveTo(50, 115).lineTo(550, 115).lineWidth(1).strokeColor('#000000').stroke();
+      // --- CONFIGURATION ---
+      const colors = {
+        background: '#f5f2e9',
+        headerText: '#e08d4a', // Copper
+        divider: '#9a9cd8',    // Light Purple/Blue
+        text: '#4a4a4a',
+        darkText: '#2c2c2c',
+        white: '#ffffff'
+      };
 
-      // --- INVOICE INFO ROW ---
-      const infoY = 140;
-      doc.fontSize(9).font('Helvetica-Bold').text('Invoice #', 50, infoY);
-      doc.fontSize(10).font('Helvetica').text(order.invoiceNumber || order.id, 50, infoY + 15, { width: 250 });
+      const pageWidth = 595.28; // A4 width in points
+      const pageHeight = 841.89; // A4 height in points
+      const margin = 50;
 
-      doc.fontSize(9).font('Helvetica-Bold').text('Date', 380, infoY);
-      doc.fontSize(10).font('Helvetica').text(new Date(order.createdAt).toLocaleDateString('en-IN'), 380, infoY + 15);
+      // --- BACKGROUND & WATERMARK ---
+      // Fill background
+      doc.rect(0, 0, pageWidth, pageHeight).fill(colors.background);
 
-      doc.fontSize(9).font('Helvetica-Bold').text('Status', 500, infoY);
-      doc.fontSize(10).font('Helvetica').text(order.status || 'PAID', 500, infoY + 15);
-
-      // --- BILL TO SECTION ---
-      const billToY = 200;
-      doc.fontSize(9).font('Helvetica-Bold').text('BILL TO:', 50, billToY);
-      
-      doc.fontSize(11).font('Helvetica-Bold').text(order.shippingAddress?.fullName || order.customer?.name || 'Customer', 50, billToY + 20);
-      doc.fontSize(10).font('Helvetica').text(order.customer?.email || '', 50, billToY + 35);
-      
-      if (order.shippingAddress) {
-        let currentY = billToY + 50;
-        doc.text(`${order.shippingAddress.addressLine1 || order.shippingAddress.address || ''}`, 50, currentY);
-        currentY += 15;
-        if (order.shippingAddress.addressLine2 || order.shippingAddress.apartment) {
-          doc.text(`${order.shippingAddress.addressLine2 || order.shippingAddress.apartment}`, 50, currentY);
-          currentY += 15;
-        }
-        doc.text(`${order.shippingAddress.city || ''}, ${order.shippingAddress.state || ''} ${order.shippingAddress.pincode || order.shippingAddress.pinCode || ''}`, 50, currentY);
-        currentY += 15;
-        doc.text(`Phone: ${order.shippingAddress.phone || 'N/A'}`, 50, currentY);
+      // Add Watermark (Mandala)
+      try {
+        const mandalaPath = path.join(__dirname, '../assets/images/mandala_motif.png');
+        doc.image(mandalaPath, pageWidth / 2 - 150, pageHeight / 2 - 150, {
+          width: 300,
+          opacity: 0.08
+        });
+      } catch (err) {
+        console.warn('Mandala motif not found, skipping watermark');
       }
 
-      // --- TABLE HEADERS ---
-      const tableTop = 330;
-      const col1 = 50;   // Product
-      const col2 = 350;  // Quantity
-      const col3 = 430;  // Price
-      const col4 = 510;  // Amount
+      // --- HEADER ---
+      // Logo (Top Left)
+      try {
+        const logoPath = path.join(__dirname, '../assets/images/logo.png');
+        doc.image(logoPath, margin, 40, { width: 100 });
+      } catch (err) {
+        // Fallback text logo
+        doc
+          .fontSize(20)
+          .font('Helvetica-Bold')
+          .fillColor(colors.headerText)
+          .text('Ghar of Ethnics', margin, 40);
+      }
 
-      doc.fontSize(9).font('Helvetica-Bold').fillColor('#000000');
-      doc.text('Product', col1, tableTop);
-      doc.text('Quantity', col2, tableTop);
-      doc.text('Price', col3, tableTop);
-      doc.text('Amount', col4, tableTop);
+      // "INVOICE" Title (Top Right)
+      doc
+        .fontSize(48)
+        .font('Helvetica-Bold')
+        .fillColor(colors.headerText)
+        .text('INVOICE', margin, 70, { align: 'right', width: pageWidth - 2 * margin });
 
-      doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).lineWidth(1).strokeColor('#000000').stroke();
+      // Divider below title
+      doc
+        .moveTo(350, 130)
+        .lineTo(pageWidth - margin, 130)
+        .lineWidth(1)
+        .strokeColor(colors.divider)
+        .stroke();
 
-      // --- TABLE CONTENT ---
-      doc.fontSize(10).font('Helvetica').fillColor('#333333');
-      let yPosition = tableTop + 30;
-      let subtotal = 0;
+      // --- INVOICE INFO ---
+      const infoY = 180;
+      doc
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .fillColor(colors.headerText)
+        .text('INVOICE TO :', margin, infoY);
 
-      order.items.forEach((item) => {
-        const itemPrice = item.price;
-        const itemTotal = item.quantity * itemPrice;
-        subtotal += itemTotal;
+      const customerName = order.shippingAddress?.fullName || order.customer?.name || 'Customer';
+      doc
+        .fontSize(11)
+        .font('Helvetica')
+        .fillColor(colors.text)
+        .text(customerName, margin, infoY + 25)
+        .text(customerName, margin, infoY + 40); // Double name as per reference image
 
-        // Product name and variant
-        doc.fontSize(10).font('Helvetica').text(item.product.name, col1, yPosition, { width: 280 });
-        if (item.variantTitle) {
-          doc.fontSize(8).text(`(${item.variantTitle})`, col1, yPosition + 12, { width: 280 });
-        }
+      if (order.shippingAddress?.address) {
+        doc.text(order.shippingAddress.address, margin, infoY + 55, { width: 250 });
+      }
 
-        doc.fontSize(10).text(String(item.quantity), col2, yPosition);
-        doc.text(`₹${itemPrice.toLocaleString('en-IN')}`, col3, yPosition);
-        doc.text(`₹${itemTotal.toLocaleString('en-IN')}`, col4, yPosition);
+      // Invoice Number & Date (Right Side)
+      const rightX = pageWidth - margin - 150;
+      doc
+        .fontSize(11)
+        .font('Helvetica-Bold')
+        .fillColor(colors.darkText)
+        .text(`Invoice No.${order.invoiceNumber || order.id.slice(-6).toUpperCase()}`, rightX, infoY + 50, { align: 'right', width: 150 });
 
-        yPosition += 35; // Increased spacing for items
+      const orderDate = new Date(order.createdAt);
+      const dateStr = orderDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      doc.text(dateStr, rightX, infoY + 65, { align: 'right', width: 150 });
+
+      // --- TABLE SECTION ---
+      const tableTop = 320;
+      const colWidths = {
+        no: 40,
+        desc: 260,
+        price: 60,
+        qty: 40,
+        total: 80
+      };
+
+      // Table Container
+      doc
+        .rect(margin, tableTop, pageWidth - 2 * margin, 350)
+        .fill(colors.white);
+
+      // Re-draw background on top of white box if needed? No, let's keep it white for readability as per reference.
+      
+      // Table Header
+      const headerY = tableTop + 15;
+      doc
+        .fontSize(10)
+        .font('Helvetica-Bold')
+        .fillColor(colors.headerText);
+
+      let currentX = margin + 15;
+      doc.text('NO.', currentX, headerY);
+      currentX += colWidths.no;
+      doc.text('PRODUCT DESCRIPTION', currentX, headerY);
+      currentX += colWidths.desc;
+      doc.text('PRICE', currentX, headerY, { align: 'right', width: colWidths.price });
+      currentX += colWidths.price + 10;
+      doc.text('QTY', currentX, headerY, { align: 'center', width: colWidths.qty });
+      currentX += colWidths.qty + 10;
+      doc.text('TOTAL', currentX, headerY, { align: 'right', width: colWidths.total });
+
+      // Header Divider
+      doc
+        .moveTo(margin + 15, headerY + 15)
+        .lineTo(pageWidth - margin - 15, headerY + 15)
+        .lineWidth(1)
+        .strokeColor(colors.divider)
+        .stroke();
+
+      // Table Rows
+      let rowY = headerY + 30;
+      doc
+        .fontSize(10)
+        .font('Helvetica-Bold')
+        .fillColor(colors.darkText);
+
+      order.items.forEach((item, index) => {
+        currentX = margin + 15;
+        doc.text(String(index + 1), currentX, rowY, { align: 'center', width: colWidths.no - 20 });
+        currentX += colWidths.no;
+        doc.text(item.product?.name || 'Product', currentX, rowY, { width: colWidths.desc - 10 });
+        currentX += colWidths.desc;
+        doc.text(`Rs.${Number(item.price).toFixed(2)}`, currentX, rowY, { align: 'right', width: colWidths.price });
+        currentX += colWidths.price + 10;
+        doc.text(String(item.quantity), currentX, rowY, { align: 'center', width: colWidths.qty });
+        currentX += colWidths.qty + 10;
+        doc.text(`Rs.${(Number(item.price) * Number(item.quantity)).toFixed(2)}`, currentX, rowY, { align: 'right', width: colWidths.total });
+
+        rowY += 25;
       });
 
-      // --- SUMMARY ---
-      doc.moveTo(50, yPosition).lineTo(550, yPosition).lineWidth(0.5).strokeColor('#EEEEEE').stroke();
-      
-      const summaryY = yPosition + 20;
-      doc.fontSize(10).font('Helvetica').fillColor('#000000');
-      
-      doc.text('Subtotal:', 400, summaryY, { width: 80, align: 'right' });
-      doc.text(`₹${subtotal.toLocaleString('en-IN')}`, col4, summaryY, { width: 80, align: 'left' });
+      // Bottom Table Divider
+      doc
+        .moveTo(margin + 15, 600)
+        .lineTo(pageWidth - margin - 15, 600)
+        .lineWidth(1)
+        .strokeColor(colors.divider)
+        .stroke();
 
-      doc.text('Shipping:', 400, summaryY + 20, { width: 80, align: 'right' });
-      doc.text('Free', col4, summaryY + 20, { width: 80, align: 'left' });
+      // --- TOTALS ---
+      const totalY = 640;
+      doc
+        .fontSize(10)
+        .font('Helvetica-Bold')
+        .fillColor(colors.headerText);
 
-      doc.text('Taxes:', 400, summaryY + 40, { width: 80, align: 'right' });
-      doc.text('—', col4, summaryY + 40, { width: 80, align: 'left' });
+      // Payment Status (Left)
+      doc.text('Payment Status :', margin + 15, totalY);
+      doc
+        .fontSize(11)
+        .fillColor(colors.darkText)
+        .text(order.status === 'PAID' || order.status === 'COD_CONFIRMED' ? 'PAID' : 'PENDING', margin + 15, totalY + 15);
 
-      doc.moveTo(350, summaryY + 65).lineTo(550, summaryY + 65).lineWidth(1).strokeColor('#000000').stroke();
+      // Amounts (Right)
+      const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+      const shipping = order.paymentMethod === 'cod' ? 70 : 0;
 
-      doc.fontSize(12).font('Helvetica-Bold');
-      doc.text('TOTAL:', 400, summaryY + 80, { width: 80, align: 'right' });
-      doc.text(`₹${order.totalAmount.toLocaleString('en-IN')}`, col4, summaryY + 80, { width: 80, align: 'left' });
+      const labelX = pageWidth - margin - 180;
+      const valueX = pageWidth - margin - 80;
+
+      doc.fontSize(10).fillColor(colors.headerText);
+      doc.text('Subtotal', labelX, totalY, { width: 100, align: 'right' });
+      doc.text('Shipping', labelX, totalY + 20, { width: 100, align: 'right' });
+      doc.text('Total', labelX, totalY + 40, { width: 100, align: 'right' });
+
+      doc.fillColor(colors.darkText);
+      doc.text(`Rs.${subtotal.toFixed(2)}`, valueX, totalY, { width: 80, align: 'right' });
+      doc.text(shipping ? `Rs.${shipping.toFixed(2)}` : 'Free', valueX, totalY + 20, { width: 80, align: 'right' });
+      doc.text(`Rs.${order.totalAmount.toFixed(2)}`, valueX, totalY + 40, { width: 80, align: 'right' });
 
       // --- FOOTER ---
-      doc.fontSize(8).font('Helvetica').fillColor('#999999');
-      doc.text('Thank you for your purchase!', 50, 780, { align: 'center', width: 500 });
+      // Thank You Graphic (Bottom Left)
+      const thankYouY = 750;
+      doc
+        .fontSize(40)
+        .font('Helvetica-Bold') // Ideally a script font if available
+        .fillColor('#1a2d5a') // Blue part
+        .text('Thank', margin, thankYouY);
+      doc
+        .fontSize(50)
+        .fillColor(colors.headerText)
+        .text('You', margin + 80, thankYouY - 10);
+
+      // Footer Details (Bottom Right)
+      const footerX = pageWidth - margin - 250;
+      doc
+        .fontSize(11)
+        .font('Helvetica-Bold')
+        .fillColor(colors.headerText)
+        .text('Ghar of Ethnics', footerX, thankYouY + 10, { align: 'right', width: 250 })
+        .text('+ 91 9845634734', footerX, thankYouY + 25, { align: 'right', width: 250 });
+
+      doc
+        .fontSize(9)
+        .font('Helvetica')
+        .fillColor(colors.darkText)
+        .text('www.gharofethnics.com', footerX, thankYouY + 45, { align: 'right', width: 250 })
+        .text('support@gharofethnics.com', footerX, thankYouY + 55, { align: 'right', width: 250 });
 
       doc.end();
     } catch (error) {
@@ -146,4 +277,3 @@ export const generateInvoice = async (orderId) => {
     }
   });
 };
-
