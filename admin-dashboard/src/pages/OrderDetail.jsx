@@ -79,7 +79,10 @@ const OrderDetail = () => {
         ? apiData.details
         : apiData?.details?.message || apiData?.details?.error || null;
       const message = apiData?.message || error?.message || 'Error creating shipment';
-      alert(detail ? `${message}\n${detail}` : message);
+      const normalizedMessage = String(message || '').trim().toLowerCase();
+      const normalizedDetail = String(detail || '').trim().toLowerCase();
+      const shouldAppendDetail = normalizedDetail && normalizedDetail !== normalizedMessage;
+      alert(shouldAppendDetail ? `${message}\n${detail}` : message);
     } finally {
       setShipLoading(false);
     }
