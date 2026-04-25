@@ -42,7 +42,7 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
           }
           .invoice-container {
             width: 794px; /* A4 width */
-            min-height: 0;
+            min-height: 1123px; /* A4 height at 96dpi */
             height: auto;
             margin: 0 auto;
             padding: 50px;
