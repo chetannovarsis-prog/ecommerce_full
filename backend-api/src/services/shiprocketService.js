@@ -3,8 +3,8 @@ import { logger } from '../utils/logger.js';
 
 const DEFAULT_BASE_URL = 'https://apiv2.shiprocket.in';
 const API_PREFIX = '/v1/external';
-const REQUEST_TIMEOUT_MS = 15_000;
-const SERVICEABILITY_TIMEOUT_MS = 5_000;
+const REQUEST_TIMEOUT_MS = Number(process.env.SHIPROCKET_REQUEST_TIMEOUT_MS || 8_000);
+const SERVICEABILITY_TIMEOUT_MS = Number(process.env.SHIPROCKET_SERVICEABILITY_TIMEOUT_MS || 3_000);
 const TOKEN_EXPIRY_SAFETY_MS = 5 * 60 * 1000;
 
 let tokenCache = {
@@ -17,6 +17,16 @@ const getBaseUrl = () => (process.env.SHIPROCKET_BASE_URL || DEFAULT_BASE_URL).r
 const getApiBaseUrl = () => `${getBaseUrl()}${API_PREFIX}`;
 
 const buildShiprocketError = (error, fallbackMessage) => {
+  if (error?.code === 'ECONNABORTED') {
+    const normalizedError = new Error('Shiprocket request timed out. Please try again.');
+    normalizedError.statusCode = 504;
+    normalizedError.details = {
+      code: error.code,
+      timeout: error?.config?.timeout || REQUEST_TIMEOUT_MS,
+    };
+    return normalizedError;
+  }
+
   if (error?.response) {
     const { status, data } = error.response;
     const message =

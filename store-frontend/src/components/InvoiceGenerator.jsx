@@ -50,16 +50,6 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
             position: relative;
             overflow: hidden;
           }
-          .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 420px;
-            opacity: 0.08;
-            z-index: 0;
-            pointer-events: none;
-          }
           .content {
             position: relative;
             z-index: 1;
@@ -269,8 +259,6 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
         </style>
 
         <div class="invoice-container">
-          <img src="${assetBase}/images/mandala_motif.png" class="watermark" />
-          
           <div class="content">
             <div class="header">
               <img src="${assetBase}/images/logo3.png" class="logo" />

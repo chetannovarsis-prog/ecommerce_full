@@ -67,27 +67,6 @@ export const generateInvoice = async (orderId) => {
       // Fill background
       doc.rect(0, 0, pageWidth, pageHeight).fill(colors.background);
 
-      // Add Watermark (Mandala)
-      try {
-        const mandalaPath = path.join(__dirname, '../assets/images/mandala_motif.png');
-        doc.save();
-        doc.opacity(0.09).image(mandalaPath, pageWidth / 2 - 160, pageHeight / 2 - 160, {
-          width: 320
-        });
-        doc.restore();
-      } catch (err) {
-        try {
-          const mandalaFallbackPath = path.join(__dirname, '../assets/images/mandala_motif1.png');
-          doc.save();
-          doc.opacity(0.09).image(mandalaFallbackPath, pageWidth / 2 - 160, pageHeight / 2 - 160, {
-            width: 320
-          });
-          doc.restore();
-        } catch {
-          console.warn('Mandala motif not found, skipping watermark');
-        }
-      }
-
       // --- HEADER ---
       // Logo (Top Left)
       try {

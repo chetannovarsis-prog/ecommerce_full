@@ -190,10 +190,10 @@ export const createShipment = async (input) => {
   // Add retry logic for transient failures
   let result;
   let lastError;
-  const maxRetries = 2;
-  const baseDelay = 1000; // 1 second
+  const maxAttempts = Math.max(1, Number(process.env.SHIPMENT_CREATE_MAX_ATTEMPTS || 1));
+  const baseDelay = 800;
   
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       result = await provider.createShipment(payload);
       break; // Success, exit retry loop
@@ -203,9 +203,9 @@ export const createShipment = async (input) => {
       
       // Retry on 502, 503, 504 (gateway errors) and timeouts
       if ((statusCode >= 502 && statusCode <= 504) || error?.code === 'ECONNABORTED') {
-        if (attempt < maxRetries - 1) {
+        if (attempt < maxAttempts - 1) {
           const delay = baseDelay * Math.pow(2, attempt); // Exponential backoff
-          console.log(`[ShippingService] Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+          logger.warn(`[ShippingService] Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
           await new Promise(r => setTimeout(r, delay));
           continue;
         }

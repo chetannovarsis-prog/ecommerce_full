@@ -74,7 +74,12 @@ const OrderDetail = () => {
       setShipment(res.data.shipment);
       alert('Shipment created successfully');
     } catch (error) {
-      alert(error.response?.data?.message || 'Error creating shipment');
+      const apiData = error?.response?.data;
+      const detail = typeof apiData?.details === 'string'
+        ? apiData.details
+        : apiData?.details?.message || apiData?.details?.error || null;
+      const message = apiData?.message || error?.message || 'Error creating shipment';
+      alert(detail ? `${message}\n${detail}` : message);
     } finally {
       setShipLoading(false);
     }
