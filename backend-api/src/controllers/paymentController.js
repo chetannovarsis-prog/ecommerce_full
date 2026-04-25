@@ -224,8 +224,28 @@ export const verifyPayment = async (req, res) => {
     
     const paidAmount = rpOrder.amount / 100;
     
-    // 3. Create the Order in DB NOW
-    const resolvedCustomerId = req.user?.id || orderData.customerId || null;
+    // 3. Resolve customer safely before creating the order.
+    // Frontend localStorage can hold stale ids; avoid FK violations by validating first.
+    const requestedCustomerId = req.user?.id || orderData?.customerId || null;
+    let resolvedCustomerId = null;
+
+    if (requestedCustomerId) {
+      const existingCustomer = await prisma.customer.findUnique({
+        where: { id: requestedCustomerId },
+        select: { id: true }
+      });
+      resolvedCustomerId = existingCustomer?.id || null;
+    }
+
+    // Optional fallback by email if id is missing/stale and an account exists.
+    if (!resolvedCustomerId && orderData?.customerEmail) {
+      const emailCustomer = await prisma.customer.findUnique({
+        where: { email: String(orderData.customerEmail).trim().toLowerCase() },
+        select: { id: true }
+      });
+      resolvedCustomerId = emailCustomer?.id || null;
+    }
+
     const invoiceNumber = await generateNextInvoiceNumber();
 
     const order = await prisma.order.create({

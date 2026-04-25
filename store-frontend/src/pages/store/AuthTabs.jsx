@@ -542,10 +542,10 @@ const AuthTabs = () => {
                       <input
                         type="text"
                         inputMode="numeric"
-                        placeholder="4-digit OTP"
+                        placeholder="6-digit OTP"
                         className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold focus:bg-white focus:border-black transition-all focus:ring-4 focus:ring-black/5"
                         value={signUpOtp}
-                        onChange={(e) => setSignUpOtp(e.target.value.slice(0, 4))}
+                        onChange={(e) => setSignUpOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         required
                       />
                     </div>
