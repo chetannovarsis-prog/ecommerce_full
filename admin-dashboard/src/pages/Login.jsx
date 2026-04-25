@@ -18,8 +18,9 @@ const Login = () => {
 
   React.useEffect(() => {
     const adminAuth = localStorage.getItem('adminAuth') === 'true';
-    if (adminAuth) {
-      navigate('/');
+    const token = localStorage.getItem('adminToken');
+    if (adminAuth && token) {
+      navigate('/', { replace: true });
     }
   }, [navigate]);
 
@@ -34,7 +35,7 @@ const Login = () => {
         setRequires2FA(true);
         setOtp('');
       } else {
-        navigate('/');
+        navigate('/', { replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.message || 'ID or password is incorrect.');
@@ -49,7 +50,7 @@ const Login = () => {
     setError('');
     try {
       await verifyAdminOtp(email, otp);
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid or expired OTP');
     } finally {

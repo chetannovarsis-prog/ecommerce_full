@@ -33,6 +33,15 @@ export async function verifyAdminOtp(email, otp) {
 }
 
 /**
+ * Placeholder for legacy forgot-password UI.
+ * Admin auth currently relies on backend-managed credentials/flow,
+ * so there is no public reset endpoint for admin accounts.
+ */
+export async function resetAdminPassword() {
+  throw new Error('Admin password reset is not available in the current auth flow.');
+}
+
+/**
  * Logs out the admin.
  */
 export async function logoutAdmin() {
@@ -52,11 +61,12 @@ export async function getAdminProfile() {
     const { data } = await api.get('/auth/profile');
     return data; // { profile: { id, email, role } }
   } catch (error) {
-    console.error('Failed to fetch admin profile:', error);
     // If token is invalid, clear it
     if (error.response?.status === 401) {
-      logoutAdmin();
+      await logoutAdmin();
+      return null;
     }
+    console.error('Failed to fetch admin profile:', error);
     throw error;
   }
 }

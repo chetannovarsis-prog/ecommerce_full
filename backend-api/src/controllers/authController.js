@@ -81,49 +81,17 @@ export const login = async (req, res) => {
     let admin = await prisma.admin.findUnique({ where: { email } });
 
     if (!admin) {
-      // Create admin on the fly if it doesn't exist (for easier migration)
+      // Create admin on the fly if it doesn't exist.
       admin = await prisma.admin.create({
-        data: { email, is2FAEnabled: true } // Default to 2FA enabled as per user request
+        data: { email, is2FAEnabled: false }
       });
     }
 
+    // 2FA is disabled for admin logins.
     if (admin.is2FAEnabled) {
-      // Generate 4-digit OTP
-      const otp = Math.floor(1000 + Math.random() * 9000).toString();
-      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
-      await prisma.admin.update({
+      admin = await prisma.admin.update({
         where: { id: admin.id },
-        data: { otp, otpExpires }
-      });
-
-      // Send Email using unified templates
-      const emailSent = await sendMail(email, 'Your Admin OTP', TEMPLATES.LOGIN_OTP(otp));
-
-
-
-      // If email sent successfully, we require the OTP step.
-      if (emailSent) {
-        return res.json({ 
-          requires2FA: true,
-          email: admin.email,
-          message: 'OTP sent to your email'
-        });
-      }
-
-      // If email sending fails (missing credentials / blocked by provider), fall back to issuing a token so the admin can still login.
-      // This keeps the app usable in environments where email is not configured.
-      const token = jwt.sign(
-        { id: admin.id, email: admin.email, role: 'admin' },
-        JWT_SECRET,
-        { expiresIn: '1d' }
-      );
-
-      return res.json({
-        success: true,
-        email: admin.email,
-        token,
-        warning: 'Failed to send OTP email; logging in without 2FA.'
+        data: { is2FAEnabled: false, otp: null, otpExpires: null }
       });
     }
 

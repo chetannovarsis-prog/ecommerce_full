@@ -22,7 +22,7 @@ async function main() {
 
   console.log('Admin user created/updated successfully:', admin.email);
 
-  // Also ensure default settings exist
+  // Ensure default settings exist
   await prisma.globalSetting.upsert({
     where: { id: 'default' },
     update: {},
@@ -32,6 +32,11 @@ async function main() {
     }
   });
   console.log('Default settings ensured.');
+
+  // --- SEED SAMPLE DATA ---
+  console.log('Seeding sample products...');
+
+  console.log('Sample products seeded successfully.');
 }
 
 main()

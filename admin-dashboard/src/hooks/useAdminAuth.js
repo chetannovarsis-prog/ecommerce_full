@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getAdminProfile } from '../services/adminAuth';
+import { getAdminProfile, logoutAdmin } from '../services/adminAuth';
 
 export const useAdminAuth = () => {
   const [loading, setLoading] = useState(true);
@@ -23,6 +23,7 @@ export const useAdminAuth = () => {
         }
       } catch (error) {
         if (!isMounted) return;
+        logoutAdmin();
         setIsAdmin(false);
         setEmail(null);
       } finally {

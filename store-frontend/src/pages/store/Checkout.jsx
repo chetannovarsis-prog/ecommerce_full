@@ -255,23 +255,21 @@ const Checkout = () => {
       console.log('Order data:', { id: order.id, amount: order.amount, currency: order.currency });
 
       const restoreScroll = () => {
-  // Remove all possible scroll locks Razorpay adds
-  document.body.style.overflow = '';
-  document.body.style.overflowY = '';
-  document.body.style.position = '';
-  document.body.style.top = '';
-  document.body.style.width = '';
-  document.documentElement.style.overflow = '';
-  document.documentElement.style.overflowY = '';
+        // Remove all possible scroll locks Razorpay adds.
+        document.body.style.overflow = '';
+        document.body.style.overflowY = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.overflowY = '';
 
-  // Razorpay sometimes adds a class to body
-  document.body.classList.remove('razorpay-container');
+        // Razorpay sometimes adds a class to body.
+        document.body.classList.remove('razorpay-container');
 
-  // Remove any leftover Razorpay iframe/backdrop that might block scroll
-  document.querySelectorAll('.razorpay-container, .razorpay-backdrop').forEach(el => el.remove());
- };
-
-  };
+        // Remove leftover Razorpay elements that can block scroll.
+        document.querySelectorAll('.razorpay-container, .razorpay-backdrop').forEach((el) => el.remove());
+      };
 
 
       let razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;

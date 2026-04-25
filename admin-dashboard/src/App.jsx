@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children }) => {
       </div>
     );
   }
-  return isAdmin ? children : <Navigate to="/login" />;
+  return isAdmin ? children : <Navigate to="/login" replace />;
 };
 
 const Layout = ({ children }) => {
