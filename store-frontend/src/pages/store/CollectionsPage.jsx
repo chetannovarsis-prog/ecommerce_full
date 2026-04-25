@@ -52,7 +52,7 @@ const CollectionsPage = () => {
             <div className="w-12 h-12 border-t-2 border-[#1a2d5a] rounded-full animate-spin"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 max-w-9xl mx-auto">
             <AnimatePresence>
               {collections.map((c) => (
                 <motion.div
@@ -60,15 +60,15 @@ const CollectionsPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   key={c.id}
                   onClick={() => navigate(`/collections/${toCollectionSlug(c.name)}`)}
-                  className="group relative cursor-pointer"
+                  className="group relative cursor-pointer block mx-4 md:mx-0"
                 >
                   {/* Decorative Premium Corner Bracket */}
-                  <div className="absolute -top-[45px] -right-[49px] z-30 w-[100px] h-[100px] pointer-events-none transition-transform duration-500  overflow-hidden">
+                  <div className="absolute -top-[34px] -right-[38px] z-30 w-[80px] h-[80px] pointer-events-none transition-transform duration-500 overflow-hidden">
                     <img src="/images/corner_bracket.png" alt="" className="w-full h-full object-contain" />
                   </div>
 
-                  <div className="aspect-[4/5] overflow-hidden rounded-xl shadow-lg transition-all duration-300 group-hover:shadow-orange-300 group-hover:shadow-[0_10px_25px_rgba(0,0,0,0.06)]  bg-white">
-                    <img src={c.imageUrl} className="w-full h-full object-cover transition-transform duration-1000 " alt={c.name} />
+                  <div className="aspect-[4/3] overflow-hidden rounded-2xl shadow-2xl ring-1 ring-black/5 bg-white">
+                    <img src={c.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={c.name} />
                     <div className="absolute inset-0" />
                   </div>
                   
