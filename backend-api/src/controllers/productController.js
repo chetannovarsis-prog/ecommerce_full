@@ -9,6 +9,26 @@ const parseOptionalFloat = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const buildProductSaveError = (error, action = 'save') => {
+  const response = {
+    message: `Failed to ${action} product.`,
+    detail: error?.message || 'Unknown error'
+  };
+
+  if (error?.code === 'P2002') {
+    const target = Array.isArray(error?.meta?.target) ? error.meta.target.join(', ') : 'unique field';
+    response.message = `Failed to ${action} product: duplicate value.`;
+    response.detail = `A record with the same ${target} already exists.`;
+  }
+
+  if (error?.code === 'P2025') {
+    response.message = `Failed to ${action} product: record not found.`;
+    response.detail = 'The product no longer exists or was removed by another user.';
+  }
+
+  return response;
+};
+
 export const getAllProducts = async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(5, parseInt(req.query.limit, 10) || 20));
@@ -150,7 +170,8 @@ export const createProduct = async (req, res) => {
     res.status(201).json(product);
   } catch (error) {
     console.error('Create product error:', error);
-    res.status(500).json({ error: error.message });
+    const payload = buildProductSaveError(error, 'create');
+    res.status(500).json(payload);
   }
 };
 
@@ -242,7 +263,8 @@ export const updateProduct = async (req, res) => {
     res.json(product);
   } catch (error) {
     console.error('Update product error:', error);
-    res.status(500).json({ error: error.message });
+    const payload = buildProductSaveError(error, 'update');
+    res.status(500).json(payload);
   }
 };
 

@@ -167,14 +167,14 @@ const ProductDetail = () => {
               </button>
             </div>
             <div className="px-8 py-6 space-y-8">
-              <div className="grid grid-cols-2 gap-y-8">
-                <div>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-8">
+                <div className="space-y-2">
                   <label className="text-[0.6rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Description</label>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed">{product.description || '-'}</p>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed">{product.description || '-'}</p>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <label className="text-[0.6rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Subtitle</label>
-                  <p className="mt-1 text-sm font-bold text-gray-900 dark:text-white">{product.subtitle || '-'}</p>
+                  <p className="mt-2 text-sm font-bold text-gray-900 dark:text-white leading-relaxed">{product.subtitle || '-'}</p>
                 </div>
                 <div>
                   <label className="text-[0.6rem] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Handle</label>

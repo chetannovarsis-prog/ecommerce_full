@@ -12,6 +12,7 @@ const statusColors = {
   PAID: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   PENDING: 'bg-amber-50 text-amber-600 border-amber-100',
   PAYMENT_PENDING: 'bg-amber-50 text-amber-600 border-amber-100',
+  CANCELLED: 'bg-red-50 text-red-600 border-red-100',
   COD: 'bg-blue-50 text-blue-600 border-blue-100',
   DELIVERED: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   SHIPPED: 'bg-blue-50 text-blue-600 border-blue-100',
@@ -20,6 +21,7 @@ const statusColors = {
 
 const getStatusStep = (status) => {
   switch (status) {
+    case 'CANCELLED': return -1;
     case 'PAYMENT_PENDING': return 0;
     case 'DELIVERED': return 3;
     case 'SHIPPED': return 2;
@@ -121,10 +123,11 @@ const OrderDetail = () => {
 
   const step = getStatusStep(order.status);
   const isPaymentPending = order.status === 'PAYMENT_PENDING';
+  const isCancelled = order.status === 'CANCELLED';
   const steps = [
-    { label: isPaymentPending ? 'Payment Pending' : 'Order Placed', icon: isPaymentPending ? Clock : Check, completed: step >= 1 },
-    { label: 'Shipped', icon: Truck, completed: step >= 2 },
-    { label: 'Delivered', icon: Home, completed: step >= 3 },
+    { label: isCancelled ? 'Cancelled' : isPaymentPending ? 'Payment Pending' : 'Order Placed', icon: isCancelled ? ShoppingBag : isPaymentPending ? Clock : Check, completed: isCancelled ? true : step >= 1 },
+    { label: 'Shipped', icon: Truck, completed: !isCancelled && step >= 2 },
+    { label: 'Delivered', icon: Home, completed: !isCancelled && step >= 3 },
   ];
 
   const estimatedDelivery = new Date(
@@ -216,20 +219,22 @@ const OrderDetail = () => {
             {/* Connecting Bar */}
             <div className="absolute top-5 left-10 right-10 h-[2px] bg-gray-100 z-0" />
             <div
-              className="absolute top-5 left-10 h-[2px] bg-emerald-500 z-0 transition-all duration-700"
-              style={{ width: step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}
+              className={`absolute top-5 left-10 h-[2px] z-0 transition-all duration-700 ${isCancelled ? 'bg-red-500' : 'bg-emerald-500'}`}
+              style={{ width: isCancelled ? '100%' : step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}
             />
 
             {steps.map((s, idx) => (
               <div key={idx} className="relative z-10 flex flex-col items-center gap-3 flex-1">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                   s.completed
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'
+                    ? isCancelled
+                      ? 'bg-red-500 text-white shadow-lg shadow-red-200'
+                      : 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'
                     : 'bg-white text-gray-300 border-2 border-gray-100'
                 }`}>
                   <s.icon size={18} strokeWidth={2.5} />
                 </div>
-                <span className={`text-[0.6rem] font-black uppercase tracking-widest text-center ${s.completed ? 'text-gray-900' : 'text-gray-300'}`}>
+                <span className={`text-[0.6rem] font-black uppercase tracking-widest text-center ${s.completed ? (isCancelled ? 'text-red-600' : 'text-gray-900') : 'text-gray-300'}`}>
                   {s.label}
                 </span>
               </div>

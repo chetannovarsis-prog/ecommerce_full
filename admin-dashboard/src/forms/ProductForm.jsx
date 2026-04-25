@@ -79,6 +79,26 @@ const createInitialFormData = (product) => {
 };
 
 const ProductForm = ({ onClose, onSave, product }) => {
+  
+    const getSaveErrorMessage = (error) => {
+      const apiData = error?.response?.data;
+      const status = error?.response?.status;
+    
+      if (apiData?.message && apiData?.detail) {
+        return `${apiData.message}\n${apiData.detail}`;
+      }
+    
+      if (apiData?.message) return apiData.message;
+      if (apiData?.error) return apiData.error;
+      if (error?.message === 'Network Error') {
+        return 'Could not reach server. Please check internet or backend connection.';
+      }
+      if (status) {
+        return `Failed to save product (HTTP ${status}).`;
+      }
+    
+      return error?.message || 'Error saving product';
+    };
   const [formData, setFormData] = useState(() => createInitialFormData(product));
 
   const [categories, setCategories] = useState([]);
@@ -316,7 +336,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
       onClose();
     } catch (error) {
       console.error('Error saving product:', error);
-      alert(error.response?.data?.message || 'Error saving product');
+      alert(getSaveErrorMessage(error));
     } finally {
       setUploading(false);
     }
@@ -359,7 +379,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Product Title</label>
                 <input
                   type="text"
@@ -370,7 +390,7 @@ const ProductForm = ({ onClose, onSave, product }) => {
                   required
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Subtitle (Optional)</label>
                 <input
                   type="text"
@@ -565,12 +585,12 @@ const ProductForm = ({ onClose, onSave, product }) => {
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Product Story / Description</label>
               <textarea
                 placeholder="Narrate the craftsmanship and details..."
                 rows={4}
-                className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all resize-none"
+                className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-sm font-bold leading-relaxed focus:outline-none focus:ring-4 focus:ring-black/5 focus:border-black transition-all resize-none"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
               />

@@ -224,9 +224,9 @@ const Products = () => {
                               <img src={product.thumbnailUrl || product.images[0]} className="w-full h-full object-cover" alt="" />
                             )}
                           </div>
-                          <div>
+                          <div className="space-y-1.5">
                             <p className="font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">{product.name}</p>
-                            <p className="text-[0.6rem] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest mt-1">{product.subtitle || 'No Subtitle'}</p>
+                            <p className="text-[0.6rem] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest mt-2 leading-relaxed">{product.subtitle || 'No Subtitle'}</p>
                           </div>
                         </div>
                       </td>

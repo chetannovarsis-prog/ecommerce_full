@@ -50,7 +50,7 @@ const reduceInventory = async (orderId) => {
 const generateNextInvoiceNumber = async () => {
   try {
     const lastOrder = await prisma.order.findFirst({
-      where: { invoiceNumber: { startsWith: 'Gof-INV-' } },
+      where: { invoiceNumber: { startsWith: 'GOE-INV-' } },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -64,10 +64,10 @@ const generateNextInvoiceNumber = async () => {
       }
     }
 
-    return `Gof-INV-${String(nextNumber).padStart(4, '0')}`;
+    return `GOE-INV-${String(nextNumber).padStart(4, '0')}`;
   } catch (error) {
     console.error('Error generating invoice number:', error);
-    return `Gof-INV-${Date.now().toString().slice(-4)}`;
+    return `GOE-INV-${Date.now().toString().slice(-4)}`;
   }
 };
 

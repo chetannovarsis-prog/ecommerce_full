@@ -55,7 +55,8 @@ export const generateInvoice = async (orderId) => {
         divider: '#9a9cd8',    // Light Purple/Blue
         text: '#4a4a4a',
         darkText: '#2c2c2c',
-        white: '#ffffff'
+        white: '#ffffff',
+        cancelled: '#dc2626'
       };
 
       const pageWidth = 595.28; // A4 width in points
@@ -69,19 +70,29 @@ export const generateInvoice = async (orderId) => {
       // Add Watermark (Mandala)
       try {
         const mandalaPath = path.join(__dirname, '../assets/images/mandala_motif.png');
-        doc.image(mandalaPath, pageWidth / 2 - 150, pageHeight / 2 - 150, {
-          width: 300,
-          opacity: 0.08
+        doc.save();
+        doc.opacity(0.09).image(mandalaPath, pageWidth / 2 - 160, pageHeight / 2 - 160, {
+          width: 320
         });
+        doc.restore();
       } catch (err) {
-        console.warn('Mandala motif not found, skipping watermark');
+        try {
+          const mandalaFallbackPath = path.join(__dirname, '../assets/images/mandala_motif1.png');
+          doc.save();
+          doc.opacity(0.09).image(mandalaFallbackPath, pageWidth / 2 - 160, pageHeight / 2 - 160, {
+            width: 320
+          });
+          doc.restore();
+        } catch {
+          console.warn('Mandala motif not found, skipping watermark');
+        }
       }
 
       // --- HEADER ---
       // Logo (Top Left)
       try {
         const logoPath = path.join(__dirname, '../assets/images/logo.png');
-        doc.image(logoPath, margin, 40, { width: 100 });
+        doc.image(logoPath, margin, 40, { width: 95 });
       } catch (err) {
         // Fallback text logo
         doc
@@ -93,21 +104,21 @@ export const generateInvoice = async (orderId) => {
 
       // "INVOICE" Title (Top Right)
       doc
-        .fontSize(48)
+        .fontSize(46)
         .font('Helvetica-Bold')
         .fillColor(colors.headerText)
-        .text('INVOICE', margin, 70, { align: 'right', width: pageWidth - 2 * margin });
+        .text('INVOICE', margin, 72, { align: 'right', width: pageWidth - 2 * margin });
 
       // Divider below title
       doc
-        .moveTo(350, 130)
-        .lineTo(pageWidth - margin, 130)
+        .moveTo(pageWidth - 210, 132)
+        .lineTo(pageWidth - margin, 132)
         .lineWidth(1)
         .strokeColor(colors.divider)
         .stroke();
 
       // --- INVOICE INFO ---
-      const infoY = 180;
+      const infoY = 175;
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
@@ -115,6 +126,14 @@ export const generateInvoice = async (orderId) => {
         .text('INVOICE TO :', margin, infoY);
 
       const customerName = order.shippingAddress?.fullName || order.customer?.name || 'Customer';
+      const customerAddressLines = [
+        order.shippingAddress?.address || '',
+        order.shippingAddress?.apartment || '',
+        `${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''} ${order.shippingAddress?.pinCode || ''}`.trim()
+      ].filter(Boolean);
+
+      const customerAddress = customerAddressLines.join('\n');
+
       doc
         .fontSize(11)
         .font('Helvetica')
@@ -122,8 +141,14 @@ export const generateInvoice = async (orderId) => {
         .text(customerName, margin, infoY + 25)
         .text(customerName, margin, infoY + 40); // Double name as per reference image
 
-      if (order.shippingAddress?.address) {
-        doc.text(order.shippingAddress.address, margin, infoY + 55, { width: 250 });
+      let addressEndY = infoY + 56;
+      if (customerAddress) {
+        doc
+          .fontSize(10.5)
+          .font('Helvetica')
+          .fillColor(colors.text)
+          .text(customerAddress, margin, infoY + 58, { width: 250, lineGap: 2 });
+        addressEndY = doc.y + 2;
       }
 
       // Invoice Number & Date (Right Side)
@@ -139,19 +164,54 @@ export const generateInvoice = async (orderId) => {
       doc.text(dateStr, rightX, infoY + 65, { align: 'right', width: 150 });
 
       // --- TABLE SECTION ---
-      const tableTop = 320;
+      const tableTop = Math.max(300, Math.ceil(addressEndY) + 25);
+      const gap = 8;
       const colWidths = {
-        no: 40,
-        desc: 260,
-        price: 60,
-        qty: 40,
-        total: 80
+        no: 36,
+        desc: 206,
+        price: 70,
+        qty: 36,
+        total: 72
       };
+
+      const descWidth = colWidths.desc - 10;
+      doc.fontSize(10).font('Helvetica-Bold');
+      const rowHeights = (order.items || []).map((item) => {
+        const description = `${item.product?.name || 'Product'}${item.variantTitle ? ` (${item.variantTitle})` : ''}`;
+        const descHeight = doc.heightOfString(description, { width: descWidth, lineGap: 1 });
+        return Math.max(22, Math.ceil(descHeight) + 6);
+      });
+      const rowsHeight = rowHeights.reduce((sum, h) => sum + h, 0);
+      const extraRowsHeight = Math.max(0, rowsHeight - 22);
+      const tableHeight = 285 + extraRowsHeight;
 
       // Table Container
       doc
-        .rect(margin, tableTop, pageWidth - 2 * margin, 350)
+        .rect(margin, tableTop, pageWidth - 2 * margin, tableHeight)
         .fill(colors.white);
+
+      // Draw mandala inside the white table area so it stays visible like the reference.
+      try {
+        const tableMandalaPath = path.join(__dirname, '../assets/images/mandala_motif.png');
+        const motifSize = Math.min(340, Math.max(220, tableHeight - 70));
+        const motifX = margin + (pageWidth - 2 * margin - motifSize) / 2;
+        const motifY = tableTop + (tableHeight - motifSize) / 2;
+        doc.save();
+        doc.opacity(0.1).image(tableMandalaPath, motifX, motifY, { width: motifSize });
+        doc.restore();
+      } catch {
+        try {
+          const tableMandalaFallbackPath = path.join(__dirname, '../assets/images/mandala_motif1.png');
+          const motifSize = Math.min(340, Math.max(220, tableHeight - 70));
+          const motifX = margin + (pageWidth - 2 * margin - motifSize) / 2;
+          const motifY = tableTop + (tableHeight - motifSize) / 2;
+          doc.save();
+          doc.opacity(0.1).image(tableMandalaFallbackPath, motifX, motifY, { width: motifSize });
+          doc.restore();
+        } catch {
+          // keep invoice generation resilient if motif assets are missing
+        }
+      }
 
       // Re-draw background on top of white box if needed? No, let's keep it white for readability as per reference.
       
@@ -168,9 +228,9 @@ export const generateInvoice = async (orderId) => {
       doc.text('PRODUCT DESCRIPTION', currentX, headerY);
       currentX += colWidths.desc;
       doc.text('PRICE', currentX, headerY, { align: 'right', width: colWidths.price });
-      currentX += colWidths.price + 10;
+      currentX += colWidths.price + gap;
       doc.text('QTY', currentX, headerY, { align: 'center', width: colWidths.qty });
-      currentX += colWidths.qty + 10;
+      currentX += colWidths.qty + gap;
       doc.text('TOTAL', currentX, headerY, { align: 'right', width: colWidths.total });
 
       // Header Divider
@@ -189,30 +249,34 @@ export const generateInvoice = async (orderId) => {
         .fillColor(colors.darkText);
 
       order.items.forEach((item, index) => {
+        const currentRowHeight = rowHeights[index] || 24;
         currentX = margin + 15;
         doc.text(String(index + 1), currentX, rowY, { align: 'center', width: colWidths.no - 20 });
         currentX += colWidths.no;
-        doc.text(item.product?.name || 'Product', currentX, rowY, { width: colWidths.desc - 10 });
+        const description = `${item.product?.name || 'Product'}`;
+        doc.text(description, currentX, rowY, { width: descWidth, lineGap: 1 });
         currentX += colWidths.desc;
         doc.text(`Rs.${Number(item.price).toFixed(2)}`, currentX, rowY, { align: 'right', width: colWidths.price });
-        currentX += colWidths.price + 10;
+        currentX += colWidths.price + gap;
         doc.text(String(item.quantity), currentX, rowY, { align: 'center', width: colWidths.qty });
-        currentX += colWidths.qty + 10;
+        currentX += colWidths.qty + gap;
         doc.text(`Rs.${(Number(item.price) * Number(item.quantity)).toFixed(2)}`, currentX, rowY, { align: 'right', width: colWidths.total });
 
-        rowY += 25;
+        rowY += currentRowHeight;
       });
+
+      const dividerY = Math.min(tableTop + tableHeight - 70, rowY + 8);
 
       // Bottom Table Divider
       doc
-        .moveTo(margin + 15, 600)
-        .lineTo(pageWidth - margin - 15, 600)
+        .moveTo(margin + 15, dividerY)
+        .lineTo(pageWidth - margin - 15, dividerY)
         .lineWidth(1)
         .strokeColor(colors.divider)
         .stroke();
 
       // --- TOTALS ---
-      const totalY = 640;
+      const totalY = dividerY + 18;
       doc
         .fontSize(10)
         .font('Helvetica-Bold')
@@ -222,15 +286,24 @@ export const generateInvoice = async (orderId) => {
       doc.text('Payment Status :', margin + 15, totalY);
       doc
         .fontSize(11)
-        .fillColor(colors.darkText)
-        .text(order.status === 'PAID' || order.status === 'COD_CONFIRMED' ? 'PAID' : 'PENDING', margin + 15, totalY + 15);
+        .fillColor(order.status === 'CANCELLED' ? colors.cancelled : colors.darkText)
+        .text(
+          order.status === 'CANCELLED'
+            ? 'CANCELLED'
+            : order.status === 'PAID' || order.status === 'COD_CONFIRMED'
+              ? 'PAID'
+              : 'PENDING',
+          margin + 15,
+          totalY + 15
+        );
 
       // Amounts (Right)
       const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
       const shipping = order.paymentMethod === 'cod' ? 70 : 0;
 
-      const labelX = pageWidth - margin - 180;
-      const valueX = pageWidth - margin - 80;
+      const rightMargin = 30; // Add space from right edge
+      const labelX = pageWidth - margin - 180 - rightMargin;
+      const valueX = pageWidth - margin - 80 - rightMargin;
 
       doc.fontSize(10).fillColor(colors.headerText);
       doc.text('Subtotal', labelX, totalY, { width: 100, align: 'right' });
@@ -244,16 +317,27 @@ export const generateInvoice = async (orderId) => {
 
       // --- FOOTER ---
       // Thank You Graphic (Bottom Left)
-      const thankYouY = 750;
-      doc
-        .fontSize(40)
-        .font('Helvetica-Bold') // Ideally a script font if available
-        .fillColor('#1a2d5a') // Blue part
-        .text('Thank', margin, thankYouY);
-      doc
-        .fontSize(50)
-        .fillColor(colors.headerText)
-        .text('You', margin + 80, thankYouY - 10);
+      const thankYouY = Math.max(700, totalY + 105);
+      let usedThankYouImage = false;
+      try {
+        const thankYouPath = path.join(__dirname, '../assets/images/thankyou.png');
+        doc.image(thankYouPath, margin, thankYouY + 2, { width: 150 });
+        usedThankYouImage = true;
+      } catch {
+        usedThankYouImage = false;
+      }
+
+      if (!usedThankYouImage) {
+        doc
+          .fontSize(36)
+          .font('Helvetica-Bold')
+          .fillColor('#1a2d5a') // Blue part
+          .text('Thank', margin, thankYouY);
+        doc
+          .fontSize(40)
+          .fillColor(colors.headerText)
+          .text('You', margin + 102, thankYouY);
+      }
 
       // Footer Details (Bottom Right)
       const footerX = pageWidth - margin - 250;
@@ -261,15 +345,29 @@ export const generateInvoice = async (orderId) => {
         .fontSize(11)
         .font('Helvetica-Bold')
         .fillColor(colors.headerText)
-        .text('Ghar of Ethnics', footerX, thankYouY + 10, { align: 'right', width: 250 })
-        .text('+ 91 9845634734', footerX, thankYouY + 25, { align: 'right', width: 250 });
+        .text('Ghar of Ethnics', footerX, thankYouY + 10, { align: 'right', width: 250 });
 
-      doc
-        .fontSize(9)
-        .font('Helvetica')
-        .fillColor(colors.darkText)
-        .text('www.gharofethnics.com', footerX, thankYouY + 45, { align: 'right', width: 250 })
-        .text('support@gharofethnics.com', footerX, thankYouY + 55, { align: 'right', width: 250 });
+      // Phone number - Clickable
+      const phoneY = thankYouY + 25;
+      const phoneText = '+ 91 9845634734';
+      const phoneWidth = doc.widthOfString(phoneText);
+      doc.text(phoneText, footerX, phoneY, { align: 'right', width: 250 });
+      doc.link(footerX + 250 - phoneWidth - 5, phoneY, phoneWidth + 10, 15, { uri: 'tel:+919845634734' });
+
+      // Website - Clickable
+      doc.fontSize(9).font('Helvetica').fillColor(colors.darkText);
+      const websiteY = thankYouY + 45;
+      const websiteText = 'www.gharofethnics.com';
+      const websiteWidth = doc.widthOfString(websiteText);
+      doc.text(websiteText, footerX, websiteY, { align: 'right', width: 250 });
+      doc.link(footerX + 250 - websiteWidth - 5, websiteY, websiteWidth + 10, 13, { uri: 'https://www.gharofethnics.com' });
+
+      // Email - Clickable
+      const emailY = thankYouY + 55;
+      const emailText = 'support@gharofethnics.com';
+      const emailWidth = doc.widthOfString(emailText);
+      doc.text(emailText, footerX, emailY, { align: 'right', width: 250 });
+      doc.link(footerX + 250 - emailWidth - 5, emailY, emailWidth + 10, 13, { uri: 'mailto:support@gharofethnics.com' });
 
       doc.end();
     } catch (error) {
