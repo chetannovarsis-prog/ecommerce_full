@@ -7,6 +7,7 @@ import FilterSidebar from '../../components/store/FilterSidebar';
 import { Filter, List, ChevronDown } from 'lucide-react';
 import { useStore } from '../../services/useStore';
 import { ProductSkeleton } from '../../components/store/Skeleton';
+import SeoMeta from '../../components/store/SeoMeta';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const isUuid = (value = '') =>
@@ -115,6 +116,15 @@ const Products = () => {
     const cacheKey = collectionId || 'all';
     let cancelled = false; // prevent state updates after unmount / route change
 
+    // On collection route changes, clear stale UI immediately unless we can paint from cache.
+    const cached = getCached(cacheKey);
+    if (!cached) {
+      setCollection(null);
+      setProducts([]);
+      setFilteredProducts([]);
+      setLoading(true);
+    }
+
     const applyResult = (result) => {
       if (cancelled) return;
       setCollection(result.collection);
@@ -174,14 +184,13 @@ const Products = () => {
       }
     };
 
-    const cached = getCached(cacheKey);
     if (cached) {
       // Serve stale-while-revalidate: show cache instantly, refresh silently
       applyResult(cached);
       fetchFresh(); // background refresh — no loading spinner
     } else {
       // Try store cache for instant first paint
-      const storeCached = getCachedProducts?.();
+      const storeCached = collectionId === 'all' ? getCachedProducts?.() : null;
       if (storeCached) {
         const storeProducts = Array.isArray(storeCached)
           ? storeCached
@@ -237,12 +246,28 @@ const Products = () => {
 
   const gridClass = GRID_CLASSES[viewCols] || GRID_CLASSES[4];
   const skeletonCount = viewCols === 1 ? 4 : 8;
+  const seoCollectionName = collection?.name || (collectionId && collectionId !== 'all' ? formatCollectionTitle(collectionId) : 'All Products');
+  const seoTitle = collectionId && collectionId !== 'all'
+    ? `${seoCollectionName} Collection | Ghar of Ethnics`
+    : `All Products | Ghar of Ethnics`;
+  const seoDescription = collectionId && collectionId !== 'all'
+    ? `Shop ${seoCollectionName} collection at Ghar of Ethnics, a women's ethnic clothing brand for elegant Indian fashion.`
+    : 'Browse all women\'s clothing styles from Ghar of Ethnics. Discover handcrafted ethnic wear designed for comfort and elegance.';
+  const seoKeywords = collectionId && collectionId !== 'all'
+    ? `${seoCollectionName}, women clothing brand, women ethnic wear, indian ethnic fashion, Ghar of Ethnics`
+    : 'women clothing brand, women ethnic wear, indian ethnic wear for women, Ghar of Ethnics';
 
   return (
     <div
       className="min-h-screen italic-none relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #fdf7f0 0%, #fef9f4 50%, #fdf0e8 100%)' }}
     >
+      <SeoMeta
+        title={seoTitle}
+        description={seoDescription}
+        keywords={seoKeywords}
+        canonical={`https://www.gharofethnics.com/collections/${collectionId || 'all'}`}
+      />
       {/* Brand Mandalas */}
       <img
         src="/images/mandala_motif.png"

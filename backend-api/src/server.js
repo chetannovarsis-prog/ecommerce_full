@@ -20,6 +20,7 @@ import settingsRoutes from './routes/settingsRoutes.js';
 import shippingRoutes from './routes/shippingRoutes.js';
 import addressRoutes from './routes/addressRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
+import shiprocketRoutes from './routes/shiprocketRoutes.js';
 import { requireAdmin } from './middleware/requireAdmin.js';
 import { getCustomerOrders, getOrderById } from './controllers/orderController.js';
 import { getSettings } from './controllers/settingsController.js';
@@ -31,7 +32,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: true, // Reflects the request origin, or you can specify 'https://admin.gharofethnics.com'
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-API-Key'],
   credentials: true,
   maxAge: 86400 // Cache preflight for 24 hours
 }));
@@ -54,6 +55,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/shipping', shippingRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/webhook', shiprocketRoutes);
 
 
 

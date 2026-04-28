@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+Disallow: /cart
+Disallow: /checkout
+Disallow: /wishlist
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /profile
+Disallow: /orders/
+Disallow: /order-success/
+
+Sitemap: https://www.gharofethnics.com/sitemap.xml

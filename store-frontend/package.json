@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "postbuild": "react-snap"
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.4",
@@ -21,8 +22,10 @@
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-helmet": "^6.1.0",
     "react-icons": "^5.6.0",
     "react-router-dom": "^7.13.1",
+    "react-snap": "^1.23.0",
     "yup": "^1.7.1",
     "zustand": "^5.0.11"
   },
@@ -39,5 +42,22 @@
     "tailwindcss": "^3.4.17",
     "vite": "^5.2.0",
     "wrangler": "^4.81.0"
+  },
+  "reactSnap": {
+    "inlineCss": true,
+    "skipThirdPartyRequests": true,
+    "source": "dist",
+    "include": [
+      "/",
+      "/collections",
+      "/collections/all",
+      "/new-arrivals",
+      "/about",
+      "/contact",
+      "/shipping",
+      "/returns",
+      "/privacy",
+      "/terms"
+    ]
   }
 }

@@ -99,6 +99,7 @@ const Home = () => {
 
   return (
     <div className="font-['Albert_Sans']">
+      <h1 className="sr-only">Ghar of Ethnics Women's Clothing Brand</h1>
       <Hero />
 
       {/* SHOP BY COLLECTIONS */}

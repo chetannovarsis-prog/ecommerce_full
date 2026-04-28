@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import api from './utils/api';
 import { useStore } from './services/useStore';
 
+
 import Products from './pages/store/Products';
 import Home from './pages/store/Home';
 import ProductDetail from './pages/store/ProductDetail';
@@ -31,9 +32,21 @@ import MobileNavbar from './components/store/MobileNavbar';
 import Footer from './components/store/Footer';
 import Toast from './components/store/Toast';
 import ScrollToTop from './components/store/ScrollToTop';
+import SeoMeta from './components/store/SeoMeta';
 
 import { MessageCircle } from 'lucide-react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import usePageTracking from "./usePageTracking";
+
+function RouterSideEffects() {
+  usePageTracking();
+  return (
+    <>
+      <SeoMeta />
+      <ScrollToTop />
+    </>
+  );
+}
 
 function App() {
   const { syncStore, cacheProducts } = useStore();
@@ -66,7 +79,7 @@ function App() {
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
       <Router>
-        <ScrollToTop />
+        <RouterSideEffects />
         <div className="App selection:bg-black selection:text-white relative min-h-screen overflow-x-hidden w-full max-w-[100vw]">
           <Navbar />
           <MobileNavbar />
@@ -83,7 +96,6 @@ function App() {
               <Route path="/collections" element={<CollectionsPage />} />
               <Route path="/order-success/:id" element={<OrderSuccess />} />
               <Route path="/orders/:id" element={<OrderDetail />} />
-              <Route path="/collections/:id" element={<Products />} />
               <Route path="/collections/:id" element={<Products />} />
               <Route path="/new-arrivals" element={<NewArrivals />} />
               <Route path="/about" element={<About />} />

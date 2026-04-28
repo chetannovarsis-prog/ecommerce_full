@@ -22,6 +22,7 @@ import {
 import { useStore } from '../../services/useStore';
 import { ProductDetailSkeleton, RelatedProductsSkeleton } from '../../components/store/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
+import SeoMeta from '../../components/store/SeoMeta';
 
 const isValidUrl = (url) => {
   if (!url || typeof url !== 'string') return false;
@@ -76,6 +77,15 @@ const ProductDetail = () => {
   const [reviewPreviews, setReviewPreviews] = useState([]);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const relatedSectionRef = useRef(null);
+
+  const seoTitle = product?.name ? `${product.name} | Ghar of Ethnics` : 'Product | Ghar of Ethnics';
+  const seoDescription = product?.name
+    ? `Buy ${product.name} from Ghar of Ethnics. Premium women's ethnic clothing with quality fabrics and elegant craftsmanship.`
+    : 'Explore premium women\'s ethnic clothing at Ghar of Ethnics.';
+  const seoKeywords = product?.name
+    ? `${product.name}, women ethnic wear, women clothing brand, ethnic fashion for women, Ghar of Ethnics`
+    : 'women ethnic wear, women clothing brand, ethnic fashion';
+  const seoImage = product?.thumbnailUrl || product?.images?.[0] || 'https://www.gharofethnics.com/images/GOE-LOGO.png';
 
   const thumbnailRefs = useRef([]);
   const thumbnailContainerRef = useRef(null);
@@ -532,6 +542,13 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen pb-40 italic-none">
+      <SeoMeta
+        title={seoTitle}
+        description={seoDescription}
+        keywords={seoKeywords}
+        canonical={`https://www.gharofethnics.com/products/${id}`}
+        ogImage={seoImage}
+      />
       {/* Breadcrumbs & Title Top */}
       <div className="max-w-[1400px] mx-auto px-10 pt-6">
         <div className="flex items-center gap-2 text-[0.65rem] font-bold uppercase tracking-widest text-gray-400 mb-6">
