@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import { appendProductImageVersions } from '../utils/imageUrl.js';
 
 export const getSales = async (req, res) => {
   try {
@@ -14,7 +15,7 @@ export const getSales = async (req, res) => {
     const formattedSales = sales.map(s => ({
       id: s.id,
       productName: s.product.name,
-      thumbnail: s.product.thumbnailUrl || s.product.images[0],
+      thumbnail: appendProductImageVersions(s.product).thumbnailUrl || appendProductImageVersions(s.product).images?.[0],
       quantity: s.quantity,
       price: s.price,
       source: s.source,

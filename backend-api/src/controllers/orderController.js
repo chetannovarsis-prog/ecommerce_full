@@ -2,6 +2,7 @@ import prisma from '../utils/prisma.js';
 import { sendMail, TEMPLATES } from '../utils/mailer.js';
 import { notifyOrderStatus } from '../services/notificationService.js';
 import { logActivity } from '../services/activityService.js';
+import { appendOrderImageVersions } from '../utils/imageUrl.js';
 
 export const getOrders = async (req, res) => {
   try {
@@ -31,7 +32,7 @@ export const getOrders = async (req, res) => {
     });
 
     // Formatting if needed for the admin view
-    const formattedOrders = orders.map(order => ({
+    const formattedOrders = orders.map(order => appendOrderImageVersions({
       id: order.id,
       customer: order.customer,
       createdAt: order.createdAt,
@@ -78,7 +79,7 @@ export const getOrderById = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: You do not have access to this order' });
     }
 
-    res.json(order);
+    res.json(appendOrderImageVersions(order));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -116,7 +117,7 @@ export const getCustomerOrders = async (req, res) => {
       },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(orders);
+    res.json(orders.map((order) => appendOrderImageVersions(order)));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -178,7 +179,7 @@ export const updateOrderStatus = async (req, res) => {
     // SMS notification: should never block admin status updates
     try {
       if (!statusChanged) {
-        return res.json(order);
+        return res.json(appendOrderImageVersions(order));
       }
 
       if (status === 'SHIPPED') {
@@ -195,7 +196,7 @@ export const updateOrderStatus = async (req, res) => {
       console.error('notifyOrderStatus failed:', error?.message || error);
     }
 
-    res.json(order);
+    res.json(appendOrderImageVersions(order));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

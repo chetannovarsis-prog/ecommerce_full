@@ -4,7 +4,7 @@ import App from './App.jsx'
 import './index.css'
 
 import ReactGA from 'react-ga4';
-ReactGA.initialize("G-BX7BX50HT7");
+ReactGA.initialize("G-7MV9LGGKP5");
 
 
 ReactDOM.createRoot(document.getElementById('root')).render(

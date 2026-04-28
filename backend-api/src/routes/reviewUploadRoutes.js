@@ -3,6 +3,15 @@ import multer from 'multer';
 import supabase from '../config/supabase.js';
 
 const router = express.Router();
+const IMAGE_CACHE_BUST_VERSION = '2';
+
+const appendImageVersion = (publicUrl) => {
+  if (!publicUrl) return publicUrl;
+
+  const url = new URL(publicUrl);
+  url.searchParams.set('v', IMAGE_CACHE_BUST_VERSION);
+  return url.toString();
+};
 
 // Multer config for temporary memory storage
 const storage = multer.memoryStorage();
@@ -35,6 +44,7 @@ router.post('/upload', upload.array('images', 5), async (req, res) => {
         .from('reviews')
         .upload(fileName, file.buffer, {
           contentType: file.mimetype,
+          cacheControl: '31536000, immutable',
           upsert: false
         });
 
@@ -44,7 +54,7 @@ router.post('/upload', upload.array('images', 5), async (req, res) => {
         .from('reviews')
         .getPublicUrl(fileName);
 
-      return publicUrl;
+      return appendImageVersion(publicUrl);
     });
 
     const imageUrls = await Promise.all(uploadPromises);

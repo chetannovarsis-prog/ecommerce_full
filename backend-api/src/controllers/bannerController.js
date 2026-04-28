@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import { appendBannerImageVersion } from '../utils/imageUrl.js';
 
 export const getBanners = async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -39,11 +40,11 @@ export const getBanners = async (req, res) => {
     }
 
     if (!paginationEnabled) {
-      return res.json(banners);
+      return res.json(banners.map(appendBannerImageVersion));
     }
 
     const total = await prisma.banner.count({ where: all === 'true' ? {} : { isActive: true } });
-    res.json({ data: banners, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+    res.json({ data: banners.map(appendBannerImageVersion), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (error) {
     console.error('Banner fetch failed:', error);
     res.status(500).json({ message: error.message });
@@ -56,7 +57,7 @@ export const createBanner = async (req, res) => {
     const banner = await prisma.banner.create({
       data: req.body
     });
-    res.json(banner);
+    res.json(appendBannerImageVersion(banner));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -68,7 +69,7 @@ export const updateBanner = async (req, res) => {
       where: { id: req.params.id },
       data: req.body
     });
-    res.json(banner);
+    res.json(appendBannerImageVersion(banner));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

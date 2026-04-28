@@ -26,20 +26,40 @@ export const handleShiprocketWebhook = async (req, res) => {
   try {
     // Log incoming webhook
     console.log('[Shiprocket Webhook] Received request from:', req.ip);
+    console.log('[Shiprocket Webhook] Headers:', {
+      contentType: req.headers['content-type'],
+      apiKeyPresent: Boolean(req.headers['x-api-key'] || req.headers['api-key'] || req.headers.authorization),
+      authState: req.shiprocketAuth?.validated ? 'validated' : req.shiprocketAuth?.reason || 'not-checked'
+    });
+    console.log('[Shiprocket Webhook] Body preview:', typeof req.body === 'string' ? req.body.slice(0, 1000) : req.body);
+
+    const normalizedBody = typeof req.body === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(req.body);
+          } catch {
+            return { raw_payload: req.body };
+          }
+        })()
+      : req.body;
 
     // Validate payload structure
-    const validation = validateWebhookPayload(req.body);
+    const validation = validateWebhookPayload(normalizedBody);
     if (!validation.valid) {
       console.warn('[Shiprocket] Invalid payload:', validation.errors);
-      return res.status(400).json({
+      return res.status(200).json({
+        success: true,
+        accepted: true,
+        message: 'Webhook received but payload was not processable',
         error: 'Invalid webhook payload',
         details: validation.errors,
+        debug: process.env.NODE_ENV === 'development' ? { bodyType: typeof req.body, authState: req.shiprocketAuth } : undefined,
         timestamp: new Date().toISOString()
       });
     }
 
     // Process the webhook
-    const result = await updateOrderFromShiprocket(req.body);
+    const result = await updateOrderFromShiprocket(normalizedBody);
 
     // Return appropriate status code based on result
     if (!result.success) {
@@ -47,18 +67,23 @@ export const handleShiprocketWebhook = async (req, res) => {
       if (result.error?.includes('not found')) {
         // Order not found - 404
         console.error('[Shiprocket] Order not found:', result.error);
-        return res.status(404).json({
-          success: false,
+        return res.status(200).json({
+          success: true,
+          accepted: true,
           error: result.error,
+          message: 'Webhook received but order could not be matched',
+          debug: process.env.NODE_ENV === 'development' ? { authState: req.shiprocketAuth } : undefined,
           timestamp: new Date().toISOString()
         });
       } else {
         // Other server errors - 500
         console.error('[Shiprocket] Processing error:', result.error);
-        return res.status(500).json({
-          success: false,
-          error: 'Webhook processing failed',
-          details: process.env.NODE_ENV === 'development' ? result.error : undefined,
+        return res.status(200).json({
+          success: true,
+          accepted: true,
+          message: 'Webhook received but processing could not complete',
+          error: process.env.NODE_ENV === 'development' ? result.error : 'Processing failed',
+          debug: process.env.NODE_ENV === 'development' ? { authState: req.shiprocketAuth } : undefined,
           timestamp: new Date().toISOString()
         });
       }

@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import { appendProductImageVersions } from '../utils/imageUrl.js';
 
 const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const slugify = (value = '') => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -76,7 +77,10 @@ export const getAllProducts = async (req, res) => {
       prisma.product.count({ where })
     ]);
 
-    res.json({ data: products, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+    res.json({
+      data: products.map(appendProductImageVersions),
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -98,7 +102,7 @@ export const getProductById = async (req, res) => {
       }
     });
     if (!product) return res.status(404).json({ message: 'Product not found' });
-    res.json(product);
+    res.json(appendProductImageVersions(product));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -260,7 +264,7 @@ export const updateProduct = async (req, res) => {
       },
       include: { variants: true, reviews: true }
     });
-    res.json(product);
+    res.json(appendProductImageVersions(product));
   } catch (error) {
     console.error('Update product error:', error);
     const payload = buildProductSaveError(error, 'update');
@@ -345,7 +349,7 @@ export const patchProduct = async (req, res) => {
         reviews: true
       }
     });
-    res.json(product);
+    res.json(appendProductImageVersions(product));
   } catch (error) {
     console.error('Patch product error:', error);
     res.status(500).json({ error: error.message });
@@ -395,7 +399,7 @@ export const getBestSellers = async (req, res) => {
       return res.json([]);
     }
 
-    res.json(bestSellersCollection.products);
+    res.json(bestSellersCollection.products.map(appendProductImageVersions));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -414,7 +418,7 @@ export const getNewArrivals = async (req, res) => {
         variants: true
       }
     });
-    res.json(products);
+    res.json(products.map(appendProductImageVersions));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

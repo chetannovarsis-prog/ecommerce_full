@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import { appendImageVersionToArray } from '../utils/imageUrl.js';
 
 export const createReview = async (req, res) => {
   try {
@@ -49,7 +50,7 @@ export const createReview = async (req, res) => {
         productId
       }
     });
-    res.status(201).json(review);
+    res.status(201).json({ ...review, images: appendImageVersionToArray(review.images) });
   } catch (error) {
     console.error('Create review error:', error);
     res.status(500).json({ error: error.message });
@@ -72,7 +73,7 @@ export const getReviewsByProduct = async (req, res) => {
       where: { productId },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(reviews);
+    res.json(reviews.map((review) => ({ ...review, images: appendImageVersionToArray(review.images) })));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -84,7 +85,7 @@ export const getAllReviews = async (req, res) => {
       include: { product: { select: { name: true } } },
       orderBy: { createdAt: 'desc' }
     });
-    res.json(reviews);
+    res.json(reviews.map((review) => ({ ...review, images: appendImageVersionToArray(review.images) })));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

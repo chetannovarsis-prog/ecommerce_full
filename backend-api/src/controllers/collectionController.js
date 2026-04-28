@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import { appendCollectionImageVersion } from '../utils/imageUrl.js';
 
 const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const slugify = (value = '') => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -29,7 +30,7 @@ export const getCollections = async (req, res) => {
     const normalized = collections
       .slice()
       .sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER))
-      .map((c) => ({
+      .map((c) => appendCollectionImageVersion({
         id: c.id,
         name: c.name,
         description: c.description,
@@ -68,7 +69,7 @@ export const getCollections = async (req, res) => {
           orderBy: { createdAt: 'desc' }
         });
 
-        const normalized = collections.map((c) => ({
+        const normalized = collections.map((c) => appendCollectionImageVersion({
           ...c,
           img: c.imageUrl,
           productsCount: c._count?.products ?? 0,
@@ -113,7 +114,7 @@ export const createCollection = async (req, res) => {
     const collection = await prisma.collection.create({
       data: { name, description, imageUrl, order: nextOrder }
     });
-    res.json(collection);
+    res.json(appendCollectionImageVersion(collection));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -126,7 +127,7 @@ export const updateCollection = async (req, res) => {
       where: { id: req.params.id },
       data: { name, description, imageUrl }
     });
-    res.json(collection);
+    res.json(appendCollectionImageVersion(collection));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -151,7 +152,7 @@ export const getCollectionById = async (req, res) => {
     });
 
     if (collection) {
-      return res.json(collection);
+      return res.json(appendCollectionImageVersion(collection));
     }
 
     const slugMatch = await prisma.collection.findFirst({
@@ -175,7 +176,7 @@ export const getCollectionById = async (req, res) => {
     });
 
     if (slugMatch) {
-      return res.json(slugMatch);
+      return res.json(appendCollectionImageVersion(slugMatch));
     }
 
     const allCollections = await prisma.collection.findMany({
@@ -207,7 +208,7 @@ export const getCollectionById = async (req, res) => {
       }
     });
 
-    return res.json(resolvedCollection);
+    return res.json(appendCollectionImageVersion(resolvedCollection));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

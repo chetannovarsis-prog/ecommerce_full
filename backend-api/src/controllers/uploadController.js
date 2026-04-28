@@ -1,5 +1,15 @@
 import supabase from "../config/supabase.js";
 
+const IMAGE_CACHE_BUST_VERSION = "2";
+
+const appendImageVersion = (publicUrl) => {
+  if (!publicUrl) return publicUrl;
+
+  const url = new URL(publicUrl);
+  url.searchParams.set('v', IMAGE_CACHE_BUST_VERSION);
+  return url.toString();
+};
+
 export const uploadImage = async (req, res) => {
   try {
     const file = req.file;
@@ -18,6 +28,7 @@ export const uploadImage = async (req, res) => {
       .from("uploads")
       .upload(fileName, file.buffer, {
         contentType: file.mimetype,
+        cacheControl: "31536000, immutable",
         upsert: false
       });
 
@@ -40,7 +51,7 @@ export const uploadImage = async (req, res) => {
     }
 
     res.json({
-      url: publicUrl
+      url: appendImageVersion(publicUrl)
     });
   } catch (err) {
     console.error('Critical upload error:', err);
@@ -59,7 +70,8 @@ export const deleteImage = async (req, res) => {
 
     // Extract filename from Supabase public URL
     // Format: https://[project-id].supabase.co/storage/v1/object/public/ecommerce/[filename]
-    const parts = url.split("/");
+    const parsedUrl = new URL(url);
+    const parts = parsedUrl.pathname.split("/");
     const fileName = parts[parts.length - 1];
 
     if (!fileName) {

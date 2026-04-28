@@ -15,6 +15,11 @@ import {
 
 const router = express.Router();
 
+// Shiprocket may send bodies as JSON, form-urlencoded, or plain text depending on the webhook/testing path.
+router.use(express.json({ type: ['application/json', 'application/*+json', 'text/plain'] }));
+router.use(express.urlencoded({ extended: true }));
+router.use(express.text({ type: ['text/plain', 'application/xml', 'application/octet-stream'] }));
+
 /**
  * POST /api/webhook/shipping
  * Main webhook endpoint - requires x-api-key header validation
