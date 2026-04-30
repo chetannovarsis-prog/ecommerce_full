@@ -1,6 +1,22 @@
 import prisma from '../utils/prisma.js';
 import { appendProductImageVersions } from '../utils/imageUrl.js';
 
+// Returns the effective stock for a product:
+// - If product has variants → sum of all variant stocks
+// - Otherwise → product.stock (global)
+const computeStock = (product) => {
+  if (product.variants && product.variants.length > 0) {
+    return product.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+  }
+  return product.stock || 0;
+};
+
+// Attach computed totalStock to product
+const withTotalStock = (product) => ({
+  ...product,
+  totalStock: computeStock(product),
+});
+
 const isUuid = (value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const slugify = (value = '') => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -78,7 +94,7 @@ export const getAllProducts = async (req, res) => {
     ]);
 
     res.json({
-      data: products.map(appendProductImageVersions),
+      data: products.map(p => withTotalStock(appendProductImageVersions(p))),
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
   } catch (error) {
@@ -102,7 +118,7 @@ export const getProductById = async (req, res) => {
       }
     });
     if (!product) return res.status(404).json({ message: 'Product not found' });
-    res.json(appendProductImageVersions(product));
+    res.json(withTotalStock(appendProductImageVersions(product)));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

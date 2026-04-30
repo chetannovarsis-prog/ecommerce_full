@@ -16,11 +16,13 @@ import {
   resetCustomerPassword,
   googleLogin,
   getAllCustomers,
+  getCustomerById,
   getCustomerProfile,
   updateCustomerAddresses,
   requestCustomerProfileUpdateOtp,
   verifyCustomerProfileUpdateOtp,
-  getAdminProfile
+  getAdminProfile,
+  updateCustomerByAdmin
 } from '../controllers/authController.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 
@@ -55,6 +57,8 @@ router.get('/customer/:customerId/profile', getCustomerProfile);
 router.post('/customer/:customerId/profile/request-update', requestCustomerProfileUpdateOtp);
 router.post('/customer/:customerId/profile/verify-update', verifyCustomerProfileUpdateOtp);
 router.put('/customer/:customerId/addresses', updateCustomerAddresses);
-router.get('/customers', getAllCustomers);
+router.get('/customers', requireAdmin, getAllCustomers);
+router.get('/customers/:id', requireAdmin, getCustomerById);
+router.put('/customers/:id', requireAdmin, updateCustomerByAdmin);
 
 export default router;

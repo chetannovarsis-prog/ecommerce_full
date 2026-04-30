@@ -13,6 +13,9 @@ import Reviews from './pages/Reviews';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import Sales from './pages/Sales';
+import SaleDetail from './pages/SaleDetail';
+import Customers from './pages/Customers';
+import CustomerDetail from './pages/CustomerDetail';
 import ColorVariants from './pages/ColorVariants';
 import Login from './pages/Login';
 import Messages from './pages/Messages';
@@ -85,85 +88,7 @@ const Dashboard = () => (
   </div>
 );
 
-const Customers = () => {
-  const [customers, setCustomers] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState('');
 
-  React.useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        setError('');
-        const res = await api.get('/auth/customers');
-        setCustomers(res.data);
-      } catch (error) {
-        console.error('Error fetching customers:', error);
-        setError(error.response?.data?.error || error.message || 'Failed to load customers.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCustomers();
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
-      <header className="sticky top-0 z-40 bg-white dark:bg-[#111] border-b border-gray-200 dark:border-white/5 h-16 flex items-center px-10">
-        <h1 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight leading-none">Customers</h1>
-      </header>
-      <main className="p-10">
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-8 h-8 border-t-2 border-black dark:border-white rounded-full animate-spin"></div>
-          </div>
-        ) : error ? (
-          <div className="bg-white dark:bg-[#111] border border-red-200 dark:border-red-500/20 rounded-xl p-10 text-center">
-            <p className="text-sm font-bold text-red-600 dark:text-red-400">{error}</p>
-          </div>
-        ) : customers.length === 0 ? (
-          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-32 text-center text-gray-400 flex flex-col items-center gap-4">
-            <Package size={48} strokeWidth={1} className="text-gray-200 dark:text-white/10" />
-            <p className="font-black uppercase tracking-widest text-[0.65rem] text-gray-900 dark:text-white">No customers yet</p>
-          </div>
-        ) : (
-          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                  <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-gray-400">Customer</th>
-                  <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-gray-400">Email</th>
-                  <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-gray-400">Join Date</th>
-                  <th className="px-6 py-4 text-[0.65rem] font-black uppercase tracking-widest text-gray-400 text-right">Orders</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.map((customer) => (
-                  <tr key={customer.id} className="border-b border-gray-50 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-[0.7rem] font-black">
-                          {customer.name?.charAt(0) || 'U'}
-                        </div>
-                        <span className="text-sm font-bold dark:text-white">{customer.name || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{customer.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(customer.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold dark:text-white text-right">
-                      {customer.orders?.length || 0}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-};
 
 const Settings = () => {
   const [codEnabled, setCodEnabled] = useState(false);
@@ -358,7 +283,9 @@ function App() {
         <Route path="/orders" element={<ProtectedRoute><Layout><Orders /></Layout></ProtectedRoute>} />
         <Route path="/orders/:id" element={<ProtectedRoute><Layout><OrderDetail /></Layout></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute><Layout><Sales /></Layout></ProtectedRoute>} />
+        <Route path="/sales/:id" element={<ProtectedRoute><Layout><SaleDetail /></Layout></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><Layout><Customers /></Layout></ProtectedRoute>} />
+        <Route path="/customers/:id" element={<ProtectedRoute><Layout><CustomerDetail /></Layout></ProtectedRoute>} />
         <Route path="/messages" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
         <Route path="/coupons" element={<ProtectedRoute><Layout><Coupons /></Layout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />

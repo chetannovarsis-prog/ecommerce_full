@@ -3,18 +3,188 @@ import { sendMail, TEMPLATES } from '../utils/mailer.js';
 import { notifyOrderStatus } from '../services/notificationService.js';
 import { logActivity } from '../services/activityService.js';
 import { appendOrderImageVersions } from '../utils/imageUrl.js';
+import { logger } from '../utils/logger.js';
+import {
+  getStatusesForAdminFilter,
+  isAllowedAdminFilter,
+  normalizeOrderStatus,
+  toLifecycleStatus,
+} from '../utils/orderStatus.js';
+
+export const createAdminOrder = async (req, res) => {
+  const { customer, items, paymentMethod, paymentId, status, notes } = req.body;
+  try {
+    let totalAmount = 0;
+    const resolvedItems = [];
+
+    for (const item of items) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+        include: { variants: true }
+      });
+      if (!product) throw new Error(`Product ${item.productId} not found`);
+      totalAmount += item.price * item.quantity;
+      resolvedItems.push({ ...item, product });
+    }
+
+    // Find or note customer linkage by email
+    let linkedCustomerId = null;
+    if (customer.email) {
+      const existingCustomer = await prisma.customer.findFirst({
+        where: { email: { equals: customer.email, mode: 'insensitive' } }
+      });
+      if (existingCustomer) linkedCustomerId = existingCustomer.id;
+    }
+
+    // Generate unique invoice number
+    const invoiceNumber = `Gof-INV-${Date.now().toString().slice(-6)}`;
+
+    const order = await prisma.order.create({
+      data: {
+        totalAmount,
+        status: status || 'ORDERED',
+        paymentMethod: paymentMethod || 'MANUAL',
+        razorpayPaymentId: paymentId || null,
+        invoiceNumber,
+        ...(linkedCustomerId ? { customer: { connect: { id: linkedCustomerId } } } : {}),
+        shippingAddress: {
+          firstName: customer.name.split(' ')[0],
+          lastName: customer.name.split(' ').slice(1).join(' ') || '',
+          email: customer.email,
+          phone: customer.phone,
+          address: customer.address || '',
+          city: customer.city || '',
+          state: customer.state || '',
+          pinCode: customer.pinCode || ''
+        },
+        items: {
+          create: items.map(item => ({
+            quantity: item.quantity,
+            price: item.price,
+            productId: item.productId,
+            variantTitle: item.variantTitle || null
+          }))
+        },
+        activities: {
+          create: {
+            status: status || 'ORDERED',
+            message: `Order created manually by Admin (DCR). Notes: ${notes || ''}`
+          }
+        }
+      },
+      include: { items: true }
+    });
+
+    // Reduce stock and create Sale record for each item
+    for (const item of resolvedItems) {
+      // Reduce stock
+      if (item.variantTitle) {
+        const variant = await prisma.productVariant.findFirst({
+          where: { productId: item.productId, title: item.variantTitle }
+        });
+        if (variant) {
+          await prisma.productVariant.update({
+            where: { id: variant.id },
+            data: { stock: { decrement: item.quantity } }
+          });
+        }
+      } else {
+        await prisma.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
+        });
+      }
+
+      // Create a Sale record so this DCR order shows in the Sales dashboard
+      await prisma.sale.create({
+        data: {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price * item.quantity,
+          source: 'DCR',
+          orderId: order.id,
+          customerName: customer.name || null,
+          customerEmail: customer.email || null,
+          customerPhone: customer.phone || null,
+          paymentMode: paymentMethod || 'MANUAL',
+          paymentId: paymentId || null,
+          notes: notes || null
+        }
+      });
+    }
+
+    res.status(201).json(order);
+  } catch (error) {
+    console.error('Error creating admin order:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateOrderDetails = async (req, res) => {
+  const { id } = req.params;
+  const { name, email, phone, address, city, state, pinCode, syncShiprocket } = req.body;
+
+  try {
+    const order = await prisma.order.findUnique({ where: { id }, include: { items: { include: { product: true } } } });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    // Build updated shipping address by merging into existing
+    const existingAddr = order.shippingAddress || {};
+    const nameParts = name ? name.split(' ') : null;
+    const updatedAddress = {
+      ...existingAddr,
+      ...(nameParts ? { firstName: nameParts[0], lastName: nameParts.slice(1).join(' ') || '' } : {}),
+      ...(email ? { email } : {}),
+      ...(phone ? { phone } : {}),
+      ...(address ? { address } : {}),
+      ...(city ? { city } : {}),
+      ...(state ? { state } : {}),
+      ...(pinCode ? { pinCode } : {}),
+    };
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: { shippingAddress: updatedAddress },
+      include: { items: { include: { product: true } }, activities: true }
+    });
+
+    await logActivity(id, 'ORDER_DETAILS_UPDATED', `Admin updated customer/address details.`);
+
+    // Optionally sync address update to Shiprocket by re-creating shipment
+    if (syncShiprocket) {
+      try {
+        // Check if shipment already exists — cancel it first, then recreate
+        const existingShipment = await prisma.shipment.findUnique({ where: { orderId: id } });
+        if (existingShipment) {
+          // We can't update address in Shiprocket, so just note it in activity
+          await logActivity(id, 'SHIPROCKET_ADDRESS_NOTE', 'Address updated. Recreate shipment manually in Shiprocket if already dispatched.');
+        }
+      } catch (shipErr) {
+        logger.error('updateOrderDetails.shiprocket_sync.error', { orderId: id, error: shipErr?.message });
+      }
+    }
+
+    res.json({ success: true, order: updated });
+  } catch (error) {
+    logger.error('updateOrderDetails.error', { orderId: id, error: error?.message });
+    res.status(500).json({ error: error.message });
+  }
+};
 
 export const getOrders = async (req, res) => {
+  const statusFilter = String(req.query.status || 'all').toLowerCase();
+
+  if (!isAllowedAdminFilter(statusFilter)) {
+    return res.status(400).json({
+      message: 'Invalid status filter. Use one of: all, ordered, shipped, delivered, canceled.',
+    });
+  }
+
+  const statuses = getStatusesForAdminFilter(statusFilter);
+
   try {
     const orders = await prisma.order.findMany({
-      where: {
-        // Show paid orders and all COD orders (pending or confirmed)
-        OR: [
-          { status: 'PAID' },
-          { status: 'COD_CONFIRMED' },
-          { status: 'COD_PENDING' }
-        ]
-      },
+      where: statuses ? { status: { in: statuses } } : {},
 
       include: {
         customer: {
@@ -37,14 +207,27 @@ export const getOrders = async (req, res) => {
       customer: order.customer,
       createdAt: order.createdAt,
       total: order.totalAmount, // Map totalAmount to total for the frontend
-      status: order.status,
+      status: toLifecycleStatus(order.status),
+      rawStatus: order.status,
       items: order.items,
       razorpayOrderId: order.razorpayOrderId,
       razorpayPaymentId: order.razorpayPaymentId
     }));
 
+    logger.info('orders.list.success', {
+      status_filter: statusFilter,
+      result_count: formattedOrders.length,
+      user_id: req.user?.id || null,
+    });
+
     res.json(formattedOrders);
   } catch (error) {
+    logger.error('orders.list.error', {
+      status_filter: statusFilter,
+      user_id: req.user?.id || null,
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({ error: error.message });
   }
 };
@@ -125,7 +308,16 @@ export const getCustomerOrders = async (req, res) => {
 
 export const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status: incomingStatus } = req.body;
+  const status = normalizeOrderStatus(incomingStatus);
+
+  const allowedStatuses = ['ORDERED', 'SHIPPED', 'DELIVERED', 'CANCELED'];
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      message: 'Invalid status. Use one of: ordered, shipped, delivered, canceled.',
+    });
+  }
+
   try {
     const existingOrder = await prisma.order.findUnique({
       where: { id },
@@ -164,7 +356,7 @@ export const updateOrderStatus = async (req, res) => {
         case 'DELIVERED':
           await sendMail(destEmail, 'Order Delivered', TEMPLATES.DELIVERED());
           break;
-        case 'CANCELLED':
+        case 'CANCELED':
           await sendMail(destEmail, 'Order Cancelled', TEMPLATES.ORDER_CANCELLED());
           break;
         case 'REFUND_INITIATED':
@@ -198,6 +390,13 @@ export const updateOrderStatus = async (req, res) => {
 
     res.json(appendOrderImageVersions(order));
   } catch (error) {
+    logger.error('orders.update_status.error', {
+      order_id: id,
+      status,
+      user_id: req.user?.id || null,
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({ error: error.message });
   }
 };
@@ -223,7 +422,7 @@ export const cancelOrder = async (req, res) => {
     }
 
     // Check if order can be cancelled
-    const cancellableStatuses = ['PENDING', 'PAID', 'COD_CONFIRMED', 'COD_PENDING', 'PAYMENT_PENDING'];
+    const cancellableStatuses = ['PENDING', 'PAID', 'COD_CONFIRMED', 'COD_PENDING', 'PAYMENT_PENDING', 'ORDERED'];
     if (!cancellableStatuses.includes(order.status)) {
       return res.status(400).json({ 
         message: `Order cannot be cancelled in ${order.status} status. Only orders in PENDING, PAID, or COD_CONFIRMED status can be cancelled.` 
@@ -263,7 +462,7 @@ export const cancelOrder = async (req, res) => {
     const updatedOrder = await prisma.order.update({
       where: { id },
       data: {
-        status: 'CANCELLED',
+        status: 'CANCELED',
         cancellationReason: reason || 'Cancelled by admin'
       }
     });
@@ -271,7 +470,7 @@ export const cancelOrder = async (req, res) => {
     // Log activity
     await logActivity(
       id,
-      'ORDER_CANCELLED',
+      'ORDER_CANCELED',
       `Order cancelled by admin. Reason: ${reason || 'Not specified'}`
     );
 
@@ -294,12 +493,23 @@ export const cancelOrder = async (req, res) => {
       });
     }
 
+    logger.info('orders.cancel.success', {
+      order_id: id,
+      status: 'CANCELED',
+      user_id: req.user?.id || null,
+    });
+
     res.json({
       message: 'Order cancelled successfully',
       order: updatedOrder
     });
   } catch (error) {
-    console.error('Error cancelling order:', error);
+    logger.error('orders.cancel.error', {
+      order_id: id,
+      user_id: req.user?.id || null,
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({ error: error.message });
   }
 };

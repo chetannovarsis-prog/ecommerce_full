@@ -766,19 +766,70 @@ export const verifyCustomerProfileUpdateOtp = async (req, res) => {
 };
 export const getAllCustomers = async (req, res) => {
   try {
-    console.log('Fetching all customers...');
     const customers = await prisma.customer.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         orders: {
-          select: { id: true, totalAmount: true }
+          select: {
+            id: true,
+            totalAmount: true,
+            status: true,
+            createdAt: true,
+            invoiceNumber: true,
+            shippingAddress: true,
+            items: {
+              include: {
+                product: { select: { name: true, thumbnailUrl: true } }
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
         }
       }
     });
-    console.log(`Found ${customers.length} customers`);
     res.json(customers);
   } catch (error) {
     console.error('Error in getAllCustomers:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getCustomerById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const customer = await prisma.customer.findUnique({
+      where: { id },
+      include: {
+        orders: {
+          include: {
+            items: {
+              include: {
+                product: { select: { name: true, thumbnailUrl: true } }
+              }
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+    if (!customer) return res.status(404).json({ error: 'Customer not found' });
+    res.json(customer);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateCustomerByAdmin = async (req, res) => {
+  const { id } = req.params;
+  const { name, email } = req.body;
+  try {
+    const updatedCustomer = await prisma.customer.update({
+      where: { id },
+      data: { name, email }
+    });
+    res.json({ success: true, customer: serializeCustomer(updatedCustomer) });
+  } catch (error) {
+    console.error('Error updating customer:', error);
     res.status(500).json({ error: error.message });
   }
 };

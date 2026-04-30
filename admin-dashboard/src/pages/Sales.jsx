@@ -2,18 +2,26 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { TrendingUp, Globe, Store, Package, DollarSign, Plus, Search, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const Sales = () => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [products, setProducts] = useState([]);
+  const navigate = useNavigate();
   
-  // Sale Form State
   const [saleForm, setSaleForm] = useState({
     productId: '',
     quantity: 1,
-    price: 0
+    price: 0,
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    paymentMode: 'Cash',
+    paymentId: '',
+    notes: '',
+    source: 'External'
   });
 
   useEffect(() => {
@@ -54,11 +62,27 @@ const Sales = () => {
     try {
       await api.post('/sales/store', saleForm);
       setShowSaleModal(false);
+      setSaleForm({
+        productId: '',
+        quantity: 1,
+        price: 0,
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        paymentMode: 'Cash',
+        paymentId: '',
+        notes: '',
+        source: 'External'
+      });
       fetchSales();
       fetchProducts();
     } catch (error) {
       alert('Error registering sale');
     }
+  };
+
+  const openSaleDetail = (sale) => {
+    navigate(`/sales/${sale.id}`);
   };
 
   return (
@@ -100,11 +124,24 @@ const Sales = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                  {sales.length > 0 ? sales.map((sale, i) => (
-                    <tr key={i} className="hover:bg-gray-50/50 dark:hover:bg-white/2 transition-colors">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="5" className="px-8 py-20 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <div className="w-8 h-8 border-4 border-black/10 border-t-black dark:border-white/10 dark:border-t-white rounded-full animate-spin mb-4" />
+                          <p className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest">Loading sales...</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : sales.length > 0 ? sales.map((sale, i) => (
+                    <tr key={i} onClick={() => openSaleDetail(sale)} className="hover:bg-gray-50/50 dark:hover:bg-white/2 transition-colors cursor-pointer">
                       <td className="px-8 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-xl" />
+                          {sale.thumbnail ? (
+                            <img src={sale.thumbnail} alt={sale.productName} className="w-10 h-10 rounded-xl object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-100 dark:bg-white/5 rounded-xl" />
+                          )}
                           <span className="text-xs font-black uppercase tracking-tight">{sale.productName}</span>
                         </div>
                       </td>
@@ -145,44 +182,113 @@ const Sales = () => {
               </div>
               
               <form onSubmit={handleRegisterSale} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Select Product</label>
-                  <select 
-                    required
-                    className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl focus:ring-2 ring-black/5"
-                    value={saleForm.productId}
-                    onChange={e => {
-                      const p = products.find(x => x.id === e.target.value);
-                      setSaleForm({ ...saleForm, productId: e.target.value, price: p?.price || 0 });
-                    }}
-                  >
-                    <option value="">Choose product...</option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} (Stock: {p.inventory || 0})</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                   <div className="space-y-2">
-                    <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Quantity</label>
-                    <input 
-                      type="number" 
-                      min="1"
+                    <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Select Product *</label>
+                    <select 
                       required
+                      className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl focus:ring-2 ring-black/5"
+                      value={saleForm.productId}
+                      onChange={e => {
+                        const p = products.find(x => x.id === e.target.value);
+                        setSaleForm({ ...saleForm, productId: e.target.value, price: p?.price || 0 });
+                      }}
+                    >
+                      <option value="">Choose product...</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} (Stock: {p.totalStock ?? (p.variants?.length > 0 ? p.variants.reduce((s,v)=>s+(v.stock||0),0) : (p.stock||0))})</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Quantity *</label>
+                      <input 
+                        type="number" 
+                        min="1"
+                        required
+                        className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl"
+                        value={saleForm.quantity}
+                        onChange={e => setSaleForm({ ...saleForm, quantity: parseInt(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Total Price (₹) *</label>
+                      <input 
+                        type="number" 
+                        required
+                        className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl"
+                        value={saleForm.price}
+                        onChange={e => setSaleForm({ ...saleForm, price: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Customer Name</label>
+                    <input 
+                      type="text" 
                       className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl"
-                      value={saleForm.quantity}
-                      onChange={e => setSaleForm({ ...saleForm, quantity: parseInt(e.target.value) })}
+                      value={saleForm.customerName}
+                      onChange={e => setSaleForm({ ...saleForm, customerName: e.target.value })}
                     />
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Customer Email</label>
+                      <input 
+                        type="email" 
+                        className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl"
+                        value={saleForm.customerEmail}
+                        onChange={e => setSaleForm({ ...saleForm, customerEmail: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Customer Phone</label>
+                      <input 
+                        type="tel" 
+                        className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl"
+                        value={saleForm.customerPhone}
+                        onChange={e => setSaleForm({ ...saleForm, customerPhone: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Payment Mode</label>
+                      <select 
+                        className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl focus:ring-2 ring-black/5"
+                        value={saleForm.paymentMode}
+                        onChange={e => setSaleForm({ ...saleForm, paymentMode: e.target.value })}
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="Card">Card</option>
+                        <option value="UPI">UPI</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Payment ID</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. UPI Txn ID"
+                        className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl"
+                        value={saleForm.paymentId}
+                        onChange={e => setSaleForm({ ...saleForm, paymentId: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Price (₹)</label>
-                    <input 
-                      type="number" 
-                      required
+                    <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Notes</label>
+                    <textarea 
+                      rows="2"
                       className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl"
-                      value={saleForm.price}
-                      onChange={e => setSaleForm({ ...saleForm, price: parseFloat(e.target.value) })}
+                      value={saleForm.notes}
+                      onChange={e => setSaleForm({ ...saleForm, notes: e.target.value })}
                     />
                   </div>
                 </div>

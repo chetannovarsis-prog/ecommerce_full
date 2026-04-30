@@ -136,9 +136,9 @@ const Checkout = () => {
 
   const subtotal = Math.round(cart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0));
   const couponDiscount = appliedCoupon
-    ? Math.round((subtotal * appliedCoupon.percentage) / 100)
+    ? (appliedCoupon.type === 'FLAT' ? Math.round(appliedCoupon.value || appliedCoupon.percentage) : Math.round((subtotal * (appliedCoupon.value || appliedCoupon.percentage)) / 100))
     : 0;
-  const discountedSubtotal = Math.round(subtotal - couponDiscount);
+  const discountedSubtotal = Math.max(0, Math.round(subtotal - couponDiscount));
 
   // ── On mount: load settings, customer, and prefetch last pincode ──────────
   useEffect(() => {

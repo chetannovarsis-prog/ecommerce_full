@@ -73,8 +73,8 @@ const Products = () => {
       case 'oldest': return new Date(a.createdAt) - new Date(b.createdAt);
       case 'high-price': return b.price - a.price;
       case 'low-price': return a.price - b.price;
-      case 'max-unit': return (b.stock || 0) - (a.stock || 0);
-      case 'min-unit': return (a.stock || 0) - (b.stock || 0);
+      case 'max-unit': return (b.totalStock ?? (b.variants?.length > 0 ? b.variants.reduce((s,v)=>s+(v.stock||0),0) : (b.stock||0))) - (a.totalStock ?? (a.variants?.length > 0 ? a.variants.reduce((s,v)=>s+(v.stock||0),0) : (a.stock||0)));
+      case 'min-unit': return (a.totalStock ?? (a.variants?.length > 0 ? a.variants.reduce((s,v)=>s+(v.stock||0),0) : (a.stock||0))) - (b.totalStock ?? (b.variants?.length > 0 ? b.variants.reduce((s,v)=>s+(v.stock||0),0) : (b.stock||0)));
       default: return 0;
     }
   });
@@ -262,11 +262,12 @@ const Products = () => {
                       </td>
                       <td className="px-6 py-4">
                         {(() => {
-                          const variantStock = product.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
-                          const totalUnits = variantStock + (product.stock || 0);
+                          const totalUnits = product.totalStock ?? (product.variants?.length > 0
+                            ? product.variants.reduce((acc, v) => acc + (v.stock || 0), 0)
+                            : (product.stock || 0));
                           return (
                             <div className="flex items-center gap-2">
-                              <div className={`w-1.5 h-1.5 rounded-full ${totalUnits > 10 ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+                              <div className={`w-1.5 h-1.5 rounded-full ${totalUnits > 10 ? 'bg-emerald-500' : totalUnits > 0 ? 'bg-amber-500' : 'bg-red-500'}`}></div>
                               <span className="text-[0.65rem] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{totalUnits} units</span>
                             </div>
                           );

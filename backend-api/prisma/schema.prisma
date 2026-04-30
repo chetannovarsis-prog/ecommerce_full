@@ -115,7 +115,7 @@ model Banner {
 model Order {
   id                  String           @id @default(uuid())
   totalAmount         Float
-  status              String           @default("PENDING")
+  status              String           @default("ORDERED")
   customerId          String?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
@@ -131,7 +131,9 @@ model Order {
   items               OrderItem[]
   activities          OrderActivity[]
   returnRequests      ReturnRequest[]
+  sales               Sale[]
 
+  @@index([status])
   @@schema("public")
 }
 
@@ -233,13 +235,21 @@ model Admin {
 }
 
 model Sale {
-  id        String   @id @default(uuid())
-  productId String
-  quantity  Int
-  price     Float
-  source    String   @default("Website")
-  createdAt DateTime @default(now())
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  productId     String
+  quantity      Int
+  price         Float
+  source        String   @default("Website")
+  customerName  String?
+  customerEmail String?
+  customerPhone String?
+  paymentMode   String?
+  paymentId     String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  orderId       String?
+  order         Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -265,12 +275,16 @@ model GlobalSetting {
 }
 
 model Coupon {
-  id         String   @id @default(uuid())
-  code       String   @unique
-  percentage Float
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String    @id @default(uuid())
+  code          String    @unique
+  percentage    Float     // Used as value for BOTH flat and percentage (backward compatibility)
+  type          String    @default("PERCENTAGE") // PERCENTAGE or FLAT
+  isActive      Boolean   @default(true)
+  maxUses       Int?      // Max total uses allowed (e.g., first 10 orders)
+  usedCount     Int       @default(0) // How many times it was used
+  allowedEmails String[]  // Array of emails allowed to use it
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([code])
   @@index([isActive])

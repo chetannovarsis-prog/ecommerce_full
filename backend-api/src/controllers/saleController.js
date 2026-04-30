@@ -19,7 +19,13 @@ export const getSales = async (req, res) => {
       quantity: s.quantity,
       price: s.price,
       source: s.source,
-      date: s.createdAt
+      date: s.createdAt,
+      customerName: s.customerName,
+      customerEmail: s.customerEmail,
+      customerPhone: s.customerPhone,
+      paymentMode: s.paymentMode,
+      paymentId: s.paymentId,
+      notes: s.notes
     }));
 
     res.json(formattedSales);
@@ -29,7 +35,7 @@ export const getSales = async (req, res) => {
 };
 
 export const registerStoreSale = async (req, res) => {
-  const { productId, quantity, price } = req.body;
+  const { productId, quantity, price, customerName, customerEmail, customerPhone, paymentMode, paymentId, notes, source } = req.body;
 
   try {
     // 1. Create Sale record
@@ -38,7 +44,13 @@ export const registerStoreSale = async (req, res) => {
         productId,
         quantity: parseInt(quantity),
         price: parseFloat(price),
-        source: 'Store'
+        source: source || 'Store',
+        customerName,
+        customerEmail,
+        customerPhone,
+        paymentMode,
+        paymentId,
+        notes
       }
     });
 

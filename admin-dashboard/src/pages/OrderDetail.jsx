@@ -13,7 +13,10 @@ import {
   Phone, 
   MapPin, 
   ExternalLink,
-  Clipboard
+  Clipboard,
+  Pencil,
+  X,
+  Save
 } from 'lucide-react';
 
 const OrderDetail = () => {
@@ -29,6 +32,9 @@ const OrderDetail = () => {
   const [orderCancelLoading, setOrderCancelLoading] = useState(false);
   const [codConfirmLoading, setCodConfirmLoading] = useState(false);
   const [returnRequest, setReturnRequest] = useState(null);
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailsSaving, setDetailsSaving] = useState(false);
+  const [detailsForm, setDetailsForm] = useState({ name: '', email: '', phone: '', address: '', city: '', state: '', pinCode: '' });
 
   useEffect(() => {
     fetchOrder();
@@ -192,10 +198,35 @@ const OrderDetail = () => {
     try {
       const res = await api.get(`/orders/${id}`);
       setOrder(res.data);
+      // Sync form with fetched data
+      const addr = res.data.shippingAddress || {};
+      setDetailsForm({
+        name: `${addr.firstName || ''} ${addr.lastName || ''}`.trim(),
+        email: addr.email || res.data.customer?.email || '',
+        phone: addr.phone || '',
+        address: addr.address || '',
+        city: addr.city || '',
+        state: addr.state || '',
+        pinCode: addr.pinCode || '',
+      });
     } catch (error) {
       console.error('Error fetching order details:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveDetails = async (syncShiprocket = false) => {
+    setDetailsSaving(true);
+    try {
+      await api.patch(`/orders/${id}/details`, { ...detailsForm, syncShiprocket });
+      setEditingDetails(false);
+      fetchOrder();
+      fetchShipment();
+    } catch (error) {
+      alert(error.response?.data?.error || 'Error saving order details');
+    } finally {
+      setDetailsSaving(false);
     }
   };
 
@@ -237,6 +268,7 @@ const OrderDetail = () => {
       case 'pending':
       case 'processing': return 'text-amber-500 bg-amber-500/10';
       case 'cancelled':
+      case 'canceled':
       case 'failed': return 'text-red-500 bg-red-500/10';
       case 'delivered': return 'text-emerald-600 bg-emerald-500/10';
       default: return 'text-gray-500 bg-gray-500/10';
@@ -375,7 +407,7 @@ const OrderDetail = () => {
                     {codConfirmLoading ? 'Confirming...' : 'Confirm COD Payment'}
                   </button>
                 )}
-                {['PAID', 'COD_CONFIRMED', 'PENDING', 'PAYMENT_PENDING', 'COD_PENDING'].includes(order.status) && (
+                {['PAID', 'COD_CONFIRMED', 'PENDING', 'PAYMENT_PENDING', 'COD_PENDING', 'ORDERED'].includes(order.status) && (
                   <button 
                     onClick={cancelOrder}
                     disabled={orderCancelLoading}
@@ -392,41 +424,147 @@ const OrderDetail = () => {
         <div className="space-y-8">
           
           {/* Customer Card */}
-          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl p-8 shadow-sm space-y-8">
-            <h3 className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400 border-b dark:border-white/5 pb-4">Customer Info</h3>
-            
-            <div className="space-y-6">
-               <div className="flex items-start gap-4">
-                  <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl"><Mail size={18} className="text-gray-400" /></div>
-                  <div className="flex-1">
-                     <p className="text-[0.55rem] text-gray-400 font-black uppercase tracking-widest">Email Address</p>
-                     <p className="text-sm font-bold dark:text-white break-all">{order.customer?.email}</p>
-                  </div>
-                  <button className="text-gray-300 hover:text-black dark:hover:text-white"><Clipboard size={14} /></button>
-               </div>
-               
-               <div className="flex items-start gap-4">
-                  <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl"><MapPin size={18} className="text-gray-400" /></div>
-                  <div className="flex-1">
-                     <p className="text-[0.55rem] text-gray-400 font-black uppercase tracking-widest">Shipping Address</p>
-                     <div className="text-sm font-bold dark:text-white space-y-1 mt-1 leading-relaxed">
-                        <p>{order.shippingAddress?.firstName} {order.shippingAddress?.lastName}</p>
-                        <p>{order.shippingAddress?.address}</p>
-                        <p>{order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.pinCode}</p>
-                        <p className="text-gray-400 text-[0.65rem] flex items-center gap-1"><Phone size={10} /> {order.shippingAddress?.phone}</p>
-                     </div>
-                  </div>
-                  <button className="text-gray-300 hover:text-black dark:hover:text-white"><ExternalLink size={14} /></button>
-               </div>
-
-               <div className="flex items-start gap-4">
-                  <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl"><CreditCard size={18} className="text-gray-400" /></div>
-                  <div className="flex-1">
-                     <p className="text-[0.55rem] text-gray-400 font-black uppercase tracking-widest">Billing Address</p>
-                     <p className="text-xs font-bold text-gray-400 uppercase tracking-tight mt-1">Same as shipping address</p>
-                  </div>
-               </div>
+          <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl p-8 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b dark:border-white/5 pb-4">
+              <h3 className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400">Customer &amp; Delivery</h3>
+              {!editingDetails ? (
+                <button
+                  onClick={() => setEditingDetails(true)}
+                  className="flex items-center gap-1.5 text-[0.6rem] font-black uppercase tracking-widest text-gray-400 hover:text-black dark:hover:text-white transition-colors"
+                >
+                  <Pencil size={12} /> Edit
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setEditingDetails(false); fetchOrder(); }}
+                  className="flex items-center gap-1.5 text-[0.6rem] font-black uppercase tracking-widest text-red-400 hover:text-red-600 transition-colors"
+                >
+                  <X size={12} /> Cancel
+                </button>
+              )}
             </div>
+
+            {!editingDetails ? (
+              <div className="space-y-5">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl"><Mail size={16} className="text-gray-400" /></div>
+                  <div className="flex-1">
+                    <p className="text-[0.55rem] text-gray-400 font-black uppercase tracking-widest">Name / Email</p>
+                    <p className="text-sm font-bold dark:text-white">{order.shippingAddress?.firstName} {order.shippingAddress?.lastName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 break-all">{order.shippingAddress?.email || order.customer?.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl"><Phone size={16} className="text-gray-400" /></div>
+                  <div className="flex-1">
+                    <p className="text-[0.55rem] text-gray-400 font-black uppercase tracking-widest">Phone</p>
+                    <p className="text-sm font-bold dark:text-white">{order.shippingAddress?.phone || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl"><MapPin size={16} className="text-gray-400" /></div>
+                  <div className="flex-1">
+                    <p className="text-[0.55rem] text-gray-400 font-black uppercase tracking-widest">Shipping Address</p>
+                    <div className="text-sm font-bold dark:text-white space-y-0.5 mt-1 leading-relaxed">
+                      <p>{order.shippingAddress?.address}</p>
+                      <p>{order.shippingAddress?.city}, {order.shippingAddress?.state} {order.shippingAddress?.pinCode}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest">Full Name</label>
+                    <input
+                      type="text"
+                      value={detailsForm.name}
+                      onChange={e => setDetailsForm(p => ({ ...p, name: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest">Email</label>
+                    <input
+                      type="email"
+                      value={detailsForm.email}
+                      onChange={e => setDetailsForm(p => ({ ...p, email: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest">Phone</label>
+                    <input
+                      type="tel"
+                      value={detailsForm.phone}
+                      onChange={e => setDetailsForm(p => ({ ...p, phone: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <label className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest">Address Line</label>
+                    <input
+                      type="text"
+                      value={detailsForm.address}
+                      onChange={e => setDetailsForm(p => ({ ...p, address: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest">City</label>
+                    <input
+                      type="text"
+                      value={detailsForm.city}
+                      onChange={e => setDetailsForm(p => ({ ...p, city: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest">State</label>
+                    <input
+                      type="text"
+                      value={detailsForm.state}
+                      onChange={e => setDetailsForm(p => ({ ...p, state: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest">PIN Code</label>
+                    <input
+                      type="text"
+                      value={detailsForm.pinCode}
+                      onChange={e => setDetailsForm(p => ({ ...p, pinCode: e.target.value }))}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2 pt-2">
+                  <button
+                    onClick={() => handleSaveDetails(false)}
+                    disabled={detailsSaving}
+                    className="w-full py-3 bg-black dark:bg-white dark:text-black text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    <Save size={14} /> {detailsSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  {shipment && (
+                    <p className="text-[0.55rem] text-amber-500 font-bold uppercase tracking-widest text-center">
+                      ⚠ Shipment exists — cancel it first in Shiprocket before updating address.
+                    </p>
+                  )}
+                  {!shipment && (
+                    <button
+                      onClick={() => handleSaveDetails(true)}
+                      disabled={detailsSaving}
+                      className="w-full py-3 bg-emerald-500 text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                    >
+                      <Truck size={14} /> Save &amp; Create Shipment
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Shipment Management Card */}
@@ -484,20 +622,30 @@ const OrderDetail = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="p-6 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 rounded-2xl">
-                   <p className="text-[0.6rem] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-tight leading-relaxed">
-                     No shipment manifest found for this order. Generate a shipment to start tracking.
-                   </p>
-                </div>
-                <button 
-                  onClick={createShipment}
-                  disabled={shipLoading}
-                  className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50"
-                >
-                  {shipLoading ? 'Manifesting...' : 'Create Shipment'}
-                </button>
-              </div>
+              <>
+                {['CANCELLED', 'CANCELED', 'FAILED'].includes(order?.status?.toUpperCase()) ? (
+                  <div className="p-6 bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/10 rounded-2xl">
+                    <p className="text-[0.6rem] text-red-500 font-bold uppercase tracking-tight leading-relaxed">
+                      Order is {order.status.toLowerCase()} — shipment cannot be created.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="p-6 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 rounded-2xl">
+                       <p className="text-[0.6rem] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-tight leading-relaxed">
+                         No shipment manifest found for this order. Generate a shipment to start tracking.
+                       </p>
+                    </div>
+                    <button 
+                      onClick={createShipment}
+                      disabled={shipLoading}
+                      className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50"
+                    >
+                      {shipLoading ? 'Manifesting...' : 'Create Shipment'}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

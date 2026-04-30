@@ -31,8 +31,8 @@ const CartPage = () => {
   const displayCart = Object.values(groupedCart);
   const totalQty = displayCart.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = displayCart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0);
-  const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.percentage) / 100) : 0;
-  const finalTotal = subtotal - discountAmount;
+  const discountAmount = appliedCoupon ? (appliedCoupon.type === 'FLAT' ? Math.round(appliedCoupon.value || appliedCoupon.percentage) : Math.round((subtotal * (appliedCoupon.value || appliedCoupon.percentage)) / 100)) : 0;
+  const finalTotal = Math.max(0, subtotal - discountAmount);
 
   const handleApplyCoupon = async () => {
     const normalizedCode = couponCode.trim().toUpperCase();
@@ -49,7 +49,9 @@ const CartPage = () => {
       applyCoupon({
         id: data.id,
         code: data.code,
-        percentage: Number(data.percentage)
+        percentage: Number(data.percentage),
+        type: data.type,
+        value: Number(data.value)
       });
       setCouponCode(data.code);
       showToast(`Coupon ${data.code} applied`, 'success');
@@ -131,7 +133,7 @@ const CartPage = () => {
                   <div className="flex items-center justify-between rounded-2xl bg-emerald-50 border border-emerald-100 px-5 py-4">
                     <div>
                       <p className="text-[0.65rem] font-black uppercase tracking-widest text-emerald-600">Applied Coupon</p>
-                      <p className="text-sm font-bold text-emerald-700">{appliedCoupon.code} ({appliedCoupon.percentage}% OFF)</p>
+                      <p className="text-sm font-bold text-emerald-700">{appliedCoupon.code} ({appliedCoupon.type === 'FLAT' ? '₹' : ''}{appliedCoupon.value || appliedCoupon.percentage}{appliedCoupon.type === 'PERCENTAGE' ? '% OFF' : ' OFF'})</p>
                     </div>
                     <button
                       type="button"
@@ -210,7 +212,7 @@ const CartPage = () => {
                               animate={{ opacity: 1, y: 0 }}
                               className="text-2xl font-black text-gray-900 mt-1"
                             >
-                              ₹{Math.round(item.selectedPrice * item.quantity * (1 - appliedCoupon.percentage / 100))}
+                              ₹{Math.max(0, Math.round(item.selectedPrice * item.quantity - (appliedCoupon.type === 'FLAT' ? (appliedCoupon.value || appliedCoupon.percentage) * (item.selectedPrice * item.quantity / subtotal) : (item.selectedPrice * item.quantity * (appliedCoupon.value || appliedCoupon.percentage) / 100))))}
                             </motion.p>
                           )}
                           {item.quantity > 1 && (

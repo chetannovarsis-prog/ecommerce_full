@@ -395,8 +395,10 @@ const ProductDetail = () => {
                 </div>
                 <div className="text-gray-900 font-black">
                   {(() => {
-                    const variantStock = product.variants?.reduce((acc, v) => acc + (v.stock || 0), 0) || 0;
-                    return variantStock + (product.stock || 0);
+                    const hasVariants = product.variants && product.variants.length > 0;
+                     return hasVariants
+                       ? product.variants.reduce((acc, v) => acc + (v.stock || 0), 0)
+                       : (product.stock || 0);
                   })()} Units
                 </div>
              </div>

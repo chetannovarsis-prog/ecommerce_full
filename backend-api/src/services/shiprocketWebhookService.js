@@ -65,17 +65,18 @@ export const retryFailedWebhook = async (webhookId) => {
  */
 export const mapShiprocketStatus = (shiprocketStatus) => {
   const statusMap = {
-    'SHIPPED': 'shipped',
-    'IN TRANSIT': 'in_transit',
-    'DELIVERED': 'delivered',
-    'RTO': 'returned',
-    'CANCELLED': 'cancelled',
-    'PENDING': 'pending',
-    'READY_TO_SHIP': 'ready_to_ship',
-    'UNDELIVERED': 'undelivered'
+    'SHIPPED': 'SHIPPED',
+    'IN TRANSIT': 'SHIPPED',
+    'OUT FOR DELIVERY': 'SHIPPED',
+    'DELIVERED': 'DELIVERED',
+    'RTO': 'CANCELED',
+    'CANCELLED': 'CANCELED',
+    'PENDING': 'ORDERED',
+    'READY_TO_SHIP': 'ORDERED',
+    'UNDELIVERED': 'SHIPPED'
   };
 
-  return statusMap[shiprocketStatus?.toUpperCase()] || 'unknown';
+  return statusMap[shiprocketStatus?.toUpperCase()] || 'ORDERED';
 };
 
 /**
@@ -225,11 +226,11 @@ export const updateOrderFromShiprocket = async (payload) => {
     });
 
     // Log activity
-    await logActivity({
-      orderId: order.id,
-      status: internalStatus,
-      message: `Shiprocket webhook: ${shiprocketStatus} (AWB: ${awb}, Courier: ${courierName})`
-    });
+    await logActivity(
+      order.id,
+      internalStatus,
+      `Shiprocket webhook: ${shiprocketStatus} (AWB: ${awb}, Courier: ${courierName})`
+    );
 
     // Send customer notification (optional - implement based on your needs)
     try {

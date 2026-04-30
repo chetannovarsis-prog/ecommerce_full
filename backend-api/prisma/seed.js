@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = 'admin@admin.com';
+  const adminEmail = 'swatigunjan1@gmail.com';
   const adminPassword = 'admin123';
 
   console.log(`Checking for admin: ${adminEmail}`);

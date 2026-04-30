@@ -10,6 +10,9 @@ const Coupons = () => {
   const [form, setForm] = useState({
     code: '',
     percentage: '',
+    type: 'PERCENTAGE',
+    maxUses: '',
+    allowedEmails: '',
     isActive: true
   });
 
@@ -50,10 +53,13 @@ const Coupons = () => {
       const res = await api.post('/coupons', {
         code: form.code,
         percentage,
+        type: form.type,
+        maxUses: form.maxUses,
+        allowedEmails: form.allowedEmails,
         isActive: form.isActive
       });
       setCoupons((prev) => [res.data, ...prev]);
-      setForm({ code: '', percentage: '', isActive: true });
+      setForm({ code: '', percentage: '', type: 'PERCENTAGE', maxUses: '', allowedEmails: '', isActive: true });
       setErrors({});
     } catch (error) {
       setErrors({
@@ -115,8 +121,7 @@ const Coupons = () => {
                 <input
                   type="number"
                   min="1"
-                  max="100"
-                  placeholder="Discount Percentage"
+                  placeholder="Discount Value"
                   value={form.percentage}
                   onChange={(e) => {
                     setForm((prev) => ({ ...prev, percentage: e.target.value }));
@@ -125,6 +130,40 @@ const Coupons = () => {
                   className={`w-full px-5 py-3 bg-gray-50 dark:bg-white/5 border rounded-xl text-sm font-bold focus:outline-none focus:ring-4 transition-all text-gray-900 dark:text-white ${errors.percentage ? 'border-red-400 focus:ring-red-500/10' : 'border-gray-200 dark:border-white/5 focus:ring-black/5 dark:focus:ring-white/5'}`}
                 />
                 {errors.percentage && <p className="ml-1 text-[0.7rem] font-bold text-red-500">{errors.percentage}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
+                  className="w-full px-5 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 transition-all text-gray-900 dark:text-white"
+                >
+                  <option value="PERCENTAGE">Percentage (%)</option>
+                  <option value="FLAT">Flat Amount (₹)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Max Total Uses (e.g. 10)"
+                  value={form.maxUses}
+                  onChange={(e) => setForm((prev) => ({ ...prev, maxUses: e.target.value }))}
+                  className="w-full px-5 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 transition-all text-gray-900 dark:text-white"
+                />
+                <p className="ml-1 text-[0.6rem] text-gray-400 uppercase tracking-widest font-bold">Leave empty for unlimited</p>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <input
+                  type="text"
+                  placeholder="Allowed Emails (comma separated for targeted users)"
+                  value={form.allowedEmails}
+                  onChange={(e) => setForm((prev) => ({ ...prev, allowedEmails: e.target.value }))}
+                  className="w-full px-5 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl text-sm font-bold focus:outline-none focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 transition-all text-gray-900 dark:text-white"
+                />
+                <p className="ml-1 text-[0.6rem] text-gray-400 uppercase tracking-widest font-bold">Leave empty so anyone can use it</p>
               </div>
             </div>
 
@@ -162,7 +201,10 @@ const Coupons = () => {
               <thead>
                 <tr className="bg-gray-50/10">
                   <th className="px-6 py-3 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Code</th>
-                  <th className="px-6 py-3 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Discount</th>
+                  <th className="px-6 py-3 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Value</th>
+                  <th className="px-6 py-3 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Type</th>
+                  <th className="px-6 py-3 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Uses</th>
+                  <th className="px-6 py-3 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Targeted</th>
                   <th className="px-6 py-3 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Status</th>
                   <th className="px-6 py-3 w-4"></th>
                 </tr>
@@ -178,7 +220,18 @@ const Coupons = () => {
                   coupons.map((coupon) => (
                     <tr key={coupon.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4 text-sm font-black text-gray-900 dark:text-white uppercase">{coupon.code}</td>
-                      <td className="px-6 py-4 text-xs font-black text-gray-700 dark:text-gray-300">{coupon.percentage}%</td>
+                      <td className="px-6 py-4 text-xs font-black text-gray-700 dark:text-gray-300">{coupon.type === 'FLAT' ? '₹' : ''}{coupon.percentage}{coupon.type === 'PERCENTAGE' ? '%' : ''}</td>
+                      <td className="px-6 py-4 text-[0.6rem] font-black text-gray-500 uppercase tracking-widest">{coupon.type}</td>
+                      <td className="px-6 py-4 text-[0.65rem] font-bold text-gray-500">
+                         {coupon.usedCount} / {coupon.maxUses || '∞'}
+                      </td>
+                      <td className="px-6 py-4">
+                         {coupon.allowedEmails && coupon.allowedEmails.length > 0 ? (
+                           <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[0.6rem] font-black uppercase rounded-lg">Yes ({coupon.allowedEmails.length})</span>
+                         ) : (
+                           <span className="text-[0.6rem] font-bold text-gray-400 uppercase">No</span>
+                         )}
+                      </td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => toggleStatus(coupon)}
