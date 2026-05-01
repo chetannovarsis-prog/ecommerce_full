@@ -42,17 +42,21 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
           }
           .invoice-container {
             width: 794px; /* A4 width */
-            min-height: 1123px; /* A4 height at 96dpi */
-            height: auto;
+            height: 1122px; /* Strict A4 height to prevent 2nd page */
             margin: 0 auto;
-            padding: 50px;
+            padding: 40px 50px; /* Adjusted top padding */
             background: #f5f2e9;
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
           }
           .content {
             position: relative;
             z-index: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
           }
           /* Header */
           .header {
@@ -223,10 +227,11 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
           }
           /* Footer */
           .invoice-footer {
-            margin-top: 42px;
+            margin-top: auto;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
+            padding-bottom: 10px;
           }
           .thank-you-image {
             width: 170px;

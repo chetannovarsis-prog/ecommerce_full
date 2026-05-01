@@ -516,9 +516,11 @@ export const verifyPayment = async (req, res) => {
       if (emailToSend) {
         await sendMail(emailToSend, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
         // Generate and send invoice
-        const invoicePath = await generateInvoice(order);
-        if (invoicePath) {
-          await sendInvoiceEmail(emailToSend, order, invoicePath);
+        const invoiceBuffer = await generateInvoice(order);
+        if (invoiceBuffer) {
+          const subject = `Invoice for Order #${order.invoiceNumber || order.id.slice(-6).toUpperCase()}`;
+          const text = TEMPLATES.INVOICE(order.invoiceNumber || order.id);
+          await sendInvoiceEmail(emailToSend, subject, text, invoiceBuffer);
         }
       }
     } catch (notifyErr) {

@@ -6,23 +6,28 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const generateInvoice = async (orderId) => {
-  // Fetch order details from database
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      customer: {
-        select: { name: true, email: true }
-      },
-      items: {
-        include: {
-          product: {
-            select: { id: true, name: true, price: true }
+export const generateInvoice = async (orderOrId) => {
+  let order;
+  if (typeof orderOrId === 'string') {
+    // Fetch order details from database if ID is provided
+    order = await prisma.order.findUnique({
+      where: { id: orderOrId },
+      include: {
+        customer: {
+          select: { name: true, email: true }
+        },
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, price: true }
+            }
           }
         }
       }
-    }
-  });
+    });
+  } else {
+    order = orderOrId;
+  }
 
   if (!order) {
     throw new Error('Order not found');

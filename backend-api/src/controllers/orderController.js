@@ -209,9 +209,11 @@ export const createAdminOrder = async (req, res) => {
         });
         const { generateInvoice } = await import('../utils/invoiceGenerator.js');
         const { sendInvoiceEmail } = await import('../utils/mailer.js');
-        const invoicePath = await generateInvoice(fullOrder);
-        if (invoicePath) {
-          await sendInvoiceEmail(customer.email.trim(), fullOrder, invoicePath);
+        const invoiceBuffer = await generateInvoice(fullOrder);
+        if (invoiceBuffer) {
+          const subject = `Invoice for Order #${fullOrder.invoiceNumber || fullOrder.id.slice(-6).toUpperCase()}`;
+          const text = TEMPLATES.INVOICE(fullOrder.invoiceNumber || fullOrder.id);
+          await sendInvoiceEmail(customer.email.trim(), subject, text, invoiceBuffer);
           await logActivity(order.id, 'INVOICE_SENT', `Manual order invoice sent to ${customer.email.trim()}`);
         }
       } catch (emailErr) {
