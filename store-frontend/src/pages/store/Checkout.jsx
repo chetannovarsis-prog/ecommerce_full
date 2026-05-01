@@ -255,31 +255,40 @@ const Checkout = () => {
       console.log('Order data:', { id: order.id, amount: order.amount, currency: order.currency });
 
       const restoreScroll = () => {
-        // Remove all possible scroll locks Razorpay adds.
-        document.body.style.overflow = '';
-        document.body.style.overflowY = '';
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.documentElement.style.overflow = '';
-        document.documentElement.style.overflowY = '';
+        // 1. Force clear all possible scroll locks on both body and html
+        const elements = [document.body, document.documentElement];
+        elements.forEach(el => {
+          if (el) {
+            el.style.setProperty('overflow', 'auto', 'important');
+            el.style.setProperty('overflow-y', 'auto', 'important');
+            el.style.position = '';
+            el.style.top = '';
+            el.style.width = '';
+            el.style.height = '';
+          }
+        });
 
-        // Razorpay sometimes adds a class to body.
+        // 2. Remove Razorpay specific classes
         document.body.classList.remove('razorpay-container');
 
-        // Remove leftover Razorpay elements that can block scroll.
-        document.querySelectorAll('.razorpay-container, .razorpay-backdrop').forEach((el) => el.remove());
+        // 3. Nuke any leftover Razorpay UI elements
+        const rzpUI = document.querySelectorAll('.razorpay-container, .razorpay-backdrop, iframe[src*="razorpay"]');
+        rzpUI.forEach(el => el.remove());
+        
+        // 4. Final safety backup
+        setTimeout(() => {
+          document.body.style.overflow = 'auto';
+          document.documentElement.style.overflow = 'auto';
+        }, 100);
       };
-
 
       let razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
       if (!razorpayKey) {
-        console.warn('VITE_RAZORPAY_KEY_ID not set in environment variables. Falling back to backend config.');
         try {
           const { data } = await api.get('/payments/config');
           razorpayKey = data?.razorpayKeyId || null;
         } catch (err) {
-          console.error('Failed to fetch Razorpay config from backend:', err);
+          console.error('Failed to fetch Razorpay config:', err);
         }
       }
 
@@ -289,62 +298,65 @@ const Checkout = () => {
         return;
       }
 
-        const options = {
-          key: razorpayKey,
-          amount: order.amount,
-          currency: order.currency,
-          name: 'Ghar of Ethnics',
-          order_id: order.id,
-          handler: async (response) => {
-            setIsProcessing(true);
-            try {
-              const verifyRes = await api.post('/payments/verify', {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                orderData: orderData // Pass the full order data for creation
-              });
-              clearCart();
-              restoreScroll();
-              const finalOrderId = verifyRes.data?.order?.id || verifyRes.data?.orderId;
-              navigate(`/order-success/${finalOrderId}`);
-            } catch (error) {
-              setIsProcessing(false);
-              restoreScroll();
-              alert('Payment verification failed.');
-            }
+      const options = {
+        key: razorpayKey,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'Ghar of Ethnics',
+        order_id: order.id,
+        handler: async (response) => {
+          setIsProcessing(true);
+          try {
+            const verifyRes = await api.post('/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderData: orderData
+            });
+            clearCart();
+            restoreScroll();
+            const finalOrderId = verifyRes.data?.order?.id || verifyRes.data?.orderId;
+            navigate(`/order-success/${finalOrderId}`);
+          } catch (error) {
+            setIsProcessing(false);
+            restoreScroll();
+            alert('Payment verification failed.');
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+            restoreScroll();
           },
+          escape: true,
+          backdropclose: false
+        },
+        prefill: {
+          name: `${values.firstName} ${values.lastName}`,
+          email: values.email,
+          contact: normalizedPhone,
+        },
+        theme: { color: '#1a2d5a' },
+      };
 
-          modal: {
-            ondismiss: () => {
-              setLoading(false);
-              restoreScroll();
-            },
-          },
-          error: {
-            onerror: () => {
-              setLoading(false);
-              restoreScroll();
-            },
-          },
-          prefill: {
-            name: `${values.firstName} ${values.lastName}`,
-            email: values.email,
-            contact: normalizedPhone,
-          },
-          theme: { color: '#1a2d5a' },
-        };
-
-
+      try {
         const paymentObject = new window.Razorpay(options);
-        paymentObject.on('payment.failed', () => {
+        paymentObject.on('payment.failed', (response) => {
+          console.error('Payment failed:', response.error);
           setLoading(false);
           restoreScroll();
         });
         paymentObject.open();
+      } catch (err) {
+        console.error('Failed to open Razorpay:', err);
+        alert('Could not open payment window. Please try again.');
+        setLoading(false);
+        restoreScroll();
+      }
     } catch (error) {
       console.error('Checkout error:', error);
-      alert(error.response?.data?.message || 'Checkout failed.');
+      alert(error.response?.data?.message || 'Checkout failed to initialize.');
+      restoreScroll();
     } finally {
       setLoading(false);
     }
