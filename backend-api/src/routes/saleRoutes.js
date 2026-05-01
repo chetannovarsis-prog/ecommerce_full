@@ -4,5 +4,6 @@ import * as saleController from '../controllers/saleController.js';
 
 router.get('/', saleController.getSales);
 router.post('/store', saleController.registerStoreSale);
+router.delete('/:id', saleController.deleteSale);
 
 export default router;

@@ -67,3 +67,13 @@ export const registerStoreSale = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const deleteSale = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.sale.delete({ where: { id } });
+    res.json({ success: true, message: 'Sale record deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

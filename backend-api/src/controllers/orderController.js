@@ -29,9 +29,10 @@ export const createAdminOrder = async (req, res) => {
 
     // Find or note customer linkage by email
     let linkedCustomerId = null;
-    if (customer.email) {
+    if (customer.email && customer.email.trim()) {
+      const trimmedEmail = customer.email.trim();
       const existingCustomer = await prisma.customer.findFirst({
-        where: { email: { equals: customer.email, mode: 'insensitive' } }
+        where: { email: { equals: trimmedEmail, mode: 'insensitive' } }
       });
       if (existingCustomer) linkedCustomerId = existingCustomer.id;
     }
@@ -199,12 +200,50 @@ export const createAdminOrder = async (req, res) => {
       }))
     });
 
+    // Send invoice email if email is provided
+    if (customer.email && customer.email.trim()) {
+      try {
+        const fullOrder = await prisma.order.findUnique({
+          where: { id: order.id },
+          include: { items: { include: { product: true } } }
+        });
+        const { generateInvoice } = await import('../utils/invoiceGenerator.js');
+        const { sendInvoiceEmail } = await import('../utils/mailer.js');
+        const invoicePath = await generateInvoice(fullOrder);
+        if (invoicePath) {
+          await sendInvoiceEmail(customer.email.trim(), fullOrder, invoicePath);
+          await logActivity(order.id, 'INVOICE_SENT', `Manual order invoice sent to ${customer.email.trim()}`);
+        }
+      } catch (emailErr) {
+        logger.error('order.create.email_failed', { order_id: order.id, error: emailErr.message });
+      }
+    }
+
     res.status(201).json(order);
   } catch (error) {
     logger.error('order.create.failed', {
       error: error.message,
       user_id: req.user?.id || null
     });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteOrder = async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Delete related records first if not handled by CASCADE
+    await prisma.orderActivity.deleteMany({ where: { orderId: id } });
+    await prisma.orderItem.deleteMany({ where: { orderId: id } });
+    await prisma.sale.deleteMany({ where: { orderId: id } });
+    await prisma.shipment.deleteMany({ where: { orderId: id } });
+    
+    await prisma.order.delete({ where: { id } });
+    
+    logger.info('order.deleted', { order_id: id, user_id: req.user?.id || null });
+    res.json({ success: true, message: 'Order deleted successfully' });
+  } catch (error) {
+    logger.error('order.delete.failed', { order_id: id, error: error.message });
     res.status(500).json({ error: error.message });
   }
 };

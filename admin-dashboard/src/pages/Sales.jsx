@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { TrendingUp, Globe, Store, Package, DollarSign, Plus, Search, Filter } from 'lucide-react';
+import { TrendingUp, Globe, Store, Package, DollarSign, Plus, Search, Filter, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,6 +40,19 @@ const Sales = () => {
       setSales([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteSale = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this sale record?')) return;
+    try {
+      await api.delete(`/sales/${id}`);
+      fetchSales();
+      alert('Sale record deleted successfully');
+    } catch (error) {
+      console.error('Error deleting sale:', error);
+      alert('Failed to delete sale record');
     }
   };
 
@@ -121,6 +134,7 @@ const Sales = () => {
                     <th className="px-8 py-4 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Qty</th>
                     <th className="px-8 py-4 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Amount</th>
                     <th className="px-8 py-4 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest">Date</th>
+                    <th className="px-8 py-4 text-[0.6rem] font-black text-gray-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-white/5">
@@ -153,6 +167,15 @@ const Sales = () => {
                       <td className="px-8 py-4 text-xs font-bold">{sale.quantity}x</td>
                       <td className="px-8 py-4 text-xs font-black tracking-tighter">₹{sale.price}</td>
                       <td className="px-8 py-4 text-[0.65rem] text-gray-400 font-bold uppercase">{new Date(sale.date).toLocaleDateString()}</td>
+                      <td className="px-8 py-4 text-right">
+                        <button 
+                          onClick={(e) => handleDeleteSale(e, sale.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Delete Sale"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
                     </tr>
                   )) : (
                     <tr>

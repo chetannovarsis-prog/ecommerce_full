@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { ShoppingCart, Package, Clock, CheckCircle2, AlertCircle, Search, Filter, TrendingUp, DollarSign, CreditCard, RotateCcw, Plus, X } from 'lucide-react';
+import { ShoppingCart, Package, Clock, CheckCircle2, AlertCircle, Search, Filter, TrendingUp, DollarSign, CreditCard, RotateCcw, Plus, X, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Orders = () => {
@@ -57,6 +57,19 @@ const Orders = () => {
       console.error(error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteOrder = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) return;
+    try {
+      await api.delete(`/orders/${id}`);
+      fetchOrders(selectedStatus);
+      alert('Order deleted successfully');
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Failed to delete order');
     }
   };
 
@@ -166,6 +179,7 @@ const Orders = () => {
                       <th className="px-6 py-4 text-[0.65rem] font-black text-gray-400 uppercase tracking-widest leading-none">Date</th>
                       <th className="px-6 py-4 text-[0.65rem] font-black text-gray-400 uppercase tracking-widest leading-none">Total</th>
                       <th className="px-6 py-4 text-[0.65rem] font-black text-gray-400 uppercase tracking-widest leading-none">Status</th>
+                       <th className="px-6 py-4 text-[0.65rem] font-black text-gray-400 uppercase tracking-widest leading-none text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -183,6 +197,15 @@ const Orders = () => {
                           <span className={`px-2 py-1 rounded-md text-[0.6rem] font-black uppercase tracking-widest ${getStatusColor(order.status)}`}>
                             {order.status || 'Pending'}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button 
+                            onClick={(e) => handleDeleteOrder(e, order.id)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                            title="Delete Order"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </td>
                       </tr>
                     ))}

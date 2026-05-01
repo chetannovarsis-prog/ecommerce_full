@@ -11,7 +11,8 @@ import {
   approveReturnRequest,
   rejectReturnRequest,
   createAdminOrder,
-  updateOrderDetails
+  updateOrderDetails,
+  deleteOrder
 } from '../controllers/orderController.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { requireAuth } from '../middleware/requireAuth.js';
@@ -25,6 +26,7 @@ router.get('/:id', getOrderById);
 router.put('/:id', requireAdmin, updateOrderStatus);
 router.post('/:id/cancel', requireAdmin, cancelOrder);
 router.patch('/:id/details', requireAdmin, updateOrderDetails);
+router.delete('/:id', requireAdmin, deleteOrder);
 router.post('/admin/create', requireAdmin, createAdminOrder);
 
 // Return request routes
