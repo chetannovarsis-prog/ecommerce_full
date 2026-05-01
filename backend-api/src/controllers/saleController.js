@@ -77,3 +77,43 @@ export const deleteSale = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const updateSale = async (req, res) => {
+  const { id } = req.params;
+  const { quantity, price, customerName, customerEmail, customerPhone, paymentMode, paymentId, notes, source } = req.body;
+
+  try {
+    const oldSale = await prisma.sale.findUnique({ where: { id } });
+    if (!oldSale) return res.status(404).json({ error: 'Sale not found' });
+
+    const sale = await prisma.sale.update({
+      where: { id },
+      data: {
+        quantity: quantity !== undefined ? parseInt(quantity) : undefined,
+        price: price !== undefined ? parseFloat(price) : undefined,
+        customerName,
+        customerEmail,
+        customerPhone,
+        paymentMode,
+        paymentId,
+        notes,
+        source
+      }
+    });
+
+    // Adjust stock if quantity changed
+    if (quantity !== undefined && parseInt(quantity) !== oldSale.quantity) {
+      const diff = parseInt(quantity) - oldSale.quantity;
+      await prisma.product.update({
+        where: { id: oldSale.productId },
+        data: {
+          stock: { decrement: diff }
+        }
+      });
+    }
+
+    res.json(sale);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
