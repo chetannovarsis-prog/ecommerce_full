@@ -9,6 +9,7 @@ const Sales = () => {
   const [loading, setLoading] = useState(true);
   const [showSaleModal, setShowSaleModal] = useState(false);
   const [products, setProducts] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   
   const [saleForm, setSaleForm] = useState({
@@ -72,6 +73,8 @@ const Sales = () => {
 
   const handleRegisterSale = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await api.post('/sales/store', saleForm);
       setShowSaleModal(false);
@@ -91,6 +94,8 @@ const Sales = () => {
       fetchProducts();
     } catch (error) {
       alert('Error registering sale');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -317,8 +322,16 @@ const Sales = () => {
                 </div>
 
                 <div className="pt-4">
-                  <button type="submit" className="w-full py-4 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl shadow-black/10 hover:scale-[1.02] transition-all active:scale-95">
-                    Save Sale & Update Stock
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting} 
+                    className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 ${
+                      isSubmitting 
+                        ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed opacity-70' 
+                        : 'bg-black dark:bg-white text-white dark:text-black hover:scale-[1.02] shadow-black/10'
+                    }`}
+                  >
+                    {isSubmitting ? 'Registering...' : 'Save Sale & Update Stock'}
                   </button>
                 </div>
               </form>

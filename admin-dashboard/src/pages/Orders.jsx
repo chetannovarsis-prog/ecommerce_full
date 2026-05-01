@@ -373,8 +373,16 @@ const Orders = () => {
                 </div>
 
                 <div className="pt-4 sticky bottom-0 bg-white dark:bg-[#111] py-4 border-t border-gray-100 dark:border-white/10 mt-4">
-                  <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl shadow-black/10 hover:scale-[1.02] transition-all active:scale-95">
-                    Create Order & Update Inventory
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting} 
+                    className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl transition-all active:scale-95 ${
+                      isSubmitting 
+                        ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed opacity-70' 
+                        : 'bg-black dark:bg-white text-white dark:text-black hover:scale-[1.02] shadow-black/10'
+                    }`}
+                  >
+                    {isSubmitting ? 'Creating Order...' : 'Create Order & Update Inventory'}
                   </button>
                 </div>
               </form>
