@@ -31,6 +31,7 @@ const SaleDetail = () => {
     customerName: '',
     customerEmail: '',
     customerPhone: '',
+    variantTitle: '',
     quantity: 1,
     price: 0,
     paymentMode: '',
@@ -49,6 +50,7 @@ const SaleDetail = () => {
           customerName: found.customerName || '',
           customerEmail: found.customerEmail || '',
           customerPhone: found.customerPhone || '',
+          variantTitle: found.variantTitle || '',
           quantity: found.quantity || 1,
           price: found.price || 0,
           paymentMode: found.paymentMode || 'Cash',
@@ -147,7 +149,14 @@ const SaleDetail = () => {
             )}
             <div>
               <p className="text-sm font-black dark:text-white uppercase tracking-tight">{sale.productName || '—'}</p>
-              <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest mt-1">{sale.source || 'Store Sale'}</p>
+              <div className="flex gap-2 mt-1">
+                <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest">{sale.source || 'Store Sale'}</p>
+                {sale.variantTitle && (
+                  <span className="text-[0.65rem] bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded text-gray-500 font-black uppercase tracking-widest">
+                    {sale.variantTitle}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -234,6 +243,10 @@ const SaleDetail = () => {
                         <input type="tel" className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl" value={editForm.customerPhone} onChange={e => setEditForm({...editForm, customerPhone: e.target.value})} />
                       </div>
                     </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[0.55rem] font-black text-gray-400 uppercase tracking-widest ml-1">Variant (Size/Color)</label>
+                    <input type="text" className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl" value={editForm.variantTitle} onChange={e => setEditForm({...editForm, variantTitle: e.target.value})} />
                   </div>
                 </div>
 

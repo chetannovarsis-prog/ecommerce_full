@@ -14,6 +14,7 @@ const Sales = () => {
   
   const [saleForm, setSaleForm] = useState({
     productId: '',
+    variantTitle: '',
     quantity: 1,
     price: 0,
     customerName: '',
@@ -80,6 +81,7 @@ const Sales = () => {
       setShowSaleModal(false);
       setSaleForm({
         productId: '',
+        variantTitle: '',
         quantity: 1,
         price: 0,
         customerName: '',
@@ -219,7 +221,12 @@ const Sales = () => {
                       value={saleForm.productId}
                       onChange={e => {
                         const p = products.find(x => x.id === e.target.value);
-                        setSaleForm({ ...saleForm, productId: e.target.value, price: p?.price || 0 });
+                        setSaleForm({ 
+                          ...saleForm, 
+                          productId: e.target.value, 
+                          price: p?.price || 0,
+                          variantTitle: '' // Reset variant when product changes
+                        });
                       }}
                     >
                       <option value="">Choose product...</option>
@@ -228,6 +235,24 @@ const Sales = () => {
                       ))}
                     </select>
                   </div>
+
+                  {/* Variant Selection */}
+                  {saleForm.productId && products.find(p => p.id === saleForm.productId)?.variants?.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest ml-1">Select Variant *</label>
+                      <select 
+                        required
+                        className="w-full px-5 py-3 text-xs font-bold bg-gray-50 dark:bg-white/5 border-none rounded-2xl focus:ring-2 ring-black/5"
+                        value={saleForm.variantTitle}
+                        onChange={e => setSaleForm({ ...saleForm, variantTitle: e.target.value })}
+                      >
+                        <option value="">Choose variant (Size/Color)...</option>
+                        {products.find(p => p.id === saleForm.productId).variants.map(v => (
+                          <option key={v.id} value={v.title}>{v.title} (Stock: {v.stock || 0})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

@@ -25,7 +25,8 @@ export const getSales = async (req, res) => {
       customerPhone: s.customerPhone,
       paymentMode: s.paymentMode,
       paymentId: s.paymentId,
-      notes: s.notes
+      notes: s.notes,
+      variantTitle: s.variantTitle
     }));
 
     res.json(formattedSales);
@@ -35,13 +36,14 @@ export const getSales = async (req, res) => {
 };
 
 export const registerStoreSale = async (req, res) => {
-  const { productId, quantity, price, customerName, customerEmail, customerPhone, paymentMode, paymentId, notes, source } = req.body;
+  const { productId, variantTitle, quantity, price, customerName, customerEmail, customerPhone, paymentMode, paymentId, notes, source } = req.body;
 
   try {
     // 1. Create Sale record
     const sale = await prisma.sale.create({
       data: {
         productId,
+        variantTitle,
         quantity: parseInt(quantity),
         price: parseFloat(price),
         source: source || 'Store',
@@ -54,13 +56,35 @@ export const registerStoreSale = async (req, res) => {
       }
     });
 
-    // 2. Update Product Stock
-    await prisma.product.update({
-      where: { id: productId },
-      data: {
-        stock: { decrement: parseInt(quantity) }
+    // 2. Update Stock (Variant or Product)
+    if (variantTitle) {
+      const variant = await prisma.productVariant.findFirst({
+        where: {
+          productId,
+          title: { equals: variantTitle, mode: 'insensitive' }
+        }
+      });
+
+      if (variant) {
+        await prisma.productVariant.update({
+          where: { id: variant.id },
+          data: { stock: { decrement: parseInt(quantity) } }
+        });
+        
+        // Also update total stock on product if you track it there
+        await prisma.product.update({
+          where: { id: productId },
+          data: { stock: { decrement: parseInt(quantity) } }
+        });
       }
-    });
+    } else {
+      await prisma.product.update({
+        where: { id: productId },
+        data: {
+          stock: { decrement: parseInt(quantity) }
+        }
+      });
+    }
 
     res.json(sale);
   } catch (error) {
@@ -80,7 +104,7 @@ export const deleteSale = async (req, res) => {
 
 export const updateSale = async (req, res) => {
   const { id } = req.params;
-  const { quantity, price, customerName, customerEmail, customerPhone, paymentMode, paymentId, notes, source } = req.body;
+  const { variantTitle, quantity, price, customerName, customerEmail, customerPhone, paymentMode, paymentId, notes, source } = req.body;
 
   try {
     const oldSale = await prisma.sale.findUnique({ where: { id } });
@@ -89,6 +113,7 @@ export const updateSale = async (req, res) => {
     const sale = await prisma.sale.update({
       where: { id },
       data: {
+        variantTitle,
         quantity: quantity !== undefined ? parseInt(quantity) : undefined,
         price: price !== undefined ? parseFloat(price) : undefined,
         customerName,
@@ -104,11 +129,23 @@ export const updateSale = async (req, res) => {
     // Adjust stock if quantity changed
     if (quantity !== undefined && parseInt(quantity) !== oldSale.quantity) {
       const diff = parseInt(quantity) - oldSale.quantity;
+      
+      const vTitle = variantTitle || oldSale.variantTitle;
+      if (vTitle) {
+        const variant = await prisma.productVariant.findFirst({
+          where: { productId: oldSale.productId, title: vTitle }
+        });
+        if (variant) {
+          await prisma.productVariant.update({
+            where: { id: variant.id },
+            data: { stock: { decrement: diff } }
+          });
+        }
+      }
+
       await prisma.product.update({
         where: { id: oldSale.productId },
-        data: {
-          stock: { decrement: diff }
-        }
+        data: { stock: { decrement: diff } }
       });
     }
 
