@@ -122,10 +122,9 @@ export const generateInvoice = async (orderOrId) => {
         .fontSize(11)
         .font('Helvetica')
         .fillColor(colors.text)
-        .text(customerName, margin, infoY + 25)
-        .text(customerName, margin, infoY + 40); // Double name as per reference image
+        .text(customerName, margin, infoY + 25);
 
-      let addressEndY = infoY + 56;
+      let addressEndY = infoY + 41;
       if (customerAddress) {
         doc
           .fontSize(10.5)

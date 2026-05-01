@@ -120,37 +120,41 @@ const reduceInventory = async (orderId) => {
 
 const generateNextInvoiceNumber = async () => {
   try {
+    const currentYear = new Date().getFullYear();
+    const prefix = `GOE-${currentYear}-`;
+    
     const lastOrder = await prisma.order.findFirst({
-      where: { invoiceNumber: { startsWith: 'GOE-INV-' } },
+      where: { invoiceNumber: { startsWith: prefix } },
       orderBy: { createdAt: 'desc' }
     });
 
     let nextNumber = 1;
     if (lastOrder && lastOrder.invoiceNumber) {
-      const lastInvoice = lastOrder.invoiceNumber;
-      const parts = lastInvoice.split('-');
+      const parts = lastOrder.invoiceNumber.split('-');
       const lastNum = parseInt(parts[parts.length - 1]);
       if (!isNaN(lastNum)) {
         nextNumber = lastNum + 1;
       }
     }
 
-    return `GOE-INV-${String(nextNumber).padStart(4, '0')}`;
+    return `${prefix}${String(nextNumber).padStart(2, '0')}`;
   } catch (error) {
+    const currentYear = new Date().getFullYear();
     logger.error('invoice.generate.error', {
       error: error.message,
       stack: error.stack,
     });
-    return `GOE-INV-${Date.now().toString().slice(-4)}`;
+    return `GOE-${currentYear}-${Date.now().toString().slice(-2)}`;
   }
 };
 
 const createOrderWithInvoiceRetry = async (data, maxRetries = 4, include = null) => {
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+    const currentYear = new Date().getFullYear();
     const invoiceNumber =
       attempt < maxRetries
         ? await generateNextInvoiceNumber()
-        : `GOE-INV-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+        : `GOE-${currentYear}-${Date.now().toString().slice(-4)}-${Math.floor(Math.random() * 100)}`;
 
     try {
       return await prisma.order.create({

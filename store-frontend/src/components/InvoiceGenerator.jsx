@@ -277,7 +277,6 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
               <div class="invoice-to">
                 <div class="label">Invoice To :</div>
                 <div class="customer-name">${order.shippingAddress?.fullName || customer?.name || 'Customer'}</div>
-                <div class="customer-name">${order.shippingAddress?.fullName || customer?.name || 'Customer'}</div>
                 <div class="customer-address">
                   ${order.shippingAddress?.address || ''}<br>
                   ${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''} ${order.shippingAddress?.pinCode || ''}

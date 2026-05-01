@@ -37,8 +37,21 @@ export const createAdminOrder = async (req, res) => {
       if (existingCustomer) linkedCustomerId = existingCustomer.id;
     }
 
-    // Generate unique invoice number
-    const invoiceNumber = `Gof-INV-${Date.now().toString().slice(-6)}`;
+    // Generate unique sequential invoice number
+    const currentYear = new Date().getFullYear();
+    const prefix = `GOE-${currentYear}-`;
+    const lastOrder = await prisma.order.findFirst({
+      where: { invoiceNumber: { startsWith: prefix } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    let nextNumber = 1;
+    if (lastOrder && lastOrder.invoiceNumber) {
+      const parts = lastOrder.invoiceNumber.split('-');
+      const lastNum = parseInt(parts[parts.length - 1]);
+      if (!isNaN(lastNum)) nextNumber = lastNum + 1;
+    }
+    const invoiceNumber = `${prefix}${String(nextNumber).padStart(2, '0')}`;
 
     const order = await prisma.order.create({
       data: {
@@ -49,6 +62,7 @@ export const createAdminOrder = async (req, res) => {
         invoiceNumber,
         ...(linkedCustomerId ? { customer: { connect: { id: linkedCustomerId } } } : {}),
         shippingAddress: {
+          fullName: customer.name,
           firstName: customer.name.split(' ')[0],
           lastName: customer.name.split(' ').slice(1).join(' ') || '',
           email: customer.email,
