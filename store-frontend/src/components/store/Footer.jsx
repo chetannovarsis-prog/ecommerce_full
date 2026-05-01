@@ -178,7 +178,7 @@ const Footer = () => {
         </div>
 
         <p className="text-center text-gray-500 text-[0.85rem] mt-3 px-4">
-          Crafted with ❤️ by 
+          Crafted with ❤️' by 
           <a
             href="https://www.novarsistech.com"
             target="_blank"
