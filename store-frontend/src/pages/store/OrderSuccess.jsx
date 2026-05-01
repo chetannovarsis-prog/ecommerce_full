@@ -178,7 +178,7 @@ const OrderSuccess = () => {
               <div className="flex justify-between items-center">
                  <span className="text-[0.95rem] text-gray-500 font-medium">Payment Status</span>
                  <span className="text-[0.95rem] text-gray-900 font-bold">
-                   {order?.paymentStatus === 'PAID' ? 'Authorized' : order?.paymentStatus || 'Pending'}
+                   {order?.status === 'PAID' || order?.status === 'COD_CONFIRMED' ? 'Authorized' : order?.status || 'Pending'}
                  </span>
               </div>
            </div>

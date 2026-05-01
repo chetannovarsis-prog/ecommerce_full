@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import imageCompression from 'browser-image-compression';
 import api from '../../utils/api';
@@ -170,7 +170,7 @@ const ProductDetail = () => {
         // Staggered loading for non-critical data - load after main content is rendered
         setTimeout(() => {
           fetchRelatedAndReviews(productData);
-        }, 500);
+        }, 100);
 
         // Load additional images in background after main render
         setTimeout(() => {
@@ -213,20 +213,23 @@ const ProductDetail = () => {
         setRelatedProductsLoading(true);
         // Fetch Related Products (Same category + Featured)
         const allProductsRes = await api.get('/products');
-        const categoryIds = productData.categoryIds || [];
+        const productCategories = productData.categories || [];
+        const categoryIds = productCategories.map(c => c.id);
 
         if (allProductsRes.data) {
           const products = Array.isArray(allProductsRes.data) ? allProductsRes.data : (allProductsRes.data.data || []);
           const related = products
-            .filter(p => (p.id !== productData.id && (p.stock > 0 || p.quantity > 0)))
+            .filter(p => (p.id !== productData.id && (p.totalStock > 0 || p.stock > 0)))
             .sort((a, b) => {
-              const aInCat = a.categoryIds?.some(id => categoryIds.includes(id));
-              const bInCat = b.categoryIds?.some(id => categoryIds.includes(id));
+              const aCats = a.categories || [];
+              const bCats = b.categories || [];
+              const aInCat = aCats.some(c => categoryIds.includes(c.id));
+              const bInCat = bCats.some(c => categoryIds.includes(c.id));
               if (aInCat && !bInCat) return -1;
               if (!aInCat && bInCat) return 1;
               return 0;
             })
-            .slice(0, 6); // Limit to top 6 as requested
+            .slice(0, 6); // Limit to top 6
           setRelatedProducts(related);
         }
         setRelatedProductsLoading(false);
@@ -257,8 +260,9 @@ const ProductDetail = () => {
     if (allImages.length > 0) {
       const firstImg = allImages[0];
       setActiveImage(firstImg);
-      // Preload current batch
-      imageCache.preload(allImages);
+      // Preload only a small nearby batch to avoid heavy background work
+      // (current image + next two)
+      imageCache.preload(allImages.slice(0, 3));
     }
   }, [selectedVariant?.id, product?.id, id]); // Trigger on product/variant change
 
@@ -1228,7 +1232,7 @@ const ProductDetail = () => {
         </div>
 
         {/* Suggestions Section */}
-        <div ref={relatedSectionRef}>
+        <div ref={relatedSectionRef} className="min-h-[400px]">
           {loadRelated && (
             <>
               {relatedProductsLoading ? (

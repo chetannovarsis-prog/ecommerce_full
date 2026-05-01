@@ -33,3 +33,10 @@ logs/
 .cache/
 .parcel-cache/
 .turbo/
+
+
+# DB backups
+*.sql
+backend-api/backups/
+
+

@@ -10,45 +10,111 @@ import { logger } from '../utils/logger.js';
 const reduceInventory = async (orderId) => {
   try {
     const items = await prisma.orderItem.findMany({
-      where: { orderId }
+      where: { orderId },
+      include: { product: true }
+    });
+
+    logger.info('inventory.reduce.start', {
+      order_id: orderId,
+      items_count: items.length
     });
 
     for (const item of items) {
+      const quantity = Math.max(1, item.quantity || 0);
+      
       if (item.variantTitle) {
-        // Try to find the exact variant first
-        const variant = await prisma.productVariant.findFirst({
+        const itemTitle = (item.variantTitle || '').trim();
+        const itemTitleSlug = itemTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+        
+        logger.info('inventory.reduce.attempt_match', {
+          product_id: item.productId,
+          target_title: itemTitle,
+          target_slug: itemTitleSlug
+        });
+
+        // 1. Try exact (case-insensitive) match first
+        let variant = await prisma.productVariant.findFirst({
           where: {
             productId: item.productId,
-            title: item.variantTitle
+            title: {
+              equals: itemTitle,
+              mode: 'insensitive'
+            }
           }
         });
 
+        // 2. If no match, try finding by matching normalized slugs (ignores spaces/commas/colons)
+        if (!variant) {
+          const variants = await prisma.productVariant.findMany({
+            where: { productId: item.productId }
+          });
+          
+          variant = variants.find(v => {
+            const vSlug = v.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return vSlug === itemTitleSlug;
+          });
+
+          if (variant) {
+            logger.info('inventory.reduce.match_found_via_slug', {
+              variant_id: variant.id,
+              variant_title: variant.title
+            });
+          }
+        }
+
         if (variant) {
-          await prisma.productVariant.update({
+          const currentStock = variant.stock || 0;
+          const updatedVariant = await prisma.productVariant.update({
             where: { id: variant.id },
-            data: { stock: { decrement: item.quantity } }
+            data: { stock: { decrement: quantity } }
+          });
+
+          logger.info('inventory.reduce.variant_decremented', {
+            order_id: orderId,
+            variant_id: variant.id,
+            variant_title: variant.title,
+            quantity_decremented: quantity,
+            stock_after: updatedVariant.stock
           });
         } else {
-          // Fallback to global product stock if variant not found by title
-          await prisma.product.update({
+          // 3. Final Fallback: Product Global Stock
+          logger.warn('inventory.reduce.variant_not_found_falling_back', {
+            order_id: orderId,
+            product_id: item.productId,
+            variant_title: itemTitle
+          });
+
+          const updatedProduct = await prisma.product.update({
             where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } }
+            data: { stock: { decrement: quantity } }
+          });
+
+          logger.info('inventory.reduce.product_stock_decremented', {
+            product_id: item.productId,
+            quantity_decremented: quantity,
+            stock_after: updatedProduct.stock
           });
         }
       } else {
-        // Decrease global product stock
+        // No variantTitle provided
         await prisma.product.update({
           where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } }
+          data: { stock: { decrement: quantity } }
         });
       }
     }
+
+    logger.info('inventory.reduce.complete', {
+      order_id: orderId,
+      items_processed: items.length
+    });
   } catch (error) {
     logger.error('inventory.reduce.error', {
       order_id: orderId,
       error: error.message,
       stack: error.stack,
     });
+    throw error; // Re-throw to prevent silent failures
   }
 };
 
@@ -79,7 +145,7 @@ const generateNextInvoiceNumber = async () => {
   }
 };
 
-const createOrderWithInvoiceRetry = async (data, maxRetries = 4) => {
+const createOrderWithInvoiceRetry = async (data, maxRetries = 4, include = null) => {
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
     const invoiceNumber =
       attempt < maxRetries
@@ -92,6 +158,7 @@ const createOrderWithInvoiceRetry = async (data, maxRetries = 4) => {
           ...data,
           invoiceNumber,
         },
+        include,
       });
     } catch (error) {
       const isInvoiceConflict = error?.code === 'P2002' &&
@@ -283,6 +350,11 @@ export const verifyPayment = async (req, res) => {
       status: 'requested',
     });
 
+    // 🔥 NEW: Log FULL orderData
+    logger.info('🧾 ORDER_DATA_RECEIVED', {
+      orderData
+    });
+
     // 1. Verify Signature
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
@@ -307,6 +379,16 @@ export const verifyPayment = async (req, res) => {
       status: 'verified',
     });
 
+    // 🔥 NEW: Log products inside order
+    logger.info('🛒 ORDER_ITEMS', {
+      items: orderData?.items?.map(i => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        price: i.price,
+        variant: i.variantTitle
+      }))
+    });
+
     const existingOrder = await prisma.order.findFirst({
       where: {
         OR: [
@@ -327,18 +409,17 @@ export const verifyPayment = async (req, res) => {
       return res.json({ message: 'Payment already verified', order: existingOrder });
     }
 
-    // 2. Fetch Razorpay Order to verify amount
     const rpOrder = await razorpay.orders.fetch(razorpay_order_id);
-    
-    // Calculate expected amount from items to prevent tampering
+
     const subtotal = orderData.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    // Note: We should ideally re-calculate coupons and shipping here too.
-    // For now, we trust the amount in rpOrder matches what was paid.
-    
     const paidAmount = rpOrder.amount / 100;
-    
-    // 3. Resolve customer safely before creating the order.
-    // Frontend localStorage can hold stale ids; avoid FK violations by validating first.
+
+    logger.info('💰 PAYMENT_DETAILS', {
+      subtotal,
+      paidAmount,
+      razorpay_amount: rpOrder.amount
+    });
+
     const requestedCustomerId = req.user?.id || orderData?.customerId || null;
     let resolvedCustomerId = null;
 
@@ -350,7 +431,6 @@ export const verifyPayment = async (req, res) => {
       resolvedCustomerId = existingCustomer?.id || null;
     }
 
-    // Optional fallback by email if id is missing/stale and an account exists.
     if (!resolvedCustomerId && orderData?.customerEmail) {
       const emailCustomer = await prisma.customer.findUnique({
         where: { email: String(orderData.customerEmail).trim().toLowerCase() },
@@ -358,6 +438,13 @@ export const verifyPayment = async (req, res) => {
       });
       resolvedCustomerId = emailCustomer?.id || null;
     }
+
+    // 🔥 NEW: Log before DB insert
+    logger.info('📥 BEFORE_DB_INSERT', {
+      customerId: resolvedCustomerId,
+      totalAmount: paidAmount,
+      itemCount: orderData.items?.length
+    });
 
     const order = await createOrderWithInvoiceRetry({
       totalAmount: paidAmount,
@@ -380,49 +467,30 @@ export const verifyPayment = async (req, res) => {
           variantTitle: item.variantTitle,
         })),
       },
-    });
+    }, 4, { items: true });
 
-    logger.info('payments.verify.order_inserted', {
-      user_id: resolvedCustomerId,
-      payment_id: razorpay_payment_id,
+    // 🔥 NEW: Confirm insert success
+    logger.info('✅ ORDER_CREATED_SUCCESS', {
       order_id: order.id,
-      status: 'PAID',
-      amount: paidAmount,
-      cart_subtotal: subtotal,
+      payment_id: razorpay_payment_id,
+      totalAmount: paidAmount
     });
 
-    // 4. Post-Success logic
+    // Reduce inventory (don't fail payment if inventory reduction fails)
     try {
-      await notifyOrderCreated(order);
-      await notifyPaymentSuccess(order);
-    } catch (err) {
-      logger.error('payments.verify.notifications.error', {
+      await reduceInventory(order.id);
+    } catch (inventoryError) {
+      logger.error('payments.verify.inventory_reduce_failed', {
         order_id: order.id,
         payment_id: razorpay_payment_id,
-        error: err?.message || String(err),
+        error: inventoryError.message,
+        stack: inventoryError.stack
       });
-    }
-
-    await logActivity(order.id, 'ORDER_PLACED', 'Order placed and paid successfully.');
-
-    // Increment coupon usage if used
-    if (orderData.couponCode) {
-      try {
-        await prisma.coupon.update({
-          where: { code: orderData.couponCode },
-          data: { usedCount: { increment: 1 } }
-        });
-      } catch (couponErr) {
-        logger.error('payments.verify.coupon_increment.error', {
-          coupon_code: orderData.couponCode,
-          error: couponErr?.message || String(couponErr)
-        });
-      }
+      // Continue - don't throw, payment is still valid
     }
 
     // Track sales
-    const orderItems = await prisma.orderItem.findMany({ where: { orderId: order.id } });
-    await Promise.all(orderItems.map(item =>
+    await Promise.all(order.items.map(item =>
       prisma.sale.create({
         data: {
           productId: item.productId,
@@ -430,38 +498,47 @@ export const verifyPayment = async (req, res) => {
           price: item.price,
           source: 'Website',
           orderId: order.id,
-          customerName: `${order.shippingAddress?.firstName || ''} ${order.shippingAddress?.lastName || ''}`.trim() || null,
+          customerName: order.shippingAddress?.fullName || null,
           customerEmail: order.shippingAddress?.email || null,
           customerPhone: order.shippingAddress?.phone || null,
-          paymentMode: order.paymentMethod || 'Razorpay',
-          paymentId: razorpay_payment_id || null
+          paymentMode: 'Razorpay',
+          paymentId: razorpay_payment_id
         }
       })
     ));
 
-    // Inventory
-    await reduceInventory(order.id);
-
-    // Emails
-    const destEmail = order.shippingAddress?.email || null;
-    if (destEmail) {
-      await sendMail(destEmail, 'Payment Success - Ghar of Ethnics', TEMPLATES.PAYMENT_SUCCESS());
-      await sendMail(destEmail, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
-      try {
-        const invoicePDF = await generateInvoice(order.id);
-        await sendInvoiceEmail(destEmail, 'Your Invoice - Ghar of Ethnics', TEMPLATES.INVOICE(order.id), invoicePDF, `Invoice_${order.id}.pdf`);
-      } catch (invErr) {
-        logger.error('payments.verify.invoice.error', {
-          order_id: order.id,
-          payment_id: razorpay_payment_id,
-          error: invErr?.message || String(invErr),
-        });
+    // Send emails & notifications
+    try {
+      await notifyPaymentSuccess(order);
+      await logActivity(order.id, 'PAYMENT_RECEIVED', `Payment of ₹${paidAmount} verified.`);
+      
+      const emailToSend = order.shippingAddress?.email || orderData.customerEmail || null;
+      if (emailToSend) {
+        await sendMail(emailToSend, 'Order Confirmation - Ghar of Ethnics', TEMPLATES.ORDER_CONFIRMATION());
+        // Generate and send invoice
+        const invoicePath = await generateInvoice(order);
+        if (invoicePath) {
+          await sendInvoiceEmail(emailToSend, order, invoicePath);
+        }
       }
+    } catch (notifyErr) {
+      logger.error('payments.verify.post_actions.error', {
+        order_id: order.id,
+        error: notifyErr.message
+      });
     }
 
     res.json({ message: "Payment verified and order created successfully", order });
 
   } catch (error) {
+    // 🔥 NEW: Detailed error log
+    logger.error('❌ VERIFY_PAYMENT_FAILED', {
+      error: error.message,
+      stack: error.stack,
+      razorpay_order_id,
+      razorpay_payment_id
+    });
+
     logger.error('payments.verify.error', {
       user_id: req.user?.id || null,
       payment_id: razorpay_payment_id || null,
@@ -469,6 +546,7 @@ export const verifyPayment = async (req, res) => {
       error: error.message,
       stack: error.stack,
     });
+
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -562,8 +640,17 @@ export const confirmCODPayment = async (req, res) => {
       'COD payment confirmed by admin. Order is now active.'
     );
 
-    // Reduce inventory now that payment is confirmed
-    await reduceInventory(orderId);
+    // Reduce inventory (don't fail payment if inventory reduction fails)
+    try {
+      await reduceInventory(orderId);
+    } catch (inventoryError) {
+      logger.error('payments.cod.inventory_reduce_failed', {
+        order_id: orderId,
+        error: inventoryError.message,
+        stack: inventoryError.stack
+      });
+      // Continue - don't throw, payment is still valid
+    }
 
     // Track the sale
     await Promise.all(order.items.map(item =>

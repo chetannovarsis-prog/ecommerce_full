@@ -77,21 +77,94 @@ export const createAdminOrder = async (req, res) => {
 
     // Reduce stock and create Sale record for each item
     for (const item of resolvedItems) {
-      // Reduce stock
+      const quantity = Math.max(1, item.quantity || 0);
+      
+      // Reduce stock with better error handling
       if (item.variantTitle) {
         const variant = await prisma.productVariant.findFirst({
-          where: { productId: item.productId, title: item.variantTitle }
+          where: {
+            productId: item.productId,
+            title: {
+              equals: item.variantTitle,
+              mode: 'insensitive'
+            }
+          }
         });
+        
         if (variant) {
-          await prisma.productVariant.update({
+          const currentStock = variant.stock || 0;
+          if (currentStock < quantity) {
+            logger.warn('order.create.inventory_insufficient_variant', {
+              order_id: order.id,
+              variant_id: variant.id,
+              variant_title: variant.title,
+              requested: quantity,
+              available: currentStock
+            });
+          }
+          
+          const updated = await prisma.productVariant.update({
             where: { id: variant.id },
-            data: { stock: { decrement: item.quantity } }
+            data: { stock: { decrement: quantity } }
+          });
+          
+          logger.info('order.create.variant_stock_decremented', {
+            order_id: order.id,
+            variant_id: variant.id,
+            quantity_decremented: quantity,
+            stock_after: updated.stock
+          });
+        } else {
+          logger.warn('order.create.variant_not_found', {
+            order_id: order.id,
+            product_id: item.productId,
+            variant_title: item.variantTitle
+          });
+          
+          // Fallback to product stock
+          const currentStock = item.product?.stock || 0;
+          if (currentStock < quantity) {
+            logger.warn('order.create.inventory_insufficient_product', {
+              order_id: order.id,
+              product_id: item.productId,
+              requested: quantity,
+              available: currentStock
+            });
+          }
+          
+          const updated = await prisma.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: quantity } }
+          });
+          
+          logger.info('order.create.product_stock_decremented', {
+            order_id: order.id,
+            product_id: item.productId,
+            quantity_decremented: quantity,
+            stock_after: updated.stock
           });
         }
       } else {
-        await prisma.product.update({
+        const currentStock = item.product?.stock || 0;
+        if (currentStock < quantity) {
+          logger.warn('order.create.inventory_insufficient_product', {
+            order_id: order.id,
+            product_id: item.productId,
+            requested: quantity,
+            available: currentStock
+          });
+        }
+        
+        const updated = await prisma.product.update({
           where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } }
+          data: { stock: { decrement: quantity } }
+        });
+        
+        logger.info('order.create.product_stock_decremented', {
+          order_id: order.id,
+          product_id: item.productId,
+          quantity_decremented: quantity,
+          stock_after: updated.stock
         });
       }
 
@@ -113,9 +186,25 @@ export const createAdminOrder = async (req, res) => {
       });
     }
 
+    logger.info('order.created', {
+      order_id: order.id,
+      user_id: req.user?.id || null,
+      total_amount: order.totalAmount,
+      items_count: order.items.length,
+      items: resolvedItems.map(item => ({
+        name: item.product.name,
+        variant: item.variantTitle || null,
+        quantity: item.quantity,
+        price: item.price
+      }))
+    });
+
     res.status(201).json(order);
   } catch (error) {
-    console.error('Error creating admin order:', error);
+    logger.error('order.create.failed', {
+      error: error.message,
+      user_id: req.user?.id || null
+    });
     res.status(500).json({ error: error.message });
   }
 };
@@ -321,7 +410,7 @@ export const updateOrderStatus = async (req, res) => {
   try {
     const existingOrder = await prisma.order.findUnique({
       where: { id },
-      select: { id: true, status: true, deliveryDate: true }
+      include: { items: { include: { product: true } } }
     });
 
     if (!existingOrder) {
@@ -337,6 +426,18 @@ export const updateOrderStatus = async (req, res) => {
         // Set delivery date when order is marked as delivered
         ...(status === 'DELIVERED' && !existingOrder.deliveryDate ? { deliveryDate: new Date() } : {})
       }
+    });
+
+    logger.info('order.status.updated', {
+      order_id: id,
+      old_status: existingOrder.status,
+      new_status: status,
+      items: existingOrder.items.map(item => ({
+        name: item.product.name,
+        variant: item.variantTitle || null,
+        quantity: item.quantity,
+        price: item.price
+      }))
     });
 
     // Send notifications only when status actually changes to avoid duplicate SMS/email costs.
@@ -493,10 +594,15 @@ export const cancelOrder = async (req, res) => {
       });
     }
 
-    logger.info('orders.cancel.success', {
+    logger.info('order.cancelled', {
       order_id: id,
-      status: 'CANCELED',
       user_id: req.user?.id || null,
+      items: order.items.map(item => ({
+        name: item.product.name,
+        variant: item.variantTitle || null,
+        quantity: item.quantity,
+        price: item.price
+      }))
     });
 
     res.json({

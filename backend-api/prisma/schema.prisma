@@ -37,6 +37,7 @@ model Product {
 
   @@index([price])
   @@index([createdAt])
+  @@map("Product") 
   @@schema("public")
 }
 

@@ -649,7 +649,12 @@ const Checkout = () => {
                               onError={(e) => { e.target.style.display = 'none'; }}
                             />
                           </div>
-                          <p className="text-[0.75rem] font-black uppercase">{item.name}</p>
+                          <div className="space-y-0.5">
+                            <p className="text-[0.75rem] font-black uppercase">{item.name}</p>
+                            {item.variantTitle && (
+                              <p className="text-[0.6rem] font-bold text-gray-400 uppercase">{item.variantTitle}</p>
+                            )}
+                          </div>
                         </div>
                         <p className="text-[0.7rem] font-black">
                           ₹{Math.round(item.selectedPrice * item.quantity)}
