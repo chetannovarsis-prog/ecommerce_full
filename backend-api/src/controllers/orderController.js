@@ -517,6 +517,14 @@ export const updateOrderStatus = async (req, res) => {
       }))
     });
 
+    await logActivity(
+      id,
+      status,
+      status === 'DELIVERED'
+        ? 'Order marked as delivered by admin.'
+        : `Order status updated to ${status} by admin.`
+    );
+
     // Send notifications only when status actually changes to avoid duplicate SMS/email costs.
     const destEmail = order.shippingAddress?.email || null;
     if (statusChanged && destEmail) {

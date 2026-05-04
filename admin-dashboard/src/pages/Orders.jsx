@@ -12,6 +12,7 @@ const Orders = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [products, setProducts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusUpdatingOrderId, setStatusUpdatingOrderId] = useState(null);
   const [orderForm, setOrderForm] = useState({
     customer: { name: '', email: '', phone: '', address: '', city: '', state: '', pinCode: '' },
     items: [{ productId: '', quantity: 1, price: 0, variantTitle: '' }],
@@ -70,6 +71,23 @@ const Orders = () => {
     } catch (error) {
       console.error('Error deleting order:', error);
       alert('Failed to delete order');
+    }
+  };
+
+  const handleMarkDelivered = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm('Mark this order as delivered? This will update the saved order status and delivery date.')) return;
+
+    setStatusUpdatingOrderId(id);
+    try {
+      await api.put(`/orders/${id}`, { status: 'DELIVERED' });
+      await fetchOrders(selectedStatus);
+      alert('Order marked as delivered');
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert(error.response?.data?.message || 'Error updating order status');
+    } finally {
+      setStatusUpdatingOrderId(null);
     }
   };
 
@@ -183,7 +201,9 @@ const Orders = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                    {orders.map((order) => (
+                    {orders.map((order) => {
+                      const normalizedStatus = String(order.status || '').toLowerCase();
+                      return (
                       <tr 
                         key={order.id} 
                         onClick={() => navigate(`/orders/${order.id}`)}
@@ -199,6 +219,15 @@ const Orders = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
+                          {normalizedStatus !== 'delivered' && !['cancelled', 'canceled', 'failed'].includes(normalizedStatus) && (
+                            <button
+                              onClick={(e) => handleMarkDelivered(e, order.id)}
+                              disabled={statusUpdatingOrderId === order.id}
+                              className="mr-2 px-3 py-2 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 rounded-lg transition-colors text-[0.6rem] font-black uppercase tracking-widest disabled:opacity-50"
+                            >
+                              {statusUpdatingOrderId === order.id ? 'Updating...' : 'Mark Delivered'}
+                            </button>
+                          )}
                           <button 
                             onClick={(e) => handleDeleteOrder(e, order.id)}
                             className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
@@ -208,7 +237,8 @@ const Orders = () => {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

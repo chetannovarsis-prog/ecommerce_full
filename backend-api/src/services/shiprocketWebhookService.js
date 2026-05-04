@@ -235,13 +235,17 @@ export const updateOrderFromShiprocket = async (payload) => {
 
     // Send customer notification
     try {
-      if (updatedOrder.customer?.email) {
+      const customerEmail = updatedOrder.customer?.email || (updatedOrder.shippingAddress && updatedOrder.shippingAddress.email);
+      
+      if (customerEmail) {
         let mailBody = '';
         let subject = `Order Update: #${updatedOrder.invoiceNumber || updatedOrder.id.slice(-8).toUpperCase()}`;
 
         switch (internalStatus) {
           case 'SHIPPED':
-            mailBody = TEMPLATES.ORDER_SHIPPED();
+            // Construct a tracking link or use awb
+            const trackingUrl = awb ? `https://shiprocket.co/tracking/${awb}` : '';
+            mailBody = TEMPLATES.ORDER_SHIPPED(trackingUrl);
             break;
           case 'IN_TRANSIT':
             mailBody = `Dear Customer, \nYour order is in transit and moving towards your city.\nRegards,\nGhar of Ethnics`;
@@ -255,7 +259,7 @@ export const updateOrderFromShiprocket = async (payload) => {
         }
 
         if (mailBody) {
-          await sendMail(updatedOrder.customer.email, subject, mailBody);
+          await sendMail(customerEmail, subject, mailBody);
         }
       }
     } catch (notificationError) {

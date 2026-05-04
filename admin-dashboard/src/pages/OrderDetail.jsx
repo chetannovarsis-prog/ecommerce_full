@@ -31,6 +31,7 @@ const OrderDetail = () => {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [orderCancelLoading, setOrderCancelLoading] = useState(false);
   const [codConfirmLoading, setCodConfirmLoading] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const [returnRequest, setReturnRequest] = useState(null);
   const [editingDetails, setEditingDetails] = useState(false);
   const [detailsSaving, setDetailsSaving] = useState(false);
@@ -231,11 +232,14 @@ const OrderDetail = () => {
   };
 
   const updateStatus = async (newStatus) => {
+    setStatusUpdating(true);
     try {
       await api.put(`/orders/${id}`, { status: newStatus });
-      fetchOrder();
+      await fetchOrder();
     } catch (error) {
       alert('Error updating order status');
+    } finally {
+      setStatusUpdating(false);
     }
   };
 
@@ -306,6 +310,16 @@ const OrderDetail = () => {
               {shippingStatusLabel.replace(/_/g, ' ')}
             </span>
           </div>
+          {order.status !== 'DELIVERED' && !['CANCELLED', 'CANCELED', 'FAILED'].includes(order?.status?.toUpperCase()) && (
+            <button
+              type="button"
+              onClick={() => updateStatus('DELIVERED')}
+              disabled={statusUpdating}
+              className="px-4 py-2 rounded-xl text-[0.6rem] font-black uppercase tracking-widest bg-emerald-500 text-white hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+            >
+              {statusUpdating ? 'Updating...' : 'Mark Delivered'}
+            </button>
+          )}
         </div>
       </header>
 
