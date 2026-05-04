@@ -16,7 +16,8 @@ const CartPage = () => {
     showToast
   } = useStore();
   const navigate = useNavigate();
-  const customer = localStorage.getItem('customer');
+  const customer = JSON.parse(localStorage.getItem('customer') || 'null');
+  const customerEmail = customer?.email || '';
   const [couponCode, setCouponCode] = useState(appliedCoupon?.code || '');
   const [couponError, setCouponError] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
@@ -45,7 +46,10 @@ const CartPage = () => {
     setCouponError('');
 
     try {
-      const { data } = await api.post('/coupons/validate', { code: normalizedCode });
+      const { data } = await api.post('/coupons/validate', {
+        code: normalizedCode,
+        email: customerEmail
+      });
       applyCoupon({
         id: data.id,
         code: data.code,
@@ -57,7 +61,11 @@ const CartPage = () => {
       showToast(`Coupon ${data.code} applied`, 'success');
     } catch (error) {
       clearCoupon();
-      setCouponError(error.response?.data?.error || 'Invalid coupon code.');
+      if (error.response?.data?.error === 'Email is required to use this coupon.' && customerEmail) {
+        setCouponError('This coupon is restricted and your signed-in email is not being sent. Please sign in again.');
+      } else {
+        setCouponError(error.response?.data?.error || 'Invalid coupon code.');
+      }
     } finally {
       setApplyingCoupon(false);
     }
