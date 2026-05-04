@@ -46,14 +46,11 @@ export const handleShiprocketWebhook = async (req, res) => {
     // Validate payload structure
     const validation = validateWebhookPayload(normalizedBody);
     if (!validation.valid) {
-      console.warn('[Shiprocket] Invalid payload:', validation.errors);
+      console.warn('[Shiprocket] Received test/invalid payload:', validation.errors);
+      // Return 200 OK without "error" field for Shiprocket panel compatibility
       return res.status(200).json({
         success: true,
-        accepted: true,
-        message: 'Webhook received but payload was not processable',
-        error: 'Invalid webhook payload',
-        details: validation.errors,
-        debug: process.env.NODE_ENV === 'development' ? { bodyType: typeof req.body, authState: req.shiprocketAuth } : undefined,
+        message: 'Webhook received successfully',
         timestamp: new Date().toISOString()
       });
     }

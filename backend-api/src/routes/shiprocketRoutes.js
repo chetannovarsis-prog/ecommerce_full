@@ -28,6 +28,12 @@ router.use(express.text({ type: ['text/plain', 'application/xml', 'application/o
 router.post('/shipping', validateShiprocketToken, handleShiprocketWebhook);
 
 /**
+ * GET /api/webhook/shipping
+ * Handle ping/verification requests from Shiprocket
+ */
+router.get('/shipping', (req, res) => res.status(200).send('OK'));
+
+/**
  * GET /api/webhook/shipping/health
  * Health check endpoint - no token required
  */

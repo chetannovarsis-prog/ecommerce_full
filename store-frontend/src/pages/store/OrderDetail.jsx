@@ -42,6 +42,32 @@ const OrderDetail = () => {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [returnForm, setReturnForm] = useState({ reason: '', description: '', type: 'RETURN', preferredVariantTitle: '' });
   const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [exchangeItemIndex, setExchangeItemIndex] = useState('');
+  const [exchangeVariants, setExchangeVariants] = useState([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
+
+  useEffect(() => {
+    if (exchangeItemIndex === '' || returnForm.type !== 'EXCHANGE' || !order || !order.items) {
+      setExchangeVariants([]);
+      return;
+    }
+    const fetchVariants = async () => {
+      setLoadingVariants(true);
+      try {
+        const item = order.items[parseInt(exchangeItemIndex)];
+        if (!item || !item.productId) return;
+        const res = await api.get(`/products/${item.productId}`);
+        const variants = res.data.variants || [];
+        // Only show variants that are in stock
+        setExchangeVariants(variants.filter(v => v.stock > 0));
+      } catch (err) {
+        console.error('Error fetching variants for exchange:', err);
+      } finally {
+        setLoadingVariants(false);
+      }
+    };
+    fetchVariants();
+  }, [exchangeItemIndex, returnForm.type, order]);
 
   const handleReturnSubmit = async () => {
     setSubmittingReturn(true);
@@ -582,16 +608,49 @@ const OrderDetail = () => {
               </div>
 
               {returnForm.type === 'EXCHANGE' && (
-                <div className="space-y-2">
-                  <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Preferred Size/Variant</label>
-                  <input 
-                    type="text"
-                    value={returnForm.preferredVariantTitle}
-                    onChange={(e) => setReturnForm({...returnForm, preferredVariantTitle: e.target.value})}
-                    placeholder="e.g. Size M, Color Blue"
-                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-black outline-none transition-all"
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Item to Exchange</label>
+                    <select 
+                      value={exchangeItemIndex}
+                      onChange={(e) => setExchangeItemIndex(e.target.value)}
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-black outline-none transition-all"
+                    >
+                      <option value="">Select an item</option>
+                      {order.items?.map((item, idx) => (
+                        <option key={idx} value={idx}>
+                          {item.product?.name} {item.variantTitle ? `(${item.variantTitle})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {exchangeItemIndex !== '' && (
+                    <div className="space-y-2">
+                      <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Preferred Size/Variant</label>
+                      {loadingVariants ? (
+                        <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold text-gray-400 animate-pulse">Loading available stock...</div>
+                      ) : exchangeVariants.length > 0 ? (
+                        <select 
+                          value={returnForm.preferredVariantTitle}
+                          onChange={(e) => setReturnForm({...returnForm, preferredVariantTitle: e.target.value})}
+                          className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-black outline-none transition-all"
+                        >
+                          <option value="">Select an available variant</option>
+                          {exchangeVariants.map((v, i) => (
+                            <option key={i} value={v.title}>
+                              {v.title} (In Stock)
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="p-4 bg-red-50 text-red-600 border border-red-100 rounded-2xl text-sm font-bold">
+                          Sorry, no other sizes/colors are currently in stock for this item.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="space-y-2">

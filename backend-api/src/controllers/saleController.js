@@ -134,40 +134,45 @@ export const updateSale = async (req, res) => {
 
     // Cascade to Order if linked
     if (sale.orderId) {
-      const order = await prisma.order.findUnique({ where: { id: sale.orderId } });
-      if (order && order.shippingAddress) {
-        const updatedAddress = {
-          ...order.shippingAddress,
-          ...(customerName ? { 
-            fullName: customerName, 
-            firstName: customerName.split(' ')[0], 
-            lastName: customerName.split(' ').slice(1).join(' ') || '' 
-          } : {}),
-          ...(customerEmail ? { email: customerEmail } : {}),
-          ...(customerPhone ? { phone: customerPhone } : {})
-        };
-        await prisma.order.update({
-          where: { id: sale.orderId },
-          data: { shippingAddress: updatedAddress }
-        });
-
-        // Cascade to Customer if linked to the order
-        if (order.customerId) {
-          await prisma.customer.update({
-            where: { id: order.customerId },
-            data: {
-              ...(customerName ? { name: customerName } : {}),
-              ...(customerEmail ? { email: customerEmail } : {}),
-              ...(customerPhone ? { mobile: customerPhone } : {})
-            }
+      try {
+        const order = await prisma.order.findUnique({ where: { id: sale.orderId } });
+        if (order && order.shippingAddress) {
+          const existingAddr = typeof order.shippingAddress === 'object' ? order.shippingAddress : {};
+          const updatedAddress = {
+            ...existingAddr,
+            ...(customerName ? { 
+              fullName: customerName, 
+              firstName: customerName.split(' ')[0], 
+              lastName: customerName.split(' ').slice(1).join(' ') || '' 
+            } : {}),
+            ...(customerEmail ? { email: customerEmail } : {}),
+            ...(customerPhone ? { phone: customerPhone } : {})
+          };
+          await prisma.order.update({
+            where: { id: sale.orderId },
+            data: { shippingAddress: updatedAddress }
           });
+
+          // Cascade to Customer if linked to the order
+          if (order.customerId) {
+            await prisma.customer.update({
+              where: { id: order.customerId },
+              data: {
+                ...(customerName ? { name: customerName } : {}),
+                ...(customerEmail ? { email: customerEmail } : {}),
+                ...(customerPhone ? { mobile: customerPhone } : {})
+              }
+            }).catch(err => console.error('Failed to cascade customer update:', err.message));
+          }
         }
+      } catch (cascadeErr) {
+        console.error('Error during sale-to-order cascade:', cascadeErr.message);
       }
     }
 
     // Adjust stock if quantity changed
-    if (quantity !== undefined && parseInt(quantity) !== oldSale.quantity) {
-      const diff = parseInt(quantity) - oldSale.quantity;
+    if (parsedQuantity !== undefined && !isNaN(parsedQuantity) && parsedQuantity !== oldSale.quantity) {
+      const diff = parsedQuantity - oldSale.quantity;
       
       const vTitle = variantTitle || oldSale.variantTitle;
       if (vTitle) {
@@ -190,6 +195,7 @@ export const updateSale = async (req, res) => {
 
     res.json(sale);
   } catch (error) {
+    console.error('UpdateSale Error:', error);
     res.status(500).json({ error: error.message });
   }
 };

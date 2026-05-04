@@ -301,7 +301,7 @@ export const updateOrderDetails = async (req, res) => {
           ...(email ? { email } : {}),
           ...(phone ? { mobile: phone } : {})
         }
-      });
+      }).catch(err => console.error('Failed to cascade order-to-customer update:', err.message));
     }
 
     // Cascade to Sales record linked to this order
@@ -312,7 +312,7 @@ export const updateOrderDetails = async (req, res) => {
         ...(email ? { customerEmail: email } : {}),
         ...(phone ? { customerPhone: phone } : {})
       }
-    });
+    }).catch(err => console.error('Failed to cascade order-to-sale update:', err.message));
 
     await logActivity(id, 'ORDER_DETAILS_UPDATED', `Admin updated customer/address details.`);
 
