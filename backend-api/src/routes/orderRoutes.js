@@ -32,8 +32,24 @@ router.post('/admin/create', requireAdmin, createAdminOrder);
 // Return request routes
 router.post('/:orderId/return', requireAuth, createReturnRequest);
 router.get('/:orderId/return', getReturnRequest);
+router.post('/:orderId/return/cancel', requireAuth, async (req, res, next) => {
+  try {
+    const { cancelReturnRequestByCustomer } = await import('../controllers/orderController.js');
+    return cancelReturnRequestByCustomer(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+});
 router.get('/admin/returns/all', requireAdmin, getReturnRequests);
 router.put('/admin/returns/:returnId/approve', requireAdmin, approveReturnRequest);
 router.put('/admin/returns/:returnId/reject', requireAdmin, rejectReturnRequest);
+router.put('/admin/returns/:returnId/refund-complete', requireAdmin, async (req, res, next) => {
+  try {
+    const { completeRefund } = await import('../controllers/orderController.js');
+    return completeRefund(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+});
 
 export default router;

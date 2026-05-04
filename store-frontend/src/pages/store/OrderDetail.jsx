@@ -85,6 +85,19 @@ const OrderDetail = () => {
     }
   };
 
+  const handleCancelReturn = async () => {
+    if (!order?.id || !order?.returnRequest) return;
+    if (!window.confirm('Cancel your return/exchange request?')) return;
+    try {
+      await api.post(`/orders/${order.id}/return/cancel`);
+      alert('Return/Exchange request cancelled');
+      const res = await api.get(`/orders/${id}`);
+      setOrder(res.data);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to cancel request');
+    }
+  };
+
   useEffect(() => {
     // Check if user is authenticated
     const token = localStorage.getItem('customerToken');
@@ -544,6 +557,43 @@ const OrderDetail = () => {
                   {order.returnRequest.status}
                 </div>
               </div>
+
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="p-4 bg-white rounded-2xl border border-gray-100">
+                  <p className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest">Pickup Status</p>
+                  <p className="text-sm font-black uppercase tracking-tight mt-1">{order.returnRequest.pickupStatus || 'REQUESTED'}</p>
+                </div>
+                <div className="p-4 bg-white rounded-2xl border border-gray-100">
+                  <p className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest">Inspection Status</p>
+                  <p className="text-sm font-black uppercase tracking-tight mt-1">{order.returnRequest.inspectionStatus || 'PENDING'}</p>
+                </div>
+              </div>
+
+              {/* Refund Status for RETURN type */}
+              {order.returnRequest.type === 'RETURN' && order.returnRequest.status === 'APPROVED' && (
+                <div className="mt-4 flex items-center justify-between p-6 bg-blue-50 rounded-2xl border border-blue-100">
+                  <div>
+                    <p className="text-[0.6rem] text-blue-600 font-black uppercase tracking-widest">Refund Status</p>
+                    <p className="text-sm font-black uppercase tracking-tight mt-1">₹{order.returnRequest.refundAmount?.toFixed(2) || '0.00'}</p>
+                  </div>
+                  <div className={`px-4 py-2 rounded-xl text-[0.6rem] font-black uppercase tracking-widest ${
+                    order.returnRequest.refundStatus === 'COMPLETED' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+                  }`}>
+                    {order.returnRequest.refundStatus || 'PENDING'}
+                  </div>
+                </div>
+              )}
+
+              {order.returnRequest.status === 'PENDING' && (
+                <div className="mt-3 flex justify-end">
+                  <button
+                    onClick={handleCancelReturn}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-[0.85rem] font-black uppercase tracking-widest hover:bg-gray-200"
+                  >
+                    Cancel Request
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </motion.div>

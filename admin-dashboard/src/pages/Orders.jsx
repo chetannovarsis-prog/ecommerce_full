@@ -217,6 +217,11 @@ const Orders = () => {
                           <span className={`px-2 py-1 rounded-md text-[0.6rem] font-black uppercase tracking-widest ${getStatusColor(order.status)}`}>
                             {order.status || 'Pending'}
                           </span>
+                          {order.returnRequest && order.returnRequest.status === 'PENDING' && (
+                            <span className={`ml-2 px-2 py-1 rounded-md text-[0.6rem] font-black uppercase tracking-widest ${order.returnRequest.type === 'EXCHANGE' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>
+                              {order.returnRequest.type === 'EXCHANGE' ? 'Exchange Req' : 'Return Req'}
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-right">
                           {normalizedStatus !== 'delivered' && !['cancelled', 'canceled', 'failed'].includes(normalizedStatus) && (

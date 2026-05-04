@@ -44,6 +44,7 @@ model ProductVariant {
   title             String
   price             Float?
   stock             Int      @default(0)
+  reservedStock     Int      @default(0)
   images            String[]
   thumbnailUrl      String?
   hoverThumbnailUrl String?
@@ -289,13 +290,18 @@ model ReturnRequest {
   type            String   @default("RETURN") // RETURN or EXCHANGE
   preferredVariantTitle String? // For exchange requests
   returnDate      DateTime @default(now())
-  status          String   @default("PENDING")
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  pickupStatus    String   @default("REQUESTED") // REQUESTED, SCHEDULED, IN_TRANSIT, RECEIVED, FAILED
+  inspectionStatus String  @default("PENDING") // PENDING, APPROVED, REJECTED, RECEIVED
   adminResponse   String?
   refundAmount    Float?
+  refundStatus    String   @default("PENDING") // PENDING, COMPLETED
+  refundCompletedAt DateTime?
   returnShipmentId String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([orderId])
   @@index([status])
+  @@index([refundStatus])
 }

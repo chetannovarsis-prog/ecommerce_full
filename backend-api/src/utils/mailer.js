@@ -22,7 +22,15 @@ export const TEMPLATES = {
   PAYMENT_SUCCESS: () => `Dear Customer, \nYour payment has been successfully received. Your order is now confirmed.\nRegards,\nGhar of Ethnics`,
   PAYMENT_FAILED: () => `Dear Customer, \nYour payment was unsuccessful.kindly retry or use an alternate payment method. \nRegards, \nGhar of Ethnics`,
   REFUND_INITIATED: () => `Dear Customer, \nYour refund has been initiated it will be processed within (5-6 working days)\nRegards,\nGhar of Ethnics`,
-  REFUND_COMPLETED: () => `Dear Customer, \nYour refund has been successfully processed and credited.\nRegards,\nGhar of Ethnics`
+  REFUND_COMPLETED: () => `Dear Customer, \nYour refund has been successfully processed and credited.\nRegards,\nGhar of Ethnics`,
+  RETURN_APPROVED: (refundAmount) => `Dear Customer,\n\nYour return request has been approved!\n\nRefund Amount: ₹${refundAmount}\n\nPlease arrange to send the product back to us. Our team will schedule a return pickup for you today.\n\nOnce we receive and verify the returned item, the refund will be processed within 5-7 business days.\n\nThank you for shopping with Ghar of Ethnics!\n\nRegards,\nGhar of Ethnics`,
+  EXCHANGE_APPROVED: (variantTitle) => `Dear Customer,\n\nYour exchange request has been approved!\n\nPreferred Replacement: ${variantTitle}\n\nOur team will arrange a return pickup for the item being exchanged today. Once we receive your item, we'll send out your replacement at the earliest.\n\nThank you for shopping with Ghar of Ethnics!\n\nRegards,\nGhar of Ethnics`,
+  REFUND_COMPLETED_EMAIL: (refundAmount) => `Dear Customer,\n\nGreat news! Your refund has been successfully processed.\n\nRefund Amount: ₹${refundAmount}\n\nThe amount will be credited to your original payment method within 5-7 business days. Please check your bank account for the credit.\n\nThank you for shopping with Ghar of Ethnics!\n\nRegards,\nGhar of Ethnics`,
+  RETURN_PICKUP_SCHEDULED: () => `Dear Customer,\n\nYour return pickup has been scheduled. The courier will collect the parcel based on serviceability and courier availability.\n\nRegards,\nGhar of Ethnics`,
+  RETURN_PICKUP_FAILED: () => `Dear Customer,\n\nWe were unable to complete the return pickup attempt. Our team will review the status and reschedule if needed.\n\nRegards,\nGhar of Ethnics`,
+  RETURN_RECEIVED: () => `Dear Customer,\n\nYour returned item has reached our warehouse and is now under inspection.\n\nRegards,\nGhar of Ethnics`,
+  EXCHANGE_PICKUP_SCHEDULED: () => `Dear Customer,\n\nYour exchange pickup has been scheduled. The courier will collect the return parcel based on serviceability and courier availability.\n\nRegards,\nGhar of Ethnics`,
+  EXCHANGE_RECEIVED: (variantTitle) => `Dear Customer,\n\nWe have received the item you returned for exchange. Your replacement item${variantTitle ? ` (${variantTitle})` : ''} will be processed next.\n\nRegards,\nGhar of Ethnics`
 };
 
 export const sendMail = async (to, subject, text) => {

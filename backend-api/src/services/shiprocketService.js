@@ -398,6 +398,72 @@ export const trackShipment = async (awb) => {
   };
 };
 
+export const createReturnShipment = async (orderData) => {
+  // Create a return/reverse shipment
+  const payload = {
+    order_id: orderData.order_id || `RETURN-${Date.now()}`,
+    order_date: new Date().toISOString().split('T')[0],
+    is_return: 1,
+    pickup_location: 'Primary',
+    channel_id: process.env.SHIPROCKET_CHANNEL_ID || '119921',
+    company_name: 'Ghar of Ethnics',
+    billing_customer_name: 'Ghar of Ethnics',
+    billing_last_name: 'Returns',
+    billing_address: 'Warehouse Address',
+    billing_city: 'INDORE',
+    billing_pincode: '452010',
+    billing_state: 'MP',
+    billing_country: 'India',
+    billing_email: 'returns@gharofethnics.com',
+    billing_phone: '7071824784',
+    // Shipping details (origin of return = customer address)
+    shipping_customer_name: orderData.shipping_customer_name || 'Customer',
+    shipping_last_name: 'Return',
+    shipping_address: orderData.shipping_address || 'Address',
+    shipping_city: orderData.shipping_city || 'City',
+    shipping_pincode: orderData.shipping_pincode || '452010',
+    shipping_state: orderData.shipping_state || 'State',
+    shipping_country: orderData.shipping_country || 'India',
+    shipping_email: orderData.shipping_email || 'customer@example.com',
+    shipping_phone: orderData.shipping_phone || '1234567890',
+    order_items: orderData.order_items || [],
+    payment_method: 'PREPAID',
+    sub_total: orderData.sub_total || 0,
+    length: orderData.length || 5,
+    breadth: orderData.breadth || 5,
+    height: orderData.height || 5,
+    weight: orderData.weight || 0.5,
+  };
+
+  logger.info(`[ShiprocketService] Creating return shipment for ${payload.order_id}`);
+  const { data: createOrderResponse } = await request({
+    method: 'post',
+    url: '/orders/create/adhoc',
+    data: payload,
+  });
+
+  const shipmentId = createOrderResponse?.shipment_id;
+
+  if (!shipmentId) {
+    const error = new Error(
+      createOrderResponse?.message ||
+        createOrderResponse?.error ||
+        'Shiprocket did not return a shipment_id for return shipment'
+    );
+    error.statusCode = 502;
+    error.details = createOrderResponse;
+    throw error;
+  }
+
+  logger.info(`[ShiprocketService] Return shipment created: ${shipmentId}`);
+
+  return {
+    shipment_id: String(shipmentId),
+    order_id: createOrderResponse?.order_id || null,
+    status: 'RETURN_CREATED',
+  };
+};
+
 export const cancelShipment = async (shipmentId) => {
   logger.info(`[ShiprocketService] Cancelling shipment ${shipmentId}`);
 

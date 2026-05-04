@@ -33,6 +33,7 @@ const OrderDetail = () => {
   const [codConfirmLoading, setCodConfirmLoading] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [returnRequest, setReturnRequest] = useState(null);
+  const [processingReturn, setProcessingReturn] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [detailsSaving, setDetailsSaving] = useState(false);
   const [detailsForm, setDetailsForm] = useState({ name: '', email: '', phone: '', address: '', city: '', state: '', pinCode: '' });
@@ -49,6 +50,58 @@ const OrderDetail = () => {
       setReturnRequest(res.data);
     } catch {
       setReturnRequest(null);
+    }
+  };
+
+  const approveReturn = async () => {
+    if (!returnRequest?.id) return;
+    if (!window.confirm('Approve this return/exchange request?')) return;
+    setProcessingReturn(true);
+    try {
+      await api.put(`/orders/admin/returns/${returnRequest.id}/approve`);
+      await fetchOrder();
+      await fetchReturnRequest();
+      alert('Return/Exchange request approved');
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to approve request');
+    } finally {
+      setProcessingReturn(false);
+    }
+  };
+
+  const rejectReturn = async () => {
+    if (!returnRequest?.id) return;
+    if (!window.confirm('Reject this return/exchange request?')) return;
+    setProcessingReturn(true);
+    try {
+      await api.put(`/orders/admin/returns/${returnRequest.id}/reject`);
+      await fetchOrder();
+      await fetchReturnRequest();
+      alert('Return/Exchange request rejected');
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to reject request');
+    } finally {
+      setProcessingReturn(false);
+    }
+  };
+      
+  const markRefundComplete = async () => {
+    if (!returnRequest?.id) return;
+    if (!window.confirm('Mark refund as completed? Customer will receive notification email.')) return;
+    setProcessingReturn(true);
+    try {
+      await api.put(`/orders/admin/returns/${returnRequest.id}/refund-complete`, {
+        inspectionStatus: 'APPROVED'
+      });
+      await fetchReturnRequest();
+      alert('Refund marked as completed. Email sent to customer.');
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to mark refund as complete');
+    } finally {
+      setProcessingReturn(false);
     }
   };
 
@@ -387,6 +440,48 @@ const OrderDetail = () => {
             </div>
           </div>
 
+          {/* Exchange Box (show when exchange approved) */}
+          {returnRequest && returnRequest.type === 'EXCHANGE' && returnRequest.status === 'APPROVED' && order?.items && order.items.length > 0 && (
+            <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm">
+              <div className="px-8 py-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Exchange Item</h3>
+                <span className={`px-3 py-1 bg-blue-50 text-blue-600 text-[0.6rem] font-black rounded-lg uppercase tracking-widest`}>Exchange</span>
+              </div>
+              <div className="divide-y divide-gray-100 dark:divide-white/5">
+                <div className="p-8 flex items-center justify-between gap-6 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-20 rounded-2xl bg-gray-50 dark:bg-white/5 overflow-hidden ring-1 ring-black/5">
+                      <img src={order.items[0].product?.thumbnailUrl} className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black dark:text-white uppercase tracking-tight">{order.items[0].product?.name}</h4>
+                      {returnRequest.preferredVariantTitle && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {returnRequest.preferredVariantTitle.split(',').map((part, pIdx) => {
+                            const [key, val] = part.split(':').map(s => s.trim());
+                            return (
+                              <span key={pIdx} className="px-2.5 py-1 bg-black dark:bg-white dark:text-black text-white text-[0.65rem] font-black uppercase tracking-widest rounded-lg shadow-sm">
+                                {val ? (
+                                  <>
+                                    <span className="opacity-50 mr-1">{key}:</span>
+                                    {val}
+                                  </>
+                                ) : part}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black dark:text-white italic">Exchange</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Payment Section */}
           <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl overflow-hidden shadow-sm">
              <div className="px-8 py-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 flex items-center justify-between">
@@ -646,19 +741,35 @@ const OrderDetail = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    <div className="p-6 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 rounded-2xl">
-                       <p className="text-[0.6rem] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-tight leading-relaxed">
-                         No shipment manifest found for this order. Generate a shipment to start tracking.
-                       </p>
-                    </div>
-                    <button 
-                      onClick={createShipment}
-                      disabled={shipLoading}
-                      className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50"
-                    >
-                      {shipLoading ? 'Manifesting...' : 'Create Shipment'}
-                    </button>
+                  <div>
+                    {order?.status?.toUpperCase() === 'DELIVERED' ? (
+                      <div className="p-6 bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10 rounded-2xl">
+                        <p className="text-[0.6rem] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-tight leading-relaxed">
+                          Order already delivered — shipment cannot be created.
+                        </p>
+                      </div>
+                    ) : ['CANCELLED', 'CANCELED', 'FAILED'].includes(order?.status?.toUpperCase()) ? (
+                      <div className="p-6 bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/10 rounded-2xl">
+                        <p className="text-[0.6rem] text-red-500 font-bold uppercase tracking-tight leading-relaxed">
+                          Order is {order.status.toLowerCase()} — shipment cannot be created.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="p-6 bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 rounded-2xl">
+                           <p className="text-[0.6rem] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-tight leading-relaxed">
+                             No shipment manifest found for this order. Generate a shipment to start tracking.
+                           </p>
+                        </div>
+                        <button 
+                          onClick={createShipment}
+                          disabled={shipLoading}
+                          className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[0.65rem] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50"
+                        >
+                          {shipLoading ? 'Manifesting...' : 'Create Shipment'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -672,22 +783,31 @@ const OrderDetail = () => {
                 {(order.activities && order.activities.length > 0) ? (
                   <>
                     <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-100 dark:bg-white/5"></div>
-                    {order.activities.map((activity, idx) => (
-                      <div key={activity.id} className="relative flex gap-6">
-                        <div className={`w-8 h-8 rounded-full ${idx === 0 ? 'bg-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-gray-100 dark:bg-white/5'} flex items-center justify-center shrink-0 z-10 transition-transform hover:scale-110`}>
-                          {idx === 0 ? (
-                            <CheckCircle2 size={16} className="text-white" />
-                          ) : (
-                            <Clock size={16} className="text-gray-400" />
-                          )}
+                    {order.activities.map((activity, idx) => {
+                      // If EXCHANGE approved, hide refund amount from message
+                      let displayMessage = activity.message;
+                      if (returnRequest?.type === 'EXCHANGE' && activity.status === 'RETURN_APPROVED') {
+                        displayMessage = 'Exchange request approved';
+                      } else if (returnRequest?.type === 'EXCHANGE' && activity.status.includes('REFUND')) {
+                        displayMessage = activity.message.replace(/Refund amount:[^\n]*/, '').trim();
+                      }
+                      return (
+                        <div key={activity.id} className="relative flex gap-6">
+                          <div className={`w-8 h-8 rounded-full ${idx === 0 ? 'bg-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-gray-100 dark:bg-white/5'} flex items-center justify-center shrink-0 z-10 transition-transform hover:scale-110`}>
+                            {idx === 0 ? (
+                              <CheckCircle2 size={16} className="text-white" />
+                            ) : (
+                              <Clock size={16} className="text-gray-400" />
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs font-black dark:text-white uppercase tracking-tight">{activity.status.replace(/_/g, ' ')}</p>
+                            <p className="text-[0.6rem] text-gray-500 dark:text-gray-400 leading-relaxed font-bold">{displayMessage}</p>
+                            <p className="text-[0.5rem] text-gray-400 font-bold uppercase tracking-widest">{new Date(activity.createdAt).toLocaleString()}</p>
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-xs font-black dark:text-white uppercase tracking-tight">{activity.status.replace(/_/g, ' ')}</p>
-                          <p className="text-[0.6rem] text-gray-500 dark:text-gray-400 leading-relaxed font-bold">{activity.message}</p>
-                          <p className="text-[0.5rem] text-gray-400 font-bold uppercase tracking-widest">{new Date(activity.createdAt).toLocaleString()}</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </>
                 ) : (
                   <div className="text-center py-4">
@@ -720,6 +840,26 @@ const OrderDetail = () => {
                     {returnRequest.status}
                   </span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[0.6rem] font-bold text-gray-500 uppercase">Pickup Status</span>
+                  <span className={`px-3 py-1 rounded-lg text-[0.6rem] font-black uppercase tracking-widest ${
+                    returnRequest.pickupStatus === 'RECEIVED' ? 'bg-emerald-500/10 text-emerald-500' :
+                    returnRequest.pickupStatus === 'FAILED' ? 'bg-red-500/10 text-red-500' :
+                    'bg-amber-500/10 text-amber-500'
+                  }`}>
+                    {returnRequest.pickupStatus || 'REQUESTED'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[0.6rem] font-bold text-gray-500 uppercase">Inspection Status</span>
+                  <span className={`px-3 py-1 rounded-lg text-[0.6rem] font-black uppercase tracking-widest ${
+                    returnRequest.inspectionStatus === 'APPROVED' || returnRequest.inspectionStatus === 'RECEIVED' ? 'bg-emerald-500/10 text-emerald-500' :
+                    returnRequest.inspectionStatus === 'REJECTED' ? 'bg-red-500/10 text-red-500' :
+                    'bg-amber-500/10 text-amber-500'
+                  }`}>
+                    {returnRequest.inspectionStatus || 'PENDING'}
+                  </span>
+                </div>
                 <div>
                   <span className="text-[0.6rem] font-bold text-gray-500 uppercase block mb-1">Reason</span>
                   <p className="text-xs font-bold dark:text-white">{returnRequest.reason}</p>
@@ -736,10 +876,49 @@ const OrderDetail = () => {
                     <p className="text-xs font-bold dark:text-white">{returnRequest.description}</p>
                   </div>
                 )}
-                {returnRequest.refundAmount && (
+                {returnRequest.refundAmount && returnRequest.type !== 'EXCHANGE' && (
                   <div>
                     <span className="text-[0.6rem] font-bold text-gray-500 uppercase block mb-1">Refund Amount</span>
                     <p className="text-xs font-bold dark:text-white">₹{returnRequest.refundAmount.toFixed(2)}</p>
+                  </div>
+                )}
+                {returnRequest.type === 'RETURN' && returnRequest.status === 'APPROVED' && (
+                  <div className="flex justify-between items-center border-t dark:border-white/5 pt-4">
+                    <div>
+                      <span className="text-[0.6rem] font-bold text-gray-500 uppercase block mb-1">Refund Status</span>
+                      <span className={`px-3 py-1 rounded-lg text-[0.6rem] font-black uppercase tracking-widest inline-block ${
+                        returnRequest.refundStatus === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                      }`}>
+                        {returnRequest.refundStatus || 'PENDING'}
+                      </span>
+                    </div>
+                    {returnRequest.refundStatus !== 'COMPLETED' && (
+                      <button
+                        onClick={markRefundComplete}
+                        disabled={processingReturn}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[0.75rem] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                      >
+                        {processingReturn ? 'Processing...' : 'Mark Completed'}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {returnRequest.status === 'PENDING' && (
+                  <div className="pt-4 flex gap-3">
+                    <button
+                      onClick={approveReturn}
+                      disabled={processingReturn}
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[0.75rem] font-black uppercase tracking-widest disabled:opacity-50"
+                    >
+                      {processingReturn ? 'Processing...' : 'Approve'}
+                    </button>
+                    <button
+                      onClick={rejectReturn}
+                      disabled={processingReturn}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg text-[0.75rem] font-black uppercase tracking-widest disabled:opacity-50"
+                    >
+                      {processingReturn ? 'Processing...' : 'Reject'}
+                    </button>
                   </div>
                 )}
               </div>

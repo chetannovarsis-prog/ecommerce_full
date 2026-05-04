@@ -4,6 +4,7 @@ import { notifyOrderStatus } from '../services/notificationService.js';
 import { logActivity } from '../services/activityService.js';
 import { appendOrderImageVersions } from '../utils/imageUrl.js';
 import { logger } from '../utils/logger.js';
+import { createReturnShipment } from '../services/shiprocketService.js';
 import {
   getStatusesForAdminFilter,
   isAllowedAdminFilter,
@@ -362,6 +363,11 @@ export const getOrders = async (req, res) => {
               select: { name: true, thumbnailUrl: true }
             }
           }
+        },
+        // include latest return request (if any) to show badge in admin list
+        returnRequests: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -377,7 +383,9 @@ export const getOrders = async (req, res) => {
       rawStatus: order.status,
       items: order.items,
       razorpayOrderId: order.razorpayOrderId,
-      razorpayPaymentId: order.razorpayPaymentId
+      razorpayPaymentId: order.razorpayPaymentId,
+      // expose single latest returnRequest (or null)
+      returnRequest: order.returnRequests && order.returnRequests.length ? order.returnRequests[0] : null
     }));
 
     logger.info('orders.list.success', {
@@ -864,7 +872,7 @@ export const getReturnRequests = async (req, res) => {
 
 export const approveReturnRequest = async (req, res) => {
   const { returnId } = req.params;
-  const { refundAmount, adminResponse } = req.body;
+  const { refundAmount, adminResponse } = req.body || {};
 
   try {
     const returnRequest = await prisma.returnRequest.findUnique({
@@ -893,47 +901,187 @@ export const approveReturnRequest = async (req, res) => {
       });
     }
 
-    const approvalAmount = refundAmount || returnRequest.order.totalAmount;
+    // For RETURN: approve with refund amount; for EXCHANGE: approve without refund
+    let updatedReturn;
+    if ((returnRequest.type || 'RETURN').toUpperCase() === 'EXCHANGE') {
+      // Approve exchange: reserve replacement stock, do not deduct from on-hand stock yet.
+      updatedReturn = await prisma.returnRequest.update({
+        where: { id: returnId },
+        data: {
+          status: 'APPROVED',
+          pickupStatus: 'SCHEDULED',
+          inspectionStatus: 'PENDING',
+          adminResponse: adminResponse || 'Exchange approved'
+        }
+      });
 
-    // Update return request
-    const updatedReturn = await prisma.returnRequest.update({
-      where: { id: returnId },
-      data: {
-        status: 'APPROVED',
-        refundAmount: approvalAmount,
-        adminResponse: adminResponse || 'Return approved'
-      }
-    });
+      // Update order status to indicate exchange flow
+      await prisma.order.update({
+        where: { id: returnRequest.orderId },
+        data: { status: 'EXCHANGE_INITIATED' }
+      });
 
-    // Update order status
-    await prisma.order.update({
-      where: { id: returnRequest.orderId },
-      data: {
-        status: 'RETURN_INITIATED'
-      }
-    });
+      // Reserve replacement stock only. Final inventory movement happens when the reverse pickup is received.
+      try {
+        await prisma.$transaction(async (tx) => {
+          const exchangeItem = (returnRequest.order.items || []).find((item) => item.variantTitle);
+          if (!exchangeItem || !returnRequest.preferredVariantTitle) {
+            throw new Error('Exchange item or preferred variant missing');
+          }
 
-    // Log activity
-    await logActivity(
-      returnRequest.orderId,
-      'RETURN_APPROVED',
-      `Return request approved. Refund amount: ₹${approvalAmount}`
-    );
+          const exchangeQuantity = Math.max(1, exchangeItem.quantity || 1);
 
-    // Send email notification
-    if (returnRequest.order.shippingAddress && typeof returnRequest.order.shippingAddress === 'object') {
-      const destEmail = returnRequest.order.shippingAddress.email || null;
-      if (destEmail) {
-        await sendMail(
-          destEmail,
-          'Return Approved - Ghar of Ethnics',
-          `Your return request has been approved. Refund amount: ₹${approvalAmount}. Please arrange to send the product back to us.`
+          const reservedVariant = await tx.productVariant.findFirst({
+            where: {
+              productId: exchangeItem.productId,
+              title: returnRequest.preferredVariantTitle
+            }
+          });
+
+          if (!reservedVariant) {
+            throw new Error(`Preferred variant not found: ${returnRequest.preferredVariantTitle}`);
+          }
+
+          const availableStock = Math.max(0, (reservedVariant.stock || 0) - (reservedVariant.reservedStock || 0));
+          if (availableStock < 1) {
+            throw new Error(`Preferred variant is out of stock: ${returnRequest.preferredVariantTitle}`);
+          }
+
+          await tx.productVariant.update({
+            where: { id: reservedVariant.id },
+            data: { reservedStock: { increment: exchangeQuantity } }
+          });
+        });
+
+        await logActivity(
+          returnRequest.orderId,
+          'INVENTORY_RESERVED_EXCHANGE',
+          `Replacement stock reserved for exchange: ${returnRequest.preferredVariantTitle || 'N/A'}`
         );
+      } catch (invErr) {
+        console.error('approveReturnRequest.inventoryUpdate failed:', invErr?.message || invErr);
+      }
+
+      // Log activity for exchange
+      await logActivity(
+        returnRequest.orderId,
+        'EXCHANGE_APPROVED',
+        `Exchange request approved. Preferred variant: ${returnRequest.preferredVariantTitle || 'N/A'}`
+      );
+
+      // Send email notification for exchange
+      if (returnRequest.order.shippingAddress && typeof returnRequest.order.shippingAddress === 'object') {
+        const destEmail = returnRequest.order.shippingAddress.email || null;
+        if (destEmail) {
+          try {
+            await sendMail(
+              destEmail,
+              'Exchange Approved - Ghar of Ethnics',
+              TEMPLATES.EXCHANGE_APPROVED(returnRequest.preferredVariantTitle || 'selected variant')
+            );
+          } catch (mailErr) {
+            console.error('approveReturnRequest.sendMail failed:', mailErr?.message || mailErr);
+          }
+        }
+      }
+    } else {
+      const approvalAmount = refundAmount || returnRequest.order.totalAmount;
+
+      // Update return request with refund
+      updatedReturn = await prisma.returnRequest.update({
+        where: { id: returnId },
+        data: {
+          status: 'APPROVED',
+          refundAmount: approvalAmount,
+          pickupStatus: 'SCHEDULED',
+          inspectionStatus: 'PENDING',
+          adminResponse: adminResponse || 'Return approved'
+        }
+      });
+
+      // Update order status
+      await prisma.order.update({
+        where: { id: returnRequest.orderId },
+        data: { status: 'RETURN_INITIATED' }
+      });
+
+      // Log activity for return
+      await logActivity(
+        returnRequest.orderId,
+        'RETURN_APPROVED',
+        `Return request approved. Refund amount: ₹${approvalAmount}`
+      );
+
+      // Send email notification for return
+      if (returnRequest.order.shippingAddress && typeof returnRequest.order.shippingAddress === 'object') {
+        const destEmail = returnRequest.order.shippingAddress.email || null;
+        if (destEmail) {
+          try {
+            await sendMail(
+              destEmail,
+              'Return Approved - Ghar of Ethnics',
+              TEMPLATES.RETURN_APPROVED(approvalAmount)
+            );
+          } catch (mailErr) {
+            console.error('approveReturnRequest.sendMail failed:', mailErr?.message || mailErr);
+          }
+        }
       }
     }
 
+    // Create return shipment in Shiprocket
+    try {
+      if (returnRequest.order.shippingAddress && typeof returnRequest.order.shippingAddress === 'object') {
+        const addr = returnRequest.order.shippingAddress;
+        const returnShipmentData = {
+          order_id: `RETURN-${returnRequest.orderId}`,
+          shipping_customer_name: addr.firstName || 'Customer',
+          shipping_address: addr.address || '',
+          shipping_city: addr.city || '',
+          shipping_pincode: addr.pinCode || '',
+          shipping_state: addr.state || '',
+          shipping_country: addr.country || 'India',
+          shipping_email: addr.email || '',
+          shipping_phone: addr.phone || '',
+          order_items: returnRequest.order.items?.map(item => ({
+            name: item.product?.name || 'Product',
+            sku: item.productId,
+            units: item.quantity,
+            selling_price: item.price
+          })) || [],
+          sub_total: returnRequest.order.totalAmount || 0,
+          weight: 0.5,
+          length: 5,
+          breadth: 5,
+          height: 5,
+        };
+        
+        const returnShipment = await createReturnShipment(returnShipmentData);
+
+        await prisma.returnRequest.update({
+          where: { id: returnId },
+          data: {
+            returnShipmentId: returnShipment.shipment_id,
+            pickupStatus: 'SCHEDULED'
+          }
+        });
+        
+        // Log the return shipment creation
+        await logActivity(
+          returnRequest.orderId,
+          'RETURN_SHIPMENT_CREATED',
+          `Return shipment created in Shiprocket. Shipment ID: ${returnShipment.shipment_id}`
+        );
+        
+        console.log(`[approveReturnRequest] Return shipment created: ${returnShipment.shipment_id}`);
+      }
+    } catch (shipErr) {
+      console.error('approveReturnRequest.createReturnShipment failed:', shipErr?.message || shipErr);
+      // Don't fail the approval if shipment creation fails
+    }
+
     res.json({
-      message: 'Return request approved successfully',
+      message: 'Return/Exchange request approved successfully',
       returnRequest: updatedReturn
     });
   } catch (error) {
@@ -944,7 +1092,7 @@ export const approveReturnRequest = async (req, res) => {
 
 export const rejectReturnRequest = async (req, res) => {
   const { returnId } = req.params;
-  const { adminResponse } = req.body;
+  const { adminResponse } = req.body || {};
 
   try {
     const returnRequest = await prisma.returnRequest.findUnique({
@@ -989,11 +1137,15 @@ export const rejectReturnRequest = async (req, res) => {
     if (returnRequest.order.shippingAddress && typeof returnRequest.order.shippingAddress === 'object') {
       const destEmail = returnRequest.order.shippingAddress.email || null;
       if (destEmail) {
-        await sendMail(
-          destEmail,
-          'Return Request Decision - Ghar of Ethnics',
-          `We're sorry, but your return request has been declined. ${adminResponse || ''}`
-        );
+        try {
+          await sendMail(
+            destEmail,
+            'Return Request Decision - Ghar of Ethnics',
+            `We're sorry, but your return request has been declined. ${adminResponse || ''}`
+          );
+        } catch (mailErr) {
+          console.error('rejectReturnRequest.sendMail failed:', mailErr?.message || mailErr);
+        }
       }
     }
 
@@ -1003,6 +1155,129 @@ export const rejectReturnRequest = async (req, res) => {
     });
   } catch (error) {
     console.error('Error rejecting return request:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const cancelReturnRequestByCustomer = async (req, res) => {
+  const { orderId } = req.params;
+
+  try {
+    const returnRequest = await prisma.returnRequest.findFirst({ where: { orderId } });
+    if (!returnRequest) {
+      return res.status(404).json({ message: 'Return request not found' });
+    }
+
+    if (returnRequest.status !== 'PENDING') {
+      return res.status(400).json({ message: `Return request cannot be cancelled. Current status: ${returnRequest.status}` });
+    }
+
+    // Verify the requesting customer owns the order when applicable
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (order?.customerId && req.user && req.user.id !== order.customerId) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this order' });
+    }
+
+    const updated = await prisma.returnRequest.update({
+      where: { id: returnRequest.id },
+      data: { status: 'CANCELLED' }
+    });
+
+    await logActivity(orderId, 'RETURN_CANCELLED_BY_CUSTOMER', 'Customer cancelled the return/exchange request.');
+
+    res.json({ message: 'Return request cancelled', returnRequest: updated });
+  } catch (error) {
+    console.error('Error cancelling return request:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const completeRefund = async (req, res) => {
+  const { returnId } = req.params;
+  const inspectionStatus = String(req.body?.inspectionStatus || '').toUpperCase();
+
+  try {
+    const returnRequest = await prisma.returnRequest.findUnique({
+      where: { id: returnId },
+      include: {
+        order: {
+          select: {
+            id: true,
+            shippingAddress: true,
+            totalAmount: true
+          }
+        }
+      }
+    });
+
+    if (!returnRequest) {
+      return res.status(404).json({ message: 'Return request not found' });
+    }
+
+    // Only allow marking refund as complete for RETURN type (not EXCHANGE)
+    if (returnRequest.type !== 'RETURN') {
+      return res.status(400).json({ 
+        message: 'Refund can only be marked complete for RETURN requests, not EXCHANGE' 
+      });
+    }
+
+    if (returnRequest.status !== 'APPROVED') {
+      return res.status(400).json({ 
+        message: `Return must be APPROVED before marking refund as complete. Current status: ${returnRequest.status}` 
+      });
+    }
+
+    if (inspectionStatus && inspectionStatus !== 'APPROVED') {
+      return res.status(400).json({
+        message: 'Inspection must be APPROVED before refund completion'
+      });
+    }
+
+    if (returnRequest.inspectionStatus !== 'APPROVED' && inspectionStatus !== 'APPROVED') {
+      return res.status(400).json({
+        message: 'Approve the return inspection before completing the refund'
+      });
+    }
+
+    // Mark refund as completed
+    const updated = await prisma.returnRequest.update({
+      where: { id: returnId },
+      data: {
+        inspectionStatus: 'APPROVED',
+        refundStatus: 'COMPLETED',
+        refundCompletedAt: new Date()
+      }
+    });
+
+    // Log activity
+    await logActivity(
+      returnRequest.orderId,
+      'REFUND_COMPLETED',
+      `Refund completed for ₹${returnRequest.refundAmount || returnRequest.order.totalAmount}`
+    );
+
+    // Send refund completion email
+    if (returnRequest.order.shippingAddress && typeof returnRequest.order.shippingAddress === 'object') {
+      const destEmail = returnRequest.order.shippingAddress.email || null;
+      if (destEmail) {
+        try {
+          await sendMail(
+            destEmail,
+            'Refund Completed - Ghar of Ethnics',
+            TEMPLATES.REFUND_COMPLETED_EMAIL(returnRequest.refundAmount || returnRequest.order.totalAmount)
+          );
+        } catch (mailErr) {
+          console.error('completeRefund.sendMail failed:', mailErr?.message || mailErr);
+        }
+      }
+    }
+
+    res.json({
+      message: 'Refund marked as completed successfully',
+      returnRequest: updated
+    });
+  } catch (error) {
+    console.error('Error marking refund as complete:', error);
     res.status(500).json({ error: error.message });
   }
 };
