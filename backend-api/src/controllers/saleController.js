@@ -110,12 +110,18 @@ export const updateSale = async (req, res) => {
     const oldSale = await prisma.sale.findUnique({ where: { id } });
     if (!oldSale) return res.status(404).json({ error: 'Sale not found' });
 
+    const parsedQuantity = (quantity !== undefined && quantity !== null && quantity !== '') ? parseInt(quantity) : undefined;
+    const parsedPrice = (price !== undefined && price !== null && price !== '') ? parseFloat(price) : undefined;
+
+    if (parsedQuantity !== undefined && isNaN(parsedQuantity)) return res.status(400).json({ error: 'Invalid quantity' });
+    if (parsedPrice !== undefined && isNaN(parsedPrice)) return res.status(400).json({ error: 'Invalid price' });
+
     const sale = await prisma.sale.update({
       where: { id },
       data: {
         variantTitle,
-        quantity: quantity !== undefined ? parseInt(quantity) : undefined,
-        price: price !== undefined ? parseFloat(price) : undefined,
+        quantity: parsedQuantity,
+        price: parsedPrice,
         customerName,
         customerEmail,
         customerPhone,
@@ -125,6 +131,39 @@ export const updateSale = async (req, res) => {
         source
       }
     });
+
+    // Cascade to Order if linked
+    if (sale.orderId) {
+      const order = await prisma.order.findUnique({ where: { id: sale.orderId } });
+      if (order && order.shippingAddress) {
+        const updatedAddress = {
+          ...order.shippingAddress,
+          ...(customerName ? { 
+            fullName: customerName, 
+            firstName: customerName.split(' ')[0], 
+            lastName: customerName.split(' ').slice(1).join(' ') || '' 
+          } : {}),
+          ...(customerEmail ? { email: customerEmail } : {}),
+          ...(customerPhone ? { phone: customerPhone } : {})
+        };
+        await prisma.order.update({
+          where: { id: sale.orderId },
+          data: { shippingAddress: updatedAddress }
+        });
+
+        // Cascade to Customer if linked to the order
+        if (order.customerId) {
+          await prisma.customer.update({
+            where: { id: order.customerId },
+            data: {
+              ...(customerName ? { name: customerName } : {}),
+              ...(customerEmail ? { email: customerEmail } : {}),
+              ...(customerPhone ? { mobile: customerPhone } : {})
+            }
+          });
+        }
+      }
+    }
 
     // Adjust stock if quantity changed
     if (quantity !== undefined && parseInt(quantity) !== oldSale.quantity) {

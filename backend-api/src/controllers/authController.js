@@ -647,6 +647,36 @@ export const requestCustomerProfileUpdateOtp = async (req, res) => {
         include: { addresses: true }
       });
 
+      // Cascade name change to Orders
+      if (nameChanged) {
+        const orders = await prisma.order.findMany({ where: { customerId } });
+        for (const order of orders) {
+          if (order.shippingAddress && typeof order.shippingAddress === 'object') {
+            const updatedAddress = {
+              ...order.shippingAddress,
+              fullName: nextName,
+              firstName: nextName.split(' ')[0],
+              lastName: nextName.split(' ').slice(1).join(' ') || ''
+            };
+            await prisma.order.update({
+              where: { id: order.id },
+              data: { shippingAddress: updatedAddress }
+            });
+          }
+        }
+
+        // Cascade name change to Sales
+        await prisma.sale.updateMany({
+          where: { 
+            OR: [
+              { orderId: { in: orders.map(o => o.id) } },
+              { customerEmail: customer.email }
+            ]
+          },
+          data: { customerName: nextName }
+        });
+      }
+
       return res.json({
         success: true,
         requiresOtp: false,
@@ -743,6 +773,8 @@ export const verifyCustomerProfileUpdateOtp = async (req, res) => {
       }
     }
 
+    const oldCustomer = await prisma.customer.findUnique({ where: { id: customerId } });
+
     const updated = await prisma.customer.update({
       where: { id: customerId },
       data: {
@@ -752,6 +784,39 @@ export const verifyCustomerProfileUpdateOtp = async (req, res) => {
         mobile: payload.pending?.mobile || null
       },
       include: { addresses: true }
+    });
+
+    const nextEmail = payload.pending?.email;
+    const nextName = payload.pending?.name;
+
+    // Cascade changes to Orders
+    const orders = await prisma.order.findMany({ where: { customerId } });
+    for (const order of orders) {
+      if (order.shippingAddress && typeof order.shippingAddress === 'object') {
+        const updatedAddress = {
+          ...order.shippingAddress,
+          ...(nextEmail ? { email: nextEmail } : {}),
+          ...(nextName ? { fullName: nextName, firstName: nextName.split(' ')[0], lastName: nextName.split(' ').slice(1).join(' ') || '' } : {})
+        };
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { shippingAddress: updatedAddress }
+        });
+      }
+    }
+
+    // Cascade changes to Sales
+    await prisma.sale.updateMany({
+      where: { 
+        OR: [
+          { orderId: { in: orders.map(o => o.id) } },
+          { customerEmail: oldCustomer?.email }
+        ]
+      },
+      data: {
+        ...(nextEmail ? { customerEmail: nextEmail } : {}),
+        ...(nextName ? { customerName: nextName } : {})
+      }
     });
 
     return res.json({
@@ -823,10 +888,44 @@ export const updateCustomerByAdmin = async (req, res) => {
   const { id } = req.params;
   const { name, email } = req.body;
   try {
+    const oldCustomer = await prisma.customer.findUnique({ where: { id } });
+    if (!oldCustomer) return res.status(404).json({ error: 'Customer not found' });
+
     const updatedCustomer = await prisma.customer.update({
       where: { id },
       data: { name, email }
     });
+
+    // Cascade changes to Orders
+    const orders = await prisma.order.findMany({ where: { customerId: id } });
+    for (const order of orders) {
+      if (order.shippingAddress && typeof order.shippingAddress === 'object') {
+        const updatedAddress = {
+          ...order.shippingAddress,
+          ...(email ? { email } : {}),
+          ...(name ? { fullName: name, firstName: name.split(' ')[0], lastName: name.split(' ').slice(1).join(' ') || '' } : {})
+        };
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { shippingAddress: updatedAddress }
+        });
+      }
+    }
+
+    // Cascade changes to Sales
+    await prisma.sale.updateMany({
+      where: { 
+        OR: [
+          { orderId: { in: orders.map(o => o.id) } },
+          { customerEmail: oldCustomer.email }
+        ]
+      },
+      data: {
+        ...(email ? { customerEmail: email } : {}),
+        ...(name ? { customerName: name } : {})
+      }
+    });
+
     res.json({ success: true, customer: serializeCustomer(updatedCustomer) });
   } catch (error) {
     console.error('Error updating customer:', error);

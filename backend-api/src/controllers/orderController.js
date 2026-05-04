@@ -292,6 +292,28 @@ export const updateOrderDetails = async (req, res) => {
       include: { items: { include: { product: true } }, activities: true }
     });
 
+    // Cascade to Customer if linked
+    if (order.customerId && (name || email || phone)) {
+      await prisma.customer.update({
+        where: { id: order.customerId },
+        data: {
+          ...(name ? { name } : {}),
+          ...(email ? { email } : {}),
+          ...(phone ? { mobile: phone } : {})
+        }
+      });
+    }
+
+    // Cascade to Sales record linked to this order
+    await prisma.sale.updateMany({
+      where: { orderId: id },
+      data: {
+        ...(name ? { customerName: name } : {}),
+        ...(email ? { customerEmail: email } : {}),
+        ...(phone ? { customerPhone: phone } : {})
+      }
+    });
+
     await logActivity(id, 'ORDER_DETAILS_UPDATED', `Admin updated customer/address details.`);
 
     // Optionally sync address update to Shiprocket by re-creating shipment
@@ -729,22 +751,26 @@ export const createReturnRequest = async (req, res) => {
       });
     }
 
-    // Create return request
+    // Create return/exchange request
     const returnRequest = await prisma.returnRequest.create({
       data: {
         orderId,
         reason,
         description,
+        type: req.body.type || 'RETURN',
+        preferredVariantTitle: req.body.preferredVariantTitle || null,
         returnDate: new Date(),
         status: 'PENDING'
       }
     });
 
+    const actionLabel = (req.body.type || 'RETURN').toUpperCase() === 'EXCHANGE' ? 'Exchange' : 'Return';
+
     // Log activity
     await logActivity(
       orderId,
-      'RETURN_REQUESTED',
-      `Return request created. Reason: ${reason}`
+      `${actionLabel.toUpperCase()}_REQUESTED`,
+      `${actionLabel} request created. Reason: ${reason}`
     );
 
     // Send email notification to admin and customer
@@ -753,8 +779,8 @@ export const createReturnRequest = async (req, res) => {
       if (destEmail) {
         await sendMail(
           destEmail,
-          'Return Request Received - Ghar of Ethnics',
-          `Your return request for order ${orderId} has been received. Our team will review it shortly.`
+          `${actionLabel} Request Received - Ghar of Ethnics`,
+          `Your ${actionLabel.toLowerCase()} request for order ${order.invoiceNumber || order.id} has been received. Our team will review it shortly.`
         );
       }
     }

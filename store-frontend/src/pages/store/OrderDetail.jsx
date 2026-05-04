@@ -16,6 +16,8 @@ const statusColors = {
   COD: 'bg-blue-50 text-blue-600 border-blue-100',
   DELIVERED: 'bg-emerald-50 text-emerald-600 border-emerald-100',
   SHIPPED: 'bg-blue-50 text-blue-600 border-blue-100',
+  IN_TRANSIT: 'bg-blue-50 text-blue-600 border-blue-100',
+  OUT_FOR_DELIVERY: 'bg-blue-50 text-blue-600 border-blue-100',
   PROCESSING: 'bg-purple-50 text-purple-600 border-purple-100',
 };
 
@@ -23,7 +25,9 @@ const getStatusStep = (status) => {
   switch (status) {
     case 'CANCELLED': return -1;
     case 'PAYMENT_PENDING': return 0;
-    case 'DELIVERED': return 3;
+    case 'DELIVERED': return 4;
+    case 'OUT_FOR_DELIVERY': return 3;
+    case 'IN_TRANSIT':
     case 'SHIPPED': return 2;
     default: return 1;
   }
@@ -36,7 +40,7 @@ const OrderDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showReturnModal, setShowReturnModal] = useState(false);
-  const [returnForm, setReturnForm] = useState({ reason: '', description: '' });
+  const [returnForm, setReturnForm] = useState({ reason: '', description: '', type: 'RETURN', preferredVariantTitle: '' });
   const [submittingReturn, setSubmittingReturn] = useState(false);
 
   const handleReturnSubmit = async () => {
@@ -127,7 +131,8 @@ const OrderDetail = () => {
   const steps = [
     { label: isCancelled ? 'Cancelled' : isPaymentPending ? 'Payment Pending' : 'Order Placed', icon: isCancelled ? ShoppingBag : isPaymentPending ? Clock : Check, completed: isCancelled ? true : step >= 1 },
     { label: 'Shipped', icon: Truck, completed: !isCancelled && step >= 2 },
-    { label: 'Delivered', icon: Home, completed: !isCancelled && step >= 3 },
+    { label: 'Out for Delivery', icon: Truck, completed: !isCancelled && step >= 3 },
+    { label: 'Delivered', icon: Home, completed: !isCancelled && step >= 4 },
   ];
 
   const estimatedDelivery = new Date(
@@ -218,10 +223,10 @@ const OrderDetail = () => {
           <div className="relative flex items-start justify-between gap-2">
             {/* Connecting Bar */}
             <div className="absolute top-5 left-10 right-10 h-[2px] bg-gray-100 z-0" />
-            <div
-              className={`absolute top-5 left-10 h-[2px] z-0 transition-all duration-700 ${isCancelled ? 'bg-red-500' : 'bg-emerald-500'}`}
-              style={{ width: isCancelled ? '100%' : step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}
-            />
+              <div
+                className={`absolute top-5 left-10 h-[2px] z-0 transition-all duration-700 ${isCancelled ? 'bg-red-500' : 'bg-emerald-500'}`}
+                style={{ width: isCancelled ? '100%' : step === 1 ? '0%' : step === 2 ? '33%' : step === 3 ? '66%' : '100%' }}
+              />
 
             {steps.map((s, idx) => (
               <div key={idx} className="relative z-10 flex flex-col items-center gap-3 flex-1">
@@ -469,12 +474,20 @@ const OrderDetail = () => {
                   const daysSinceDelivery = Math.floor((new Date() - deliveryDate) / (1000 * 60 * 60 * 24));
                   if (daysSinceDelivery <= 7) {
                     return (
-                      <button
-                        onClick={() => setShowReturnModal(true)}
-                        className="px-6 py-3 bg-red-600 text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200"
-                      >
-                        Return Items
-                      </button>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setReturnForm({ ...returnForm, type: 'RETURN' }); setShowReturnModal(true); }}
+                          className="px-6 py-3 bg-red-600 text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200"
+                        >
+                          Return Items
+                        </button>
+                        <button
+                          onClick={() => { setReturnForm({ ...returnForm, type: 'EXCHANGE' }); setShowReturnModal(true); }}
+                          className="px-6 py-3 bg-blue-600 text-white rounded-xl text-[0.6rem] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                        >
+                          Exchange Items
+                        </button>
+                      </div>
                     );
                   }
                   return null;
@@ -526,15 +539,34 @@ const OrderDetail = () => {
             className="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl relative z-10 space-y-8"
           >
             <div className="space-y-2">
-              <h2 className="text-2xl font-black uppercase tracking-tight">Return Request</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tight">{returnForm.type === 'EXCHANGE' ? 'Exchange Request' : 'Return Request'}</h2>
               <p className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
-                Please tell us why you'd like to return these items. Our team will review your request within 24-48 hours.
+                {returnForm.type === 'EXCHANGE' 
+                  ? "Please tell us why you'd like to exchange these items and which size/variant you prefer."
+                  : "Please tell us why you'd like to return these items. Our team will review your request within 24-48 hours."}
               </p>
             </div>
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Reason for Return</label>
+                <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Request Type</label>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setReturnForm({...returnForm, type: 'RETURN'})}
+                    className={`flex-1 py-3 rounded-xl text-[0.6rem] font-black uppercase tracking-widest transition-all ${returnForm.type === 'RETURN' ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}
+                  >
+                    Return
+                  </button>
+                  <button 
+                    onClick={() => setReturnForm({...returnForm, type: 'EXCHANGE'})}
+                    className={`flex-1 py-3 rounded-xl text-[0.6rem] font-black uppercase tracking-widest transition-all ${returnForm.type === 'EXCHANGE' ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}
+                  >
+                    Exchange
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Reason</label>
                 <select 
                   value={returnForm.reason}
                   onChange={(e) => setReturnForm({...returnForm, reason: e.target.value})}
@@ -548,6 +580,19 @@ const OrderDetail = () => {
                   <option value="Other">Other</option>
                 </select>
               </div>
+
+              {returnForm.type === 'EXCHANGE' && (
+                <div className="space-y-2">
+                  <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Preferred Size/Variant</label>
+                  <input 
+                    type="text"
+                    value={returnForm.preferredVariantTitle}
+                    onChange={(e) => setReturnForm({...returnForm, preferredVariantTitle: e.target.value})}
+                    placeholder="e.g. Size M, Color Blue"
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-black outline-none transition-all"
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-[0.6rem] text-gray-400 font-black uppercase tracking-widest ml-1">Additional Details</label>

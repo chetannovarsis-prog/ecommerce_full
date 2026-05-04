@@ -258,19 +258,21 @@ const OrderDetail = () => {
   }
 
   const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'paid':
-      case 'completed': return 'text-emerald-500 bg-emerald-500/10';
-      case 'awb_assigned':
-      case 'pickup_scheduled':
-      case 'picked':
-      case 'shipped': return 'text-blue-500 bg-blue-500/10';
-      case 'pending':
-      case 'processing': return 'text-amber-500 bg-amber-500/10';
-      case 'cancelled':
-      case 'canceled':
-      case 'failed': return 'text-red-500 bg-red-500/10';
-      case 'delivered': return 'text-emerald-600 bg-emerald-500/10';
+    switch (status?.toUpperCase()) {
+      case 'PAID':
+      case 'COMPLETED': return 'text-emerald-500 bg-emerald-500/10';
+      case 'AWB_ASSIGNED':
+      case 'PICKUP_SCHEDULED':
+      case 'PICKED':
+      case 'SHIPPED':
+      case 'IN_TRANSIT':
+      case 'OUT_FOR_DELIVERY': return 'text-blue-500 bg-blue-500/10';
+      case 'PENDING':
+      case 'PROCESSING': return 'text-amber-500 bg-amber-500/10';
+      case 'CANCELLED':
+      case 'CANCELED':
+      case 'FAILED': return 'text-red-500 bg-red-500/10';
+      case 'DELIVERED': return 'text-emerald-600 bg-emerald-500/10';
       default: return 'text-gray-500 bg-gray-500/10';
     }
   };
@@ -684,8 +686,16 @@ const OrderDetail = () => {
           {/* Return Request Card */}
           {returnRequest && (
             <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-3xl p-8 shadow-sm">
-              <h3 className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400 border-b dark:border-white/5 pb-4 mb-6">Return Request</h3>
+              <h3 className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400 border-b dark:border-white/5 pb-4 mb-6">Customer Request</h3>
               <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-[0.6rem] font-bold text-gray-500 uppercase">Type</span>
+                  <span className={`px-3 py-1 rounded-lg text-[0.6rem] font-black uppercase tracking-widest ${
+                    returnRequest.type === 'EXCHANGE' ? 'bg-blue-500/10 text-blue-500' : 'bg-purple-500/10 text-purple-500'
+                  }`}>
+                    {returnRequest.type || 'RETURN'}
+                  </span>
+                </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[0.6rem] font-bold text-gray-500 uppercase">Status</span>
                   <span className={`px-3 py-1 rounded-lg text-[0.6rem] font-black uppercase tracking-widest ${
@@ -700,6 +710,12 @@ const OrderDetail = () => {
                   <span className="text-[0.6rem] font-bold text-gray-500 uppercase block mb-1">Reason</span>
                   <p className="text-xs font-bold dark:text-white">{returnRequest.reason}</p>
                 </div>
+                {returnRequest.preferredVariantTitle && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10">
+                    <span className="text-[0.6rem] font-black text-blue-500 uppercase block mb-1">Preferred Exchange Variant</span>
+                    <p className="text-sm font-black dark:text-white">{returnRequest.preferredVariantTitle}</p>
+                  </div>
+                )}
                 {returnRequest.description && (
                   <div>
                     <span className="text-[0.6rem] font-bold text-gray-500 uppercase block mb-1">Description</span>

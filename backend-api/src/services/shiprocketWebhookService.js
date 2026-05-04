@@ -5,6 +5,7 @@
 
 import prisma from '../utils/prisma.js';
 import { logActivity } from './activityService.js';
+import { sendMail, TEMPLATES } from '../utils/mailer.js';
 
 /**
  * Log failed webhook for manual reprocessing
@@ -66,8 +67,8 @@ export const retryFailedWebhook = async (webhookId) => {
 export const mapShiprocketStatus = (shiprocketStatus) => {
   const statusMap = {
     'SHIPPED': 'SHIPPED',
-    'IN TRANSIT': 'SHIPPED',
-    'OUT FOR DELIVERY': 'SHIPPED',
+    'IN TRANSIT': 'IN_TRANSIT',
+    'OUT FOR DELIVERY': 'OUT_FOR_DELIVERY',
     'DELIVERED': 'DELIVERED',
     'RTO': 'CANCELED',
     'CANCELLED': 'CANCELED',
@@ -232,11 +233,30 @@ export const updateOrderFromShiprocket = async (payload) => {
       `Shiprocket webhook: ${shiprocketStatus} (AWB: ${awb}, Courier: ${courierName})`
     );
 
-    // Send customer notification (optional - implement based on your needs)
+    // Send customer notification
     try {
       if (updatedOrder.customer?.email) {
-        // You can implement notification logic here
-        // await notifyOrderStatus(updatedOrder, internalStatus);
+        let mailBody = '';
+        let subject = `Order Update: #${updatedOrder.invoiceNumber || updatedOrder.id.slice(-8).toUpperCase()}`;
+
+        switch (internalStatus) {
+          case 'SHIPPED':
+            mailBody = TEMPLATES.ORDER_SHIPPED();
+            break;
+          case 'IN_TRANSIT':
+            mailBody = `Dear Customer, \nYour order is in transit and moving towards your city.\nRegards,\nGhar of Ethnics`;
+            break;
+          case 'OUT_FOR_DELIVERY':
+            mailBody = TEMPLATES.OUT_FOR_DELIVERY();
+            break;
+          case 'DELIVERED':
+            mailBody = TEMPLATES.DELIVERED();
+            break;
+        }
+
+        if (mailBody) {
+          await sendMail(updatedOrder.customer.email, subject, mailBody);
+        }
       }
     } catch (notificationError) {
       console.error('[Shiprocket] Notification failed:', notificationError.message);

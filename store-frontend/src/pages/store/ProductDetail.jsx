@@ -768,6 +768,11 @@ const ProductDetail = () => {
                   </button>
                 </div>
               </div>
+              {product.subtitle && (
+                <p className="text-[0.7rem] sm:text-xs font-black text-gray-400 uppercase tracking-[0.2em] leading-relaxed">
+                  {product.subtitle}
+                </p>
+              )}
               <button
                 onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="flex items-center gap-2 hover:opacity-70 transition-opacity"
@@ -825,6 +830,14 @@ const ProductDetail = () => {
                   ></div>
                 </div>
               </div>
+
+              {product.description && (
+                <div className="pt-6 border-t border-gray-100 mt-6">
+                  <p className="text-sm font-bold text-gray-600 leading-relaxed">
+                    {product.description}
+                  </p>
+                </div>
+              )}
 
               <p className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-widest pt-2">Inclusive of all taxes</p>
 
