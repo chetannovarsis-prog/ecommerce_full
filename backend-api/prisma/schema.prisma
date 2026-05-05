@@ -129,10 +129,11 @@ model Order {
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  quantity  Int
-  price     Float
-  productId String
+  id           String  @id @default(uuid())
+  quantity     Int
+  price        Float
+  productId    String
+  productName  String?
   variantTitle String?
   orderId      String
   order        Order   @relation(fields: [orderId], references: [id])

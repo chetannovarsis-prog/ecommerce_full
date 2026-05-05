@@ -42,14 +42,13 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
           }
           .invoice-container {
             width: 794px; /* A4 width */
-            height: 1122px; /* Strict A4 height to prevent 2nd page */
             margin: 0 auto;
-            padding: 40px 50px; /* Adjusted top padding */
+            padding: 30px 40px; /* Balanced padding */
             background: #f5f2e9;
             position: relative;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
+            page-break-after: always;
           }
           .content {
             position: relative;
@@ -63,7 +62,7 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
           }
           .title-section {
             display: flex;
@@ -97,8 +96,8 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
           .info-section {
             display: flex;
             justify-content: space-between;
-            margin-top: 45px;
-            margin-bottom: 40px;
+            margin-top: 20px;
+            margin-bottom: 25px;
           }
           .invoice-to {
             max-width: 300px;
@@ -137,8 +136,7 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
             border-radius: 4px;
             padding: 20px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-            margin-bottom: 40px;
-            min-height: 430px;
+            margin-bottom: 30px;
             position: relative;
             overflow: hidden;
           }
@@ -227,11 +225,11 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
           }
           /* Footer */
           .invoice-footer {
-            margin-top: auto;
+            margin-top: 20px;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
           }
           .thank-you-image {
             width: 170px;
@@ -304,7 +302,7 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
                   ${order.items?.map((item, index) => `
                     <tr>
                       <td class="col-no">${index + 1}</td>
-                      <td class="col-desc">${item.product?.name || 'Product'}</td>
+                      <td class="col-desc">${item.productName || item.product?.name || 'Product'}</td>
                       <td class="col-price">Rs.${Number(item.price).toFixed(2)}</td>
                       <td class="col-qty">${item.quantity}</td>
                       <td class="col-total">Rs.${(Number(item.price) * Number(item.quantity)).toFixed(2)}</td>
@@ -384,19 +382,21 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
     await waitForImages(invoiceElement);
 
     const opt = {
-      margin: 0,
+      margin: [0, 0, 0, 0],
       filename: `Invoice_${order.invoiceNumber || order.id}.pdf`,
-      image: { type: 'jpeg', quality: 1 },
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2, 
+        scale: 1.5, 
         useCORS: true,
-        letterRendering: true,
+        logging: false,
         backgroundColor: '#f5f2e9',
         scrollY: 0,
-        windowWidth: 794
+        scrollX: 0,
+        windowWidth: 794,
+        allowTaint: true
       },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' },
+      pagebreak: { mode: 'avoid-all', before: [] },
+      jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4', hotfixes: ['px_scaling'] },
     };
 
     try {

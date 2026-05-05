@@ -260,6 +260,7 @@ export const createRazorpayOrder = async (req, res) => {
         items: {
           create: items.map(item => ({
             productId: item.productId,
+            productName: item.productName || item.name,
             quantity: item.quantity,
             price: item.price,
             variantTitle: item.variantTitle,
@@ -466,6 +467,7 @@ export const verifyPayment = async (req, res) => {
       items: {
         create: orderData.items.map(item => ({
           productId: item.productId,
+          productName: item.productName || item.name,
           quantity: item.quantity,
           price: item.price,
           variantTitle: item.variantTitle,

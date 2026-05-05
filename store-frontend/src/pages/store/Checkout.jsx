@@ -215,6 +215,7 @@ const Checkout = () => {
         receipt: `receipt_${Date.now()}`,
         items: cart.map((item) => ({
           productId: item.id,
+          productName: item.name,
           quantity: item.quantity,
           price: item.selectedPrice,
           variantTitle: item.variantTitle,

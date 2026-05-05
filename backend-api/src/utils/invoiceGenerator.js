@@ -236,7 +236,8 @@ export const generateInvoice = async (orderOrId) => {
         currentX = margin + 15;
         doc.text(String(index + 1), currentX, rowY, { align: 'center', width: colWidths.no - 20 });
         currentX += colWidths.no;
-        const description = `${item.product?.name || 'Product'}`;
+        const productName = item.productName || item.product?.name || 'Product';
+        const description = `${productName}`;
         doc.text(description, currentX, rowY, { width: descWidth, lineGap: 1 });
         currentX += colWidths.desc;
         doc.text(`Rs.${Number(item.price).toFixed(2)}`, currentX, rowY, { align: 'right', width: colWidths.price });
