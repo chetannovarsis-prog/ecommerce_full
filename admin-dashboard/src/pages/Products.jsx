@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useNavigate, Link } from 'react-router-dom';
-import { Plus, MoreHorizontal, Search, Filter, Tag, ChevronDown } from 'lucide-react';
+import { Plus, MoreHorizontal, Search, Filter, Tag, ChevronDown, Upload, X } from 'lucide-react';
 import ProductForm from '../forms/ProductForm';
 
 const Products = () => {
@@ -13,6 +13,11 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [importError, setImportError] = useState('');
   const [isSortFocused, setIsSortFocused] = useState(false);
   const [isPageSizeFocused, setIsPageSizeFocused] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -60,6 +65,32 @@ const Products = () => {
   const handleEdit = (product) => {
     setSelectedProduct(product);
     setShowModal(true);
+  };
+
+  const handleImportSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!importFile) {
+      setImportError('Please choose a CSV file.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', importFile);
+
+    setImportLoading(true);
+    setImportError('');
+    setImportResult(null);
+
+    try {
+      const response = await api.post('/products/import', formData);
+      setImportResult(response.data);
+      await fetchProducts();
+    } catch (error) {
+      setImportError(error.response?.data?.message || 'Import failed.');
+    } finally {
+      setImportLoading(false);
+    }
   };
 
   const filteredProducts = products.filter(p =>
@@ -181,6 +212,12 @@ const Products = () => {
                    className="pl-9 pr-4 py-1.5 w-full md:w-64 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-[0.8rem] font-bold dark:text-white focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all"
                  />
                </div>
+               <button
+                  onClick={() => { setShowImportModal(true); setImportError(''); setImportResult(null); }}
+                  className="px-4 py-2 md:py-1.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-lg text-[0.65rem] font-black uppercase tracking-widest hover:border-black dark:hover:border-white transition-all shadow-sm flex items-center justify-center gap-2"
+                >
+                <Upload size={14} strokeWidth={3} /> Import CSV
+              </button>
                <button
                   onClick={handleCreate}
                   className="px-4 py-2 md:py-1.5 bg-black dark:bg-white text-white dark:text-black rounded-lg text-[0.65rem] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg flex items-center justify-center gap-2"
@@ -329,6 +366,93 @@ const Products = () => {
           onClose={() => setShowModal(false)} 
           onSave={fetchProducts} 
         />
+      )}
+
+      {showImportModal && (
+        <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl bg-white dark:bg-[#111] rounded-2xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/10">
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-widest dark:text-white">Import Products CSV</h2>
+                <a
+                  href="/example.csv"
+                  download="example.csv"
+                  className="inline-flex items-center mt-2 px-3 py-1.5 rounded-lg bg-black text-white text-[0.6rem] font-black uppercase tracking-widest hover:bg-zinc-800 transition-colors"
+                >
+                  Download example.csv
+                </a>
+              </div>
+              <button onClick={() => setShowImportModal(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleImportSubmit} className="p-6 space-y-5">
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-black file:uppercase file:tracking-widest file:bg-black file:text-white dark:file:bg-white dark:file:text-black"
+              />
+
+              {importError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                  {importError}
+                </div>
+              )}
+
+              {importResult && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                      <p className="text-[0.6rem] font-black uppercase tracking-widest text-emerald-700">Success</p>
+                      <p className="text-2xl font-black text-emerald-900">{importResult.successCount || 0}</p>
+                    </div>
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                      <p className="text-[0.6rem] font-black uppercase tracking-widest text-amber-700">Failed</p>
+                      <p className="text-2xl font-black text-amber-900">{importResult.failedCount || 0}</p>
+                    </div>
+                    <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                      <p className="text-[0.6rem] font-black uppercase tracking-widest text-gray-500">Processed</p>
+                      <p className="text-2xl font-black text-gray-900">{(importResult.successCount || 0) + (importResult.failedCount || 0)}</p>
+                    </div>
+                  </div>
+
+                  {importResult.failedRows?.length > 0 && (
+                    <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                      <div className="px-4 py-3 bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/10">
+                        <p className="text-[0.65rem] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">Failed Rows</p>
+                      </div>
+                      <div className="max-h-72 overflow-auto divide-y divide-gray-100 dark:divide-white/5">
+                        {importResult.failedRows.map((item, index) => (
+                          <div key={index} className="p-4 text-sm">
+                            <p className="font-black text-gray-900 dark:text-white">{item.error}</p>
+                            <pre className="mt-2 text-xs text-gray-500 dark:text-gray-400 whitespace-pre-wrap break-words bg-gray-50 dark:bg-white/5 rounded-lg p-3">
+                              {JSON.stringify(item.row, null, 2)}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3">
+                <button type="button" onClick={() => setShowImportModal(false)} className="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300">
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={importLoading}
+                  className="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg bg-black text-white disabled:opacity-60 flex items-center gap-2"
+                >
+                  {importLoading ? 'Importing...' : 'Upload & Import'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

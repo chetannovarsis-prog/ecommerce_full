@@ -21,6 +21,10 @@ const Login = () => {
     const token = localStorage.getItem('adminToken');
     if (adminAuth && token) {
       navigate('/', { replace: true });
+    } else {
+      localStorage.removeItem('adminAuth');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminEmail');
     }
   }, [navigate]);
 

@@ -1,5 +1,7 @@
 import prisma from '../utils/prisma.js';
 import { appendProductImageVersions } from '../utils/imageUrl.js';
+import csv from 'csv-parser';
+import { Readable } from 'stream';
 
 // Returns the effective stock for a product:
 // - If product has variants → sum of all variant stocks
@@ -26,6 +28,90 @@ const parseOptionalFloat = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const trimValue = (value) => (typeof value === 'string' ? value.trim() : value);
+
+const isEmptyRow = (row = {}) => Object.values(row).every((value) => trimValue(value) === '' || trimValue(value) === null || trimValue(value) === undefined);
+
+const parseImages = (value) =>
+  String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const generateProductHandle = (name = '') => name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+const parseVariantsField = (value = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return [];
+  }
+
+  const groups = raw
+    .split('|')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .map((segment) => {
+      const [leftPart, rightPart] = segment.split('>');
+
+      if (!leftPart || !rightPart) {
+        throw new Error(`Invalid variant group format: ${segment}`);
+      }
+
+      const leftSeparator = leftPart.indexOf(':');
+      if (leftSeparator === -1) {
+        throw new Error(`Invalid variant group format: ${segment}`);
+      }
+
+      const color = leftPart.slice(0, leftSeparator).trim();
+      const images = parseImages(leftPart.slice(leftSeparator + 1));
+
+      if (!color) {
+        throw new Error(`Invalid variant group format: ${segment}`);
+      }
+
+      if (images.length === 0) {
+        throw new Error(`Variant images are required for ${color}`);
+      }
+
+      const sizes = rightPart
+        .split(',')
+        .map((sizeSegment) => sizeSegment.trim())
+        .filter(Boolean)
+        .map((sizeSegment) => {
+          const sizeSeparator = sizeSegment.lastIndexOf(':');
+          if (sizeSeparator === -1) {
+            throw new Error(`Invalid size format: ${sizeSegment}`);
+          }
+
+          const size = sizeSegment.slice(0, sizeSeparator).trim();
+          const stockValue = sizeSegment.slice(sizeSeparator + 1).trim();
+          const stock = parseInt(stockValue, 10);
+
+          if (!size) {
+            throw new Error(`Invalid size format: ${sizeSegment}`);
+          }
+
+          if (Number.isNaN(stock)) {
+            throw new Error(`Invalid stock for ${color} / ${size}`);
+          }
+
+          return { size, stock };
+        });
+
+      if (sizes.length === 0) {
+        throw new Error(`Sizes are required for ${color}`);
+      }
+
+      return { color, images, sizes };
+    });
+
+  if (groups.length === 0) {
+    throw new Error('variants are required');
+  }
+
+  return groups;
+};
+
 const buildProductSaveError = (error, action = 'save') => {
   const response = {
     message: `Failed to ${action} product.`,
@@ -44,6 +130,127 @@ const buildProductSaveError = (error, action = 'save') => {
   }
 
   return response;
+};
+
+export const importProducts = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'CSV file is required' });
+    }
+
+    const rows = [];
+    await new Promise((resolve, reject) => {
+      Readable.from([req.file.buffer])
+        .pipe(csv())
+        .on('data', (row) => rows.push(row))
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    let successCount = 0;
+    const failedRows = [];
+
+    for (const [index, rawRow] of rows.entries()) {
+      const rowNumber = index + 2;
+
+      if (isEmptyRow(rawRow)) {
+        continue;
+      }
+
+      try {
+        const name = trimValue(rawRow.name);
+        const subtitle = trimValue(rawRow.subtitle) || null;
+        const handle = trimValue(rawRow.handle) || generateProductHandle(name);
+        const description = trimValue(rawRow.description) || null;
+        const price = parseOptionalFloat(rawRow.price);
+        const isDiscountable = String(rawRow.isDiscountable ?? '').trim().toLowerCase() === 'true';
+        const discountPrice = parseOptionalFloat(rawRow.discountPrice);
+        const thumbnailUrl = trimValue(rawRow.thumbnailUrl) || null;
+        const hoverThumbnailUrl = trimValue(rawRow.hoverThumbnailUrl) || null;
+        const variantGroups = parseVariantsField(rawRow.variants);
+
+        if (!name || price === null || !variantGroups.length || String(rawRow.isDiscountable ?? '').trim() === '') {
+          throw new Error('name, price, variants, and isDiscountable are required');
+        }
+
+        if (isDiscountable && discountPrice === null) {
+          throw new Error('discountPrice is required when isDiscountable is true');
+        }
+
+        const existingProduct = await prisma.product.findFirst({
+          where: {
+            OR: [
+              { name: { equals: name, mode: 'insensitive' } },
+              { handle: { equals: handle, mode: 'insensitive' } },
+            ],
+          },
+          select: { id: true },
+        });
+
+        if (existingProduct) {
+          throw new Error('Duplicate product name or handle');
+        }
+
+        const allImages = Array.from(new Set(variantGroups.flatMap((group) => group.images)));
+        const resolvedThumbnail = thumbnailUrl || allImages[0] || null;
+        const resolvedHoverThumbnail = hoverThumbnailUrl || allImages[1] || allImages[0] || null;
+
+        await prisma.$transaction(async (tx) => {
+          const product = await tx.product.create({
+            data: {
+              name,
+              subtitle,
+              handle,
+              description,
+              price,
+              isDiscountable,
+              discountPrice: isDiscountable ? discountPrice : null,
+              images: allImages,
+              thumbnailUrl: resolvedThumbnail,
+              hoverThumbnailUrl: resolvedHoverThumbnail,
+              stock: 0,
+            },
+          });
+
+          // Create one variant per color+size combination so admin UI shows each size separately
+          const variantsToCreate = variantGroups.flatMap((group) =>
+            group.sizes.map((sz) => ({
+              title: `${group.color} / ${sz.size}`,
+              price,
+              stock: sz.stock,
+              images: group.images,
+              thumbnailUrl: group.images[0] || null,
+              hoverThumbnailUrl: group.images[1] || group.images[0] || null,
+              productId: product.id,
+            }))
+          );
+
+          if (variantsToCreate.length === 0) {
+            throw new Error('No variants could be created from the CSV row');
+          }
+
+          await tx.productVariant.createMany({
+            data: variantsToCreate,
+          });
+        });
+
+        successCount += 1;
+      } catch (error) {
+        failedRows.push({
+          row: rowNumber,
+          error: error.message,
+        });
+      }
+    }
+
+    return res.json({
+      successCount,
+      failedCount: failedRows.length,
+      failedRows,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Failed to import products', error: error.message });
+  }
 };
 
 export const getAllProducts = async (req, res) => {
