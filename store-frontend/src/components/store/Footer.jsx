@@ -185,7 +185,7 @@ const Footer = () => {
             rel="noopener noreferrer"
             className="hover:text-green-500 text-[#e87825] font-bold animate-pulse transition-colors ml-2"
           >
-            Novarsis Technologies
+            Novarsis Technologies,
           </a>
         </p>
       </div>

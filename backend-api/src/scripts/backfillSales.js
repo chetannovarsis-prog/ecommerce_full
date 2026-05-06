@@ -1,64 +1,77 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from '../utils/prisma.js';
+
+const makeKey = (item) => {
+  const productId = String(item.productId || '').trim();
+  const quantity = Number(item.quantity || 0);
+  const price = Number(item.price || 0);
+  return `${productId}|${quantity}|${price}`;
+};
+
+const inferSource = (order) => {
+  if (String(order.paymentMethod || '').toLowerCase() === 'razorpay') {
+    return 'Website';
+  }
+
+  return 'DCR';
+};
 
 async function backfillSales() {
-  console.log('Starting backfill of website sales...');
-  
+  console.log('Starting missing-sales backfill...');
+
   try {
-    const websiteSales = await prisma.sale.findMany({
-      where: { source: 'Website', customerName: null }
+    const orders = await prisma.order.findMany({
+      include: {
+        items: true,
+        sales: true,
+        customer: { select: { name: true, email: true, mobile: true } },
+      },
+      orderBy: { createdAt: 'asc' },
     });
 
-    console.log(`Found ${websiteSales.length} website sales to backfill.`);
+    console.log(`Found ${orders.length} orders to inspect.`);
 
-    for (const sale of websiteSales) {
-      // Find matching order
-      // We look for an order created around the same time (+/- 1 hour to be safe)
-      const startDate = new Date(sale.createdAt.getTime() - 60 * 60 * 1000);
-      const endDate = new Date(sale.createdAt.getTime() + 60 * 60 * 1000);
+    let createdCount = 0;
+    let skippedCount = 0;
 
-      const matchingOrder = await prisma.order.findFirst({
-        where: {
-          createdAt: {
-            gte: startDate,
-            lte: endDate
-          },
-          items: {
-            some: {
-              productId: sale.productId,
-              quantity: sale.quantity,
-              price: sale.price
-            }
-          }
-        },
-        include: {
-          items: true
+    for (const order of orders) {
+      const existingSaleKeys = new Set(order.sales.map(makeKey));
+      const address = order.shippingAddress || {};
+      const customerName = order.customer?.name || address.fullName || [address.firstName, address.lastName].filter(Boolean).join(' ').trim() || null;
+      const customerEmail = order.customer?.email || address.email || null;
+      const customerPhone = order.customer?.mobile || address.phone || null;
+      const paymentMode = order.paymentMethod || (order.razorpayPaymentId ? 'Razorpay' : 'MANUAL');
+      const source = inferSource(order);
+
+      for (const item of order.items) {
+        const key = makeKey(item);
+        if (existingSaleKeys.has(key)) {
+          skippedCount += 1;
+          continue;
         }
-      });
 
-      if (matchingOrder) {
-        console.log(`Matching sale ${sale.id} with order ${matchingOrder.id}`);
-        
-        const addr = matchingOrder.shippingAddress || {};
-        const customerName = `${addr.firstName || ''} ${addr.lastName || ''}`.trim() || null;
-        
-        await prisma.sale.update({
-          where: { id: sale.id },
+        await prisma.sale.create({
           data: {
-            orderId: matchingOrder.id,
-            customerName: customerName,
-            customerEmail: addr.email || null,
-            customerPhone: addr.phone || null,
-            paymentMode: matchingOrder.paymentMethod || 'Website',
-            paymentId: matchingOrder.razorpayPaymentId || null
-          }
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price * item.quantity,
+            source,
+            orderId: order.id,
+            customerName,
+            customerEmail,
+            customerPhone,
+            paymentMode,
+            paymentId: order.razorpayPaymentId || null,
+            variantTitle: item.variantTitle || null,
+          },
         });
-      } else {
-        console.log(`No match found for sale ${sale.id} (Product: ${sale.productId}, Date: ${sale.createdAt})`);
+
+        createdCount += 1;
+        existingSaleKeys.add(key);
+        console.log(`Created missing sale for order ${order.id} item ${item.id}`);
       }
     }
 
-    console.log('Backfill completed.');
+    console.log(`Backfill completed. Created ${createdCount} sales, skipped ${skippedCount} matched items.`);
   } catch (error) {
     console.error('Error during backfill:', error);
   } finally {

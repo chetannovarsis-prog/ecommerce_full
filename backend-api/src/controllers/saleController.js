@@ -5,6 +5,9 @@ export const getSales = async (req, res) => {
   try {
     const sales = await prisma.sale.findMany({
       include: {
+        order: {
+          select: { status: true }
+        },
         product: {
           select: { name: true, thumbnailUrl: true, images: true }
         }
@@ -12,7 +15,9 @@ export const getSales = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const formattedSales = sales.map(s => ({
+    const activeSales = sales.filter((sale) => sale.order?.status !== 'CANCELED');
+
+    const formattedSales = activeSales.map(s => ({
       id: s.id,
       productName: s.product.name,
       thumbnail: appendProductImageVersions(s.product).thumbnailUrl || appendProductImageVersions(s.product).images?.[0],

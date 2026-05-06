@@ -1,3 +1,0 @@
-# 
-
-{"status":"ok","message":"Shiprocket webhook endpoint is active","timestamp":"2026-05-04T07:05:19.928Z"}

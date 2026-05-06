@@ -501,14 +501,15 @@ export const verifyPayment = async (req, res) => {
         data: {
           productId: item.productId,
           quantity: item.quantity,
-          price: item.price,
+          price: item.price * item.quantity,
           source: 'Website',
           orderId: order.id,
           customerName: order.shippingAddress?.fullName || null,
           customerEmail: order.shippingAddress?.email || null,
           customerPhone: order.shippingAddress?.phone || null,
           paymentMode: 'Razorpay',
-          paymentId: razorpay_payment_id
+          paymentId: razorpay_payment_id,
+          variantTitle: item.variantTitle || null
         }
       })
     ));

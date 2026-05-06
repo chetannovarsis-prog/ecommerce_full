@@ -197,7 +197,8 @@ export const createAdminOrder = async (req, res) => {
           customerPhone: customer.phone || null,
           paymentMode: paymentMethod || 'MANUAL',
           paymentId: paymentId || null,
-          notes: notes || null
+          notes: notes || null,
+          variantTitle: item.variantTitle || null
         }
       });
     }
@@ -678,14 +679,10 @@ export const cancelOrder = async (req, res) => {
       );
     }
 
-    // Remove from sales if it was confirmed
-    if (order.status === 'PAID' || order.status === 'COD_CONFIRMED') {
-      await prisma.sale.deleteMany({
-        where: {
-          productId: { in: order.items.map(item => item.productId) }
-        }
-      });
-    }
+    // Remove only sales that belong to this order
+    await prisma.sale.deleteMany({
+      where: { orderId: id }
+    });
 
     logger.info('order.cancelled', {
       order_id: id,
