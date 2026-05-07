@@ -81,7 +81,7 @@ const Dashboard = () => (
     </header>
     <main className="p-10">
       <div className="bg-white dark:bg-[#111] border border-gray-200 dark:border-white/5 rounded-xl p-8 shadow-sm">
-        <h2 className="text-xl font-bold tracking-tight dark:text-white">Welcome back!</h2>
+        <h2 className="text-xl font-bold tracking-tight dark:text-white">Welcome back !</h2>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Here's a summary of your store's performance today.</p>
       </div>
     </main>
