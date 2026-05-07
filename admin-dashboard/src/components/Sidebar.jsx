@@ -24,6 +24,7 @@ import {
 
 import { useTheme } from '../context/ThemeContext';
 import { logoutAdmin } from '../services/adminAuth';
+import api from '../utils/api';
 
 const Sidebar = ({ isCollapsed, toggleSidebar }) => {
   const navigate = useNavigate();

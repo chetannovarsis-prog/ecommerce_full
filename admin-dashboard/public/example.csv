@@ -1,0 +1,2 @@
+name,subtitle,handle,description,price,isDiscountable,discountPrice,thumbnailUrl,hoverThumbnailUrl,variants
+Indigo Edit,Handcrafted cotton set,indigo-edit,Soft cotton outfit,1599,true,200,https://example.com/thumb.jpg,https://example.com/hover.jpg,"green:https://img1.jpg,https://img2.jpg>M:1,L:2|yellow:https://img3.jpg,https://img4.jpg>XL:4"
