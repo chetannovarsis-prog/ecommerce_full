@@ -5,7 +5,15 @@ import { Download } from 'lucide-react';
 const InvoiceGenerator = ({ order, customer, responsive = false }) => {
   const getInvoiceHTML = (order, customer) => {
     const assetBase = typeof window !== 'undefined' ? window.location.origin : '';
-    const shippingCharge = order?.paymentMethod === 'cod' ? 70 : 0;
+    const pricing = order?.shippingAddress?.pricing || {};
+    const parsedShippingCharge = Number(pricing.shippingCharge);
+    const parsedCodCharge = Number(pricing.codCharge);
+    const pin = String(order?.shippingAddress?.pinCode || '').trim();
+    const isIndianPin = /^[1-9][0-9]{5}$/.test(pin);
+    const countryGuess = order?.shippingAddress?.country || (isIndianPin ? 'India' : 'International');
+    const fallbackShippingCharge = countryGuess === 'India' ? 0 : 300;
+    const shippingCharge = Number.isFinite(parsedShippingCharge) ? parsedShippingCharge : fallbackShippingCharge;
+    const codCharge = Number.isFinite(parsedCodCharge) ? parsedCodCharge : (order?.paymentMethod === 'cod' ? 70 : 0);
     const orderDate = new Date(order.createdAt);
     const dateStr = orderDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -326,6 +334,12 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
                     <span class="total-label">Shipping</span>
                     <span class="total-value">${shippingCharge ? `Rs.${shippingCharge.toFixed(2)}` : 'Free'}</span>
                   </div>
+                  ${codCharge > 0 ? `
+                  <div class="total-row">
+                    <span class="total-label">COD</span>
+                    <span class="total-value">Rs.${codCharge.toFixed(2)}</span>
+                  </div>
+                  ` : ''}
                   <div class="total-row grand-total">
                     <span class="total-label">Total</span>
                     <span class="total-value">Rs.${paidTotal.toFixed(2)}</span>

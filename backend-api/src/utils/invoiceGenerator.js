@@ -289,10 +289,9 @@ export const generateInvoice = async (orderOrId) => {
       const parsedShippingCharge = Number(pricing.shippingCharge);
       const parsedCodCharge = Number(pricing.codCharge);
 
-      const countryGuess =
-        order.shippingAddress?.country ||
-        (order.shippingAddress?.pinCode && /^[1-9][0-9]{5}$/.test(String(order.shippingAddress.pinCode)) ? 'India' : null) ||
-        'India';
+      const pin = String(order.shippingAddress?.pinCode || '').trim();
+      const isIndianPin = /^[1-9][0-9]{5}$/.test(pin);
+      const countryGuess = order.shippingAddress?.country || (isIndianPin ? 'India' : 'International');
 
       const shippingCharge = Number.isFinite(parsedShippingCharge)
         ? parsedShippingCharge
