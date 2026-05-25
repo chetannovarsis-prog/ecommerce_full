@@ -1,6 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { normalizeString, validateEmailFormat, validatePhoneFormat, validatePincodeFormat } from '../utils/validation.js';
-import { checkPincodeServiceability } from '../services/logisticsService.js';
+import { checkPincodeServiceability, getPincodeDetails } from '../services/logisticsService.js';
 
 /**
  * Address Controller - Handles server-side validation and storage.
@@ -109,5 +109,32 @@ export const saveAddress = async (req, res) => {
     res.status(201).json({ success: true, address: addressResult });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const lookupPincode = async (req, res) => {
+  try {
+    const { pincode } = req.params;
+
+    if (!pincode) {
+      return res.status(400).json({ success: false, message: 'Pincode is required.' });
+    }
+
+    const result = await getPincodeDetails(pincode);
+    
+    if (!result.success) {
+      return res.status(400).json({ 
+        success: false, 
+        message: result.message 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      data: result.data
+    });
+  } catch (error) {
+    console.error('Pincode lookup error:', error.message);
+    res.status(500).json({ success: false, message: 'Server error during pincode lookup.' });
   }
 };

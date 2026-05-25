@@ -224,6 +224,15 @@ export const createRazorpayOrder = async (req, res) => {
   } = req.body;
 
   try {
+    console.log('📨 REQUEST BODY:', {
+      amount,
+      currency,
+      paymentMethod,
+      itemsCount: items?.length,
+      shippingAddressKeys: Object.keys(shippingAddress || {}),
+      shippingAddress: shippingAddress
+    });
+
     logger.info('payments.create.request_received', {
       user_id: req.user?.id || null,
       payment_method: paymentMethod || null,
@@ -321,21 +330,57 @@ export const createRazorpayOrder = async (req, res) => {
       }
     };
 
-    razorpayOrder = await razorpay.orders.create(options);
-    
+    // In development, when Razorpay keys are missing or invalid, return a mock order
+    if (process.env.NODE_ENV === 'development' && (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET)) {
+      const mockOrder = {
+        id: `order_mock_${Date.now()}`,
+        amount: options.amount,
+        currency: options.currency,
+        receipt: options.receipt,
+        created_at: Math.floor(Date.now() / 1000),
+        paymentMethod: 'razorpay',
+        notes: options.notes || {}
+      };
+      razorpayOrder = mockOrder;
+    } else {
+      razorpayOrder = await razorpay.orders.create(options);
+    }
+
     res.json({
       ...razorpayOrder,
       paymentMethod: 'razorpay'
     });
 
   } catch (error) {
+    console.error('❌ PAYMENT CREATE ERROR:', {
+      message: error.message,
+      code: error.code,
+      statusCode: error.statusCode,
+      fullError: error
+    });
+    
+    // If it's Razorpay auth error, provide helpful message
+    if (error.statusCode === 401) {
+      logger.error('payments.create.razorpay_auth_error', {
+        user_id: req.user?.id || null,
+        payment_method: paymentMethod || null,
+        error: 'Invalid Razorpay credentials - check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env'
+      });
+      return res.status(500).json({ 
+        message: 'Payment gateway configuration error. Please contact support.',
+        details: 'Invalid Razorpay credentials'
+      });
+    }
+    
     logger.error('payments.create.error', {
       user_id: req.user?.id || null,
       payment_method: paymentMethod || null,
       error: error.message,
+      error_code: error.code,
+      error_status: error.statusCode,
       stack: error.stack,
     });
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message || 'Payment creation failed' });
   }
 };
 

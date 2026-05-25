@@ -14,15 +14,21 @@ const fetchPincode = async (pincode) => {
   if (_pincodeCache.has(pincode)) return _pincodeCache.get(pincode);
 
   try {
-    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
-    const data = await res.json();
-    const result = data?.[0];
-    if (result?.Status === 'Success') {
-      _pincodeCache.set(pincode, result);
-      return result;
+    console.log('🔍 Fetching pincode from backend:', pincode);
+    // Call backend instead of external API to avoid SSL certificate issues
+    const res = await api.get(`/address/${pincode}`);
+    const data = res.data;
+    console.log('📦 Backend response:', data);
+    
+    if (data?.success && data?.data?.PostOffice?.[0]) {
+      console.log('✅ Pincode data found:', data.data);
+      _pincodeCache.set(pincode, data.data);
+      return data.data;
+    } else {
+      console.warn('⚠️ Pincode not found or invalid response:', data);
     }
   } catch (err) {
-    console.error('Pincode fetch failed:', err);
+    console.error('❌ Pincode fetch failed:', err.message);
   }
   return null;
 };
@@ -65,8 +71,11 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
   const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
+    console.log('🔄 PincodeLookup effect triggered with pinCode:', pinCode);
+    
     // If pincode is empty or invalid format, clear city and state
     if (!pinCode || pinCode.length !== 6 || !/^[1-9][0-9]{5}$/.test(pinCode)) {
+      console.log('❌ Pincode invalid or incomplete:', { pinCode, length: pinCode?.length });
       if ( pinCode.length < 6) {
         // Only clear if pinCode is completely empty or too short, to avoid clearing on each keystroke during typing
         setFieldValue('city', '');
@@ -78,8 +87,10 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
 
     // Already cached — apply instantly, no spinner, no delay
     if (isPincodeCached(pinCode)) {
+      console.log('💾 Pincode cached, applying instantly');
       fetchPincode(pinCode).then((data) => {
         if (data?.PostOffice?.[0]) {
+          console.log('🎯 Setting city:', data.PostOffice[0].District, 'state:', data.PostOffice[0].State);
           setFieldValue('city', data.PostOffice[0].District);
           setFieldValue('state', data.PostOffice[0].State);
           setFieldError('pinCode', undefined);
@@ -90,17 +101,20 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
     }
 
     // Not cached — debounce then fetch
+    console.log('⏳ Debouncing API call...');
     const timer = setTimeout(async () => {
       setIsChecking(true);
       try {
         const data = await fetchPincode(pinCode);
         if (data?.PostOffice?.[0]) {
           const { District, State } = data.PostOffice[0];
+          console.log('✅ Success! Setting city:', District, 'state:', State);
           setFieldValue('city', District);
           setFieldValue('state', State);
           setFieldError('pinCode', undefined);
           localStorage.setItem('last_pincode', pinCode);
         } else {
+          console.warn('⚠️ No PostOffice data found');
           setFieldError('pinCode', 'Pincode not serviceable');
           setFieldValue('city', '');
           setFieldValue('state', '');
@@ -186,6 +200,28 @@ const Checkout = () => {
       document.body.appendChild(script);
     });
 
+  // Define restoreScroll at component level to avoid scope issues
+  const restoreScroll = () => {
+    const elements = [document.body, document.documentElement];
+    elements.forEach(el => {
+      if (el) {
+        el.style.setProperty('overflow', 'auto', 'important');
+        el.style.setProperty('overflow-y', 'auto', 'important');
+        el.style.position = '';
+        el.style.top = '';
+        el.style.width = '';
+        el.style.height = '';
+      }
+    });
+    document.body.classList.remove('razorpay-container');
+    const rzpUI = document.querySelectorAll('.razorpay-container, .razorpay-backdrop, iframe[src*="razorpay"]');
+    rzpUI.forEach(el => el.remove());
+    setTimeout(() => {
+      document.body.style.overflow = 'auto';
+      document.documentElement.style.overflow = 'auto';
+    }, 100);
+  };
+
   const handlePayment = async (values) => {
     setLoading(true);
     try {
@@ -254,34 +290,6 @@ const Checkout = () => {
       }
 
       console.log('Order data:', { id: order.id, amount: order.amount, currency: order.currency });
-
-      const restoreScroll = () => {
-        // 1. Force clear all possible scroll locks on both body and html
-        const elements = [document.body, document.documentElement];
-        elements.forEach(el => {
-          if (el) {
-            el.style.setProperty('overflow', 'auto', 'important');
-            el.style.setProperty('overflow-y', 'auto', 'important');
-            el.style.position = '';
-            el.style.top = '';
-            el.style.width = '';
-            el.style.height = '';
-          }
-        });
-
-        // 2. Remove Razorpay specific classes
-        document.body.classList.remove('razorpay-container');
-
-        // 3. Nuke any leftover Razorpay UI elements
-        const rzpUI = document.querySelectorAll('.razorpay-container, .razorpay-backdrop, iframe[src*="razorpay"]');
-        rzpUI.forEach(el => el.remove());
-        
-        // 4. Final safety backup
-        setTimeout(() => {
-          document.body.style.overflow = 'auto';
-          document.documentElement.style.overflow = 'auto';
-        }, 100);
-      };
 
       let razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
       if (!razorpayKey) {
