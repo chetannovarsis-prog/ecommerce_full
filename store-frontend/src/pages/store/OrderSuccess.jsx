@@ -94,7 +94,18 @@ const OrderSuccess = () => {
     { label: 'Delivered', icon: Home, completed: getStatusStep() >= 3 }
   ];
 
-  const shippingCharge = order?.paymentMethod === 'cod' ? 70 : 0;
+  const pricing = order?.shippingAddress?.pricing || {};
+  const parsedShippingCharge = Number(pricing.shippingCharge);
+  const parsedCodCharge = Number(pricing.codCharge);
+  const pin = String(order?.shippingAddress?.pinCode || '').trim();
+  const isIndianPin = /^[1-9][0-9]{5}$/.test(pin);
+  const countryGuess = order?.shippingAddress?.country || (isIndianPin ? 'India' : 'International');
+  const shippingCharge = Number.isFinite(parsedShippingCharge)
+    ? parsedShippingCharge
+    : (countryGuess === 'India' ? 0 : 300);
+  const codCharge = Number.isFinite(parsedCodCharge)
+    ? parsedCodCharge
+    : (order?.paymentMethod === 'cod' ? 70 : 0);
   const originalItemsSubtotal =
     order?.items?.reduce(
       (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
@@ -214,7 +225,7 @@ const OrderSuccess = () => {
                        <p>{order?.shippingAddress?.address}</p>
                        {order?.shippingAddress?.apartment && <p>{order?.shippingAddress?.apartment}</p>}
                        <p>{order?.shippingAddress?.city}, {order?.shippingAddress?.state} {order?.shippingAddress?.pinCode}</p>
-                       <p>IN</p>
+                       <p>{order?.shippingAddress?.country || countryGuess}</p>
                     </div>
                  </div>
                  <div className="space-y-4">
@@ -255,6 +266,12 @@ const OrderSuccess = () => {
                     <span>Shipping</span>
                     <span className="text-gray-900 font-medium">{shippingCharge ? `₹${shippingCharge}` : 'Free'}</span>
                   </div>
+                  {codCharge > 0 && (
+                    <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
+                      <span>COD</span>
+                      <span className="text-gray-900 font-medium">₹{codCharge}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center text-[0.95rem] font-medium text-gray-600">
                      <span>Taxes</span>
                      <span className="text-gray-900 font-medium">—</span>
