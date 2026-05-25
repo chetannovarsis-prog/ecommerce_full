@@ -4,6 +4,7 @@ import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, ChevronLeft, Heart, Ticke
 import { useStore } from '../../services/useStore';
 import { motion } from 'framer-motion';
 import api from '../../utils/api';
+import { getShippingCharge } from '../../utils/pricing';
 
 const CartPage = () => {
   const {
@@ -13,7 +14,8 @@ const CartPage = () => {
     appliedCoupon,
     applyCoupon,
     clearCoupon,
-    showToast
+    showToast,
+    checkoutCountry,
   } = useStore();
   const navigate = useNavigate();
   const customer = JSON.parse(localStorage.getItem('customer') || 'null');
@@ -33,7 +35,8 @@ const CartPage = () => {
   const totalQty = displayCart.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = displayCart.reduce((acc, item) => acc + item.selectedPrice * item.quantity, 0);
   const discountAmount = appliedCoupon ? (appliedCoupon.type === 'FLAT' ? Math.round(appliedCoupon.value || appliedCoupon.percentage) : Math.round((subtotal * (appliedCoupon.value || appliedCoupon.percentage)) / 100)) : 0;
-  const finalTotal = Math.max(0, subtotal - discountAmount);
+  const shippingCharge = getShippingCharge(checkoutCountry);
+  const finalTotal = Math.max(0, subtotal - discountAmount + shippingCharge);
 
   const handleApplyCoupon = async () => {
     const normalizedCode = couponCode.trim().toUpperCase();
@@ -302,8 +305,10 @@ const CartPage = () => {
                   )}
 
                   <div className="flex justify-between font-semibold text-sm text-gray-400">
-                    <span>Estimated Shipping</span>
-                    <span className="text-emerald-500">Standard Rates</span>
+                    <span>Shipping Charge</span>
+                    <span className={shippingCharge > 0 ? 'text-gray-900 font-black' : 'text-emerald-500 font-black'}>
+                      ₹{Math.round(shippingCharge)}
+                    </span>
                   </div>
                 </div>
 

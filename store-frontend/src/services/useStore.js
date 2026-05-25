@@ -8,6 +8,7 @@ export const useStore = create(
       wishlist: [],
       toast: null,
       appliedCoupon: null,
+      checkoutCountry: 'India',
       productsCache: null, // Cache for product listings
       productsCacheTimestamp: null,
 
@@ -178,6 +179,9 @@ export const useStore = create(
       clearCoupon: () => set({ appliedCoupon: null }),
 
       clearCart: () => set({ cart: [], appliedCoupon: null }),
+
+      setCheckoutCountry: (country) =>
+        set({ checkoutCountry: String(country || 'India').trim() || 'India' }),
 
       // Product caching methods
       cacheProducts: (products) => set({ 

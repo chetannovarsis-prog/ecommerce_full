@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import api from '../../utils/api';
 import { useStore } from '../../services/useStore';
 import { ChevronLeft, Loader2 } from 'lucide-react';
+import { calcOrderTotals, isIndia } from '../../utils/pricing';
 
 // ─── Pincode Cache (module-level, survives re-renders) ───────────────────────
 const _pincodeCache = new Map();
@@ -46,31 +47,76 @@ const sanitizeNumberInput = (value) => {
   return String(value).replace(/\D/g, '');
 };
 
+const COUNTRY_CALLING_CODES = [
+  { label: 'USA (+1)', code: '1' },
+  { label: 'UK (+44)', code: '44' },
+  { label: 'UAE (+971)', code: '971' },
+  { label: 'Canada (+1)', code: '1' },
+  { label: 'Australia (+61)', code: '61' },
+  { label: 'Germany (+49)', code: '49' },
+  { label: 'France (+33)', code: '33' },
+  { label: 'Singapore (+65)', code: '65' },
+];
+
 const validationSchema = Yup.object({
+  country: Yup.string().required('Country is required'),
+  countryCode: Yup.string().when('country', {
+    is: (c) => isIndia(c),
+    then: (schema) => schema.notRequired(),
+    otherwise: (schema) =>
+      schema
+        .matches(/^\d{1,3}$/, 'Invalid country code')
+        .required('Country code is required'),
+  }),
   email: Yup.string().email('Please enter a valid email address').required('Email is required'),
   firstName: Yup.string().min(3, 'First name must be at least 3 characters').required('First name is required'),
   lastName: Yup.string().required('Last name is required'),
   address: Yup.string().min(10, 'Address must be at least 10 characters').required('Address is required'),
   apartment: Yup.string(),
   city: Yup.string().required('City is required'),
-  state: Yup.string().required('State is required'),
-  pinCode: Yup.string()
-    .matches(/^[1-9][0-9]{5}$/, 'Please enter a valid 6-digit PIN code')
-    .required('PIN code is required'),
-  phone: Yup.string()
-    .test('valid-indian-phone', 'Please enter a valid 10-digit phone number starting with 6-9', (value) => {
-      if (!value) return false;
-      return /^[6-9]\d{9}$/.test(normalizeIndianPhone(value));
-    })
-    .required('Phone number is required'),
+  state: Yup.string().when('country', {
+    is: (c) => isIndia(c),
+    then: (schema) => schema.required('State is required'),
+    otherwise: (schema) => schema.notRequired(),
+  }),
+  pinCode: Yup.string().when('country', {
+    is: (c) => isIndia(c),
+    then: (schema) =>
+      schema
+        .matches(/^[1-9][0-9]{5}$/, 'Please enter a valid 6-digit PIN code')
+        .required('PIN code is required'),
+    otherwise: (schema) =>
+      schema
+        .min(3, 'Postal code is too short')
+        .max(12, 'Postal code is too long')
+        .required('Postal/ZIP code is required'),
+  }),
+  phone: Yup.string().when('country', {
+    is: (c) => isIndia(c),
+    then: (schema) =>
+      schema
+        .test('valid-indian-phone', 'Please enter a valid 10-digit phone number starting with 6-9', (value) => {
+          if (!value) return false;
+          return /^[6-9]\d{9}$/.test(normalizeIndianPhone(value));
+        })
+        .required('Phone number is required'),
+    otherwise: (schema) =>
+      schema
+        .test('valid-intl-phone', 'Please enter a valid 10-digit mobile number', (value) => {
+          const digits = sanitizeNumberInput(value);
+          return /^[1-9]\d{9}$/.test(digits);
+        })
+        .required('Phone number is required'),
+  }),
   paymentMethod: Yup.string().required(),
 });
 
 // ─── PincodeLookup Component ─────────────────────────────────────────────────
-const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched }) => {
+const PincodeLookup = ({ pinCode, country, setFieldValue, setFieldError, setFieldTouched }) => {
   const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
+    if (!isIndia(country)) return;
     console.log('🔄 PincodeLookup effect triggered with pinCode:', pinCode);
     
     // If pincode is empty or invalid format, clear city and state
@@ -126,7 +172,7 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [pinCode]);
+  }, [pinCode, country]);
 
   if (isChecking) {
     return (
@@ -140,7 +186,7 @@ const PincodeLookup = ({ pinCode, setFieldValue, setFieldError, setFieldTouched 
 
 // ─── Main Checkout Component ──────────────────────────────────────────────────
 const Checkout = () => {
-  const { cart, clearCart, appliedCoupon } = useStore();
+  const { cart, clearCart, appliedCoupon, checkoutCountry, setCheckoutCountry } = useStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(null);
@@ -225,10 +271,13 @@ const Checkout = () => {
   const handlePayment = async (values) => {
     setLoading(true);
     try {
-      const normalizedPhone = normalizeIndianPhone(values.phone);
+      const normalizedPhone = isIndia(values.country)
+        ? normalizeIndianPhone(values.phone)
+        : `+${sanitizeNumberInput(values.countryCode)}${sanitizeNumberInput(values.phone).slice(0, 10)}`;
 
       const backendVal = await api.post('/address/validate', {
         ...values,
+        country: values.country,
         phone: normalizedPhone,
         pincode: values.pinCode,
         addressLine1: values.address,
@@ -242,8 +291,13 @@ const Checkout = () => {
         return;
       }
 
-      const shippingCharge = values.paymentMethod === 'cod' ? 70 : 0;
-      const totalAmount = discountedSubtotal + shippingCharge;
+      const { shippingCharge, codCharge, finalTotal } = calcOrderTotals({
+        subtotal,
+        couponDiscount,
+        country: values.country,
+        paymentMethod: values.paymentMethod,
+      });
+      const totalAmount = finalTotal;
 
       const orderData = {
         amount: totalAmount,
@@ -262,7 +316,9 @@ const Checkout = () => {
         paymentMethod: values.paymentMethod,
         couponCode: appliedCoupon?.code || null,
         couponDiscount,
-        shippingAddress: { ...values, phone: normalizedPhone },
+        shippingCharge,
+        codCharge,
+        shippingAddress: { ...values, country: values.country, countryCode: values.countryCode, phone: normalizedPhone },
       };
 
       const { data: order } = await api.post('/payments/create', orderData);
@@ -372,6 +428,8 @@ const Checkout = () => {
   };
 
   const initialValues = {
+    country: checkoutCountry || 'India',
+    countryCode: isIndia(checkoutCountry || 'India') ? '91' : '1',
     email: customer?.email || '',
     firstName: customer?.name?.split(' ')[0] || '',
     lastName: customer?.name?.split(' ').slice(1).join(' ') || '',
@@ -425,7 +483,15 @@ const Checkout = () => {
         onSubmit={handlePayment}
         enableReinitialize
       >
-        {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => (
+        {({ values, errors, touched, setFieldValue, setFieldError, setFieldTouched }) => {
+          const { shippingCharge, codCharge, finalTotal } = calcOrderTotals({
+            subtotal,
+            couponDiscount,
+            country: values.country,
+            paymentMethod: values.paymentMethod,
+          });
+
+          return (
           <Form>
             <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2">
 
@@ -476,6 +542,36 @@ const Checkout = () => {
                 <section className="space-y-6">
                   <h2 className="text-lg font-black tracking-tight">Delivery</h2>
                   <div className="space-y-4">
+                    {/* Country */}
+                    <div className="space-y-2">
+                      <Field
+                        as="select"
+                        name="country"
+                        className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-white"
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setFieldValue('country', next);
+                          setCheckoutCountry(next);
+                          if (isIndia(next)) {
+                            setFieldValue('countryCode', '91');
+                            const cleaned = sanitizeNumberInput(values.pinCode).slice(0, 6);
+                            setFieldValue('pinCode', cleaned);
+                            setFieldValue('phone', sanitizeNumberInput(values.phone).slice(0, 10));
+                          }
+                          if (!isIndia(next)) {
+                            setFieldValue('countryCode', values.countryCode || '1');
+                          }
+                        }}
+                      >
+                        <option value="India">India</option>
+                        <option value="International">Outside India</option>
+                      </Field>
+                      <ErrorMessage
+                        name="country"
+                        component="p"
+                        className="text-[0.65rem] text-red-600 font-bold uppercase"
+                      />
+                    </div>
 
                     {/* Saved addresses */}
                     {savedAddresses.length > 0 && (
@@ -483,6 +579,9 @@ const Checkout = () => {
                         onChange={(e) => {
                           const addr = savedAddresses.find((a) => a.id === e.target.value);
                           if (addr) {
+                            setFieldValue('country', 'India');
+                            setCheckoutCountry('India');
+                            setFieldValue('countryCode', '91');
                             setFieldValue('firstName', addr.name?.split(' ')[0] || '');
                             setFieldValue('lastName', addr.name?.split(' ').slice(1).join(' ') || '');
                             setFieldValue('address', addr.addressLine1);
@@ -570,28 +669,54 @@ const Checkout = () => {
                       <div className="relative col-span-1">
                         <Field
                           name="pinCode"
-                          placeholder="PIN code"
-                          maxLength={6}
-                          inputMode="numeric"
+                          placeholder={isIndia(values.country) ? "PIN code" : "Postal/ZIP code"}
+                          maxLength={isIndia(values.country) ? 6 : 12}
+                          inputMode={isIndia(values.country) ? 'numeric' : 'text'}
                           className={`w-full p-4 border rounded-sm text-sm outline-none transition-colors ${
                             touched.pinCode && errors.pinCode
                               ? 'border-red-500 bg-red-50/30 focus:border-red-600'
                               : 'border-gray-200 focus:border-blue-500'
                           }`}
                           onChange={(e) => {
-                            const cleaned = sanitizeNumberInput(e.target.value);
-                            setFieldValue('pinCode', cleaned);
+                            if (isIndia(values.country)) {
+                              const cleaned = sanitizeNumberInput(e.target.value).slice(0, 6);
+                              setFieldValue('pinCode', cleaned);
+                            } else {
+                              const cleaned = String(e.target.value || '')
+                                .replace(/[^a-zA-Z0-9\\-\\s]/g, '')
+                                .trimStart()
+                                .slice(0, 12);
+                              setFieldValue('pinCode', cleaned);
+                              const digitsOnly = cleaned.replace(/\D/g, '');
+                              if (digitsOnly.length === 6) {
+                                setFieldValue('country', 'India');
+                                setCheckoutCountry('India');
+                                setFieldValue('pinCode', digitsOnly);
+                              }
+                            }
                           }}
                           onBlur={(e) => {
                             setFieldTouched('pinCode', true);
                           }}
                         />
-                        <PincodeLookup
-                          pinCode={values.pinCode}
-                          setFieldValue={setFieldValue}
-                          setFieldError={setFieldError}
-                          setFieldTouched={setFieldTouched}
-                        />
+                        {isIndia(values.country) && (
+                          <PincodeLookup
+                            pinCode={values.pinCode}
+                            country={values.country}
+                            setFieldValue={setFieldValue}
+                            setFieldError={setFieldError}
+                            setFieldTouched={setFieldTouched}
+                          />
+                        )}
+                        {!isIndia(values.country) && (
+                          <InternationalPostalLookup
+                            postalCode={values.pinCode}
+                            country={values.country}
+                            setFieldValue={setFieldValue}
+                            setFieldError={setFieldError}
+                            setFieldTouched={setFieldTouched}
+                          />
+                        )}
                         <ErrorMessage
                           name="pinCode"
                           component="p"
@@ -602,8 +727,10 @@ const Checkout = () => {
                         <Field
                           name="city"
                           placeholder="City"
-                          readOnly
-                          className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50 truncate"
+                          readOnly={isIndia(values.country)}
+                          className={`w-full p-4 border border-gray-200 rounded-sm text-sm truncate ${
+                            isIndia(values.country) ? 'bg-gray-50' : 'bg-white'
+                          }`}
                           title={values.city}
                         />
                       </div>
@@ -611,8 +738,10 @@ const Checkout = () => {
                         <Field
                           name="state"
                           placeholder="State"
-                          readOnly
-                          className="w-full p-4 border border-gray-200 rounded-sm text-sm bg-gray-50 truncate"
+                          readOnly={isIndia(values.country)}
+                          className={`w-full p-4 border border-gray-200 rounded-sm text-sm truncate ${
+                            isIndia(values.country) ? 'bg-gray-50' : 'bg-white'
+                          }`}
                           title={values.state}
                         />
                       </div>
@@ -620,24 +749,73 @@ const Checkout = () => {
 
                     {/* Phone */}
                     <div className="space-y-2">
-                      <Field
-                        name="phone"
-                        placeholder="Phone (10 digits)"
-                        inputMode="numeric"
-                        maxLength={10}
-                        className={`w-full p-4 border rounded-sm text-sm outline-none transition-colors ${
-                          touched.phone && errors.phone
-                            ? 'border-red-500 bg-red-50/30 focus:border-red-600'
-                            : 'border-gray-200 focus:border-blue-500'
-                        }`}
-                        onChange={(e) => {
-                          const cleaned = sanitizeNumberInput(e.target.value);
-                          setFieldValue('phone', cleaned);
-                        }}
-                        onBlur={(e) => {
-                          setFieldTouched('phone', true);
-                        }}
-                      />
+                      {isIndia(values.country) ? (
+                        <div className="flex gap-3">
+                          <div className="w-[120px] p-4 border border-gray-200 rounded-sm text-sm bg-gray-50 text-gray-600 font-bold flex items-center justify-center">
+                            +91
+                          </div>
+                          <Field
+                            name="phone"
+                            placeholder="Mobile number (10 digits)"
+                            inputMode="numeric"
+                            maxLength={10}
+                            className={`flex-1 p-4 border rounded-sm text-sm outline-none transition-colors ${
+                              touched.phone && errors.phone
+                                ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                                : 'border-gray-200 focus:border-blue-500'
+                            }`}
+                            onChange={(e) => {
+                              const cleaned = sanitizeNumberInput(e.target.value).slice(0, 10);
+                              setFieldValue('phone', cleaned);
+                            }}
+                            onBlur={() => setFieldTouched('phone', true)}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <Field
+                            as="select"
+                            name="countryCode"
+                            className={`w-[190px] p-4 border rounded-sm text-sm bg-white outline-none transition-colors ${
+                              touched.countryCode && errors.countryCode
+                                ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                                : 'border-gray-200 focus:border-blue-500'
+                            }`}
+                            onChange={(e) => setFieldValue('countryCode', sanitizeNumberInput(e.target.value).slice(0, 3))}
+                            onBlur={() => setFieldTouched('countryCode', true)}
+                          >
+                            {COUNTRY_CALLING_CODES.map((c) => (
+                              <option key={`${c.code}-${c.label}`} value={c.code}>
+                                {c.label}
+                              </option>
+                            ))}
+                          </Field>
+
+                          <Field
+                            name="phone"
+                            placeholder="Mobile number (10 digits)"
+                            inputMode="numeric"
+                            maxLength={10}
+                            className={`flex-1 p-4 border rounded-sm text-sm outline-none transition-colors ${
+                              touched.phone && errors.phone
+                                ? 'border-red-500 bg-red-50/30 focus:border-red-600'
+                                : 'border-gray-200 focus:border-blue-500'
+                            }`}
+                            onChange={(e) => {
+                              const cleaned = sanitizeNumberInput(e.target.value).slice(0, 10);
+                              setFieldValue('phone', cleaned);
+                            }}
+                            onBlur={() => setFieldTouched('phone', true)}
+                          />
+                        </div>
+                      )}
+                      {!isIndia(values.country) && (
+                        <ErrorMessage
+                          name="countryCode"
+                          component="p"
+                          className="text-[0.65rem] text-red-600 font-bold uppercase flex items-center gap-1"
+                        />
+                      )}
                       <ErrorMessage
                         name="phone"
                         component="p"
@@ -698,23 +876,21 @@ const Checkout = () => {
                       </div>
                     )}
                     <div className="flex justify-between text-[0.7rem] font-black uppercase text-gray-500">
-                      <span>Shipping</span>
-                      <span>{values.paymentMethod === 'cod' ? (
-                        <>
-                          <span className="line-through text-gray-300 mr-2">₹100</span>
-                          <span className="text-black">₹0</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="line-through text-gray-300 mr-2">₹100</span>
-                          <span className="text-black">₹0</span>
-                        </>
-                      )}</span>
+                      <span>Shipping Charge</span>
+                      <span className={shippingCharge > 0 ? 'text-black' : 'text-emerald-600'}>
+                        ₹{Math.round(shippingCharge)}
+                      </span>
                     </div>
+                    {codCharge > 0 && (
+                      <div className="flex justify-between text-[0.7rem] font-black uppercase text-gray-500">
+                        <span>COD Charge</span>
+                        <span className="text-black">₹{Math.round(codCharge)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-xl font-black uppercase pt-4 border-t">
                       <span>Total</span>
                       <span>
-                        ₹{Math.round(discountedSubtotal + (values.paymentMethod === 'cod' ? 70 : 0))}
+                        ₹{Math.round(finalTotal)}
                       </span>
                     </div>
 
@@ -762,9 +938,9 @@ const Checkout = () => {
                       {loading ? (
                         <Loader2 className="animate-spin mx-auto" />
                       ) : values.paymentMethod === 'razorpay' ? (
-                        `Pay ₹${Math.round(discountedSubtotal)}`
+                        `Pay ₹${Math.round(finalTotal)}`
                       ) : (
-                        `Complete Order — ₹${Math.round(discountedSubtotal + 70)}`
+                        `Complete Order — ₹${Math.round(finalTotal)}`
                       )}
                     </button>
                   </div>
@@ -773,10 +949,56 @@ const Checkout = () => {
 
             </div>
           </Form>
-        )}
+          );
+        }}
       </Formik>
     </div>
   );
+};
+
+const InternationalPostalLookup = ({ postalCode, country, setFieldValue, setFieldError, setFieldTouched }) => {
+  const [isChecking, setIsChecking] = useState(false);
+
+  useEffect(() => {
+    if (isIndia(country)) return;
+
+    const code = String(postalCode || '').trim();
+    if (!code || code.length < 3) {
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsChecking(true);
+      try {
+        const res = await api.get(`/address/intl/${encodeURIComponent(code)}`);
+        const data = res?.data?.data;
+        if (res?.data?.success && data) {
+          if (data.city) setFieldValue('city', data.city);
+          if (data.state) setFieldValue('state', data.state);
+          setFieldError('pinCode', undefined);
+        } else {
+          setFieldError('pinCode', 'Postal code not found');
+        }
+      } catch (err) {
+        setFieldError('pinCode', 'Postal code not found');
+      } finally {
+        setIsChecking(false);
+        setFieldTouched('pinCode', true);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [postalCode, country]);
+
+  if (isChecking) {
+    return (
+      <span className="absolute right-4 top-4 animate-spin text-blue-500">
+        <Loader2 size={16} />
+      </span>
+    );
+  }
+
+  return null;
 };
 
 export default Checkout;

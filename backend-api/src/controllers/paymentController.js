@@ -6,6 +6,7 @@ import { sendMail, TEMPLATES, sendInvoiceEmail } from '../utils/mailer.js';
 import { generateInvoice } from '../utils/invoiceGenerator.js';
 import { notifyOrderCreated, notifyPaymentSuccess } from '../services/notificationService.js';
 import { logger } from '../utils/logger.js';
+import { calculateOrderTotals } from '../utils/orderPricing.js';
 
 const reduceInventory = async (orderId) => {
   try {
@@ -213,18 +214,39 @@ const normalizeAddressForSave = (shippingAddress = {}, customerName = '', custom
 
 export const createRazorpayOrder = async (req, res) => {
   const {
-    amount,
+    amount: requestedAmount,
     currency = 'INR',
     receipt,
     items,
     customerEmail,
     customerName,
     paymentMethod,
-    shippingAddress
+    shippingAddress,
+    couponCode
   } = req.body;
 
   try {
+    const resolvedCountry =
+      shippingAddress?.country ||
+      (shippingAddress?.pinCode && /^[1-9][0-9]{5}$/.test(String(shippingAddress.pinCode)) ? 'India' : null) ||
+      'India';
+
+    const normalizedCouponCode = couponCode ? String(couponCode).trim().toUpperCase() : null;
+    const coupon = normalizedCouponCode
+      ? await prisma.coupon.findUnique({ where: { code: normalizedCouponCode } })
+      : null;
+
+    const totals = calculateOrderTotals({
+      items,
+      coupon: coupon?.isActive ? coupon : null,
+      country: resolvedCountry,
+      paymentMethod,
+    });
+
+    const amount = totals.finalTotal;
+
     console.log('📨 REQUEST BODY:', {
+      requestedAmount,
       amount,
       currency,
       paymentMethod,
@@ -238,7 +260,9 @@ export const createRazorpayOrder = async (req, res) => {
       payment_method: paymentMethod || null,
       status: 'requested',
       item_count: Array.isArray(items) ? items.length : 0,
-      amount,
+      requested_amount: requestedAmount,
+      calculated_amount: amount,
+      shipping_country: resolvedCountry,
     });
 
     // 1. Check if COD is allowed
@@ -261,6 +285,14 @@ export const createRazorpayOrder = async (req, res) => {
         paymentMethod: 'cod',
         shippingAddress: {
           ...shippingAddress,
+          country: resolvedCountry,
+          pricing: {
+            subtotal: totals.subtotal,
+            couponDiscount: totals.couponDiscount,
+            shippingCharge: totals.shippingCharge,
+            codCharge: totals.codCharge,
+            finalTotal: totals.finalTotal,
+          },
           email: shippingAddress?.email || customerEmail || null,
           fullName: shippingAddress?.fullName ||
             [shippingAddress?.firstName, shippingAddress?.lastName].filter(Boolean).join(' ') ||
@@ -296,15 +328,15 @@ export const createRazorpayOrder = async (req, res) => {
       await logActivity(order.id, 'ORDER_PLACED_COD_PENDING', 'Order placed with COD.');
 
       // Increment coupon usage if used
-      if (req.body.couponCode) {
+      if (normalizedCouponCode) {
         try {
           await prisma.coupon.update({
-            where: { code: req.body.couponCode },
+            where: { code: normalizedCouponCode },
             data: { usedCount: { increment: 1 } }
           });
         } catch (couponErr) {
           logger.error('payments.create.coupon_increment.error', {
-            coupon_code: req.body.couponCode,
+            coupon_code: normalizedCouponCode,
             error: couponErr?.message || String(couponErr)
           });
         }
@@ -461,12 +493,40 @@ export const verifyPayment = async (req, res) => {
 
     const rpOrder = await razorpay.orders.fetch(razorpay_order_id);
 
-    const subtotal = orderData.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const paidAmount = rpOrder.amount / 100;
 
+    const resolvedCountry =
+      orderData?.shippingAddress?.country ||
+      (orderData?.shippingAddress?.pinCode && /^[1-9][0-9]{5}$/.test(String(orderData.shippingAddress.pinCode)) ? 'India' : null) ||
+      'India';
+
+    const normalizedCouponCode = orderData?.couponCode ? String(orderData.couponCode).trim().toUpperCase() : null;
+    const coupon = normalizedCouponCode
+      ? await prisma.coupon.findUnique({ where: { code: normalizedCouponCode } })
+      : null;
+
+    const totals = calculateOrderTotals({
+      items: orderData?.items || [],
+      coupon: coupon?.isActive ? coupon : null,
+      country: resolvedCountry,
+      paymentMethod: 'razorpay',
+    });
+
+    if (Math.round(paidAmount) !== Math.round(totals.finalTotal)) {
+      logger.warn('payments.verify.amount_mismatch', {
+        razorpay_order_id,
+        razorpay_payment_id,
+        paid_amount: paidAmount,
+        expected_amount: totals.finalTotal,
+        shipping_country: resolvedCountry,
+        coupon_code: normalizedCouponCode,
+      });
+      return res.status(400).json({ message: 'Order amount mismatch. Please contact support.' });
+    }
+
     logger.info('💰 PAYMENT_DETAILS', {
-      subtotal,
       paidAmount,
+      expectedAmount: totals.finalTotal,
       razorpay_amount: rpOrder.amount
     });
 
@@ -506,6 +566,14 @@ export const verifyPayment = async (req, res) => {
       paymentMethod: 'razorpay',
       shippingAddress: {
         ...orderData.shippingAddress,
+        country: resolvedCountry,
+        pricing: {
+          subtotal: totals.subtotal,
+          couponDiscount: totals.couponDiscount,
+          shippingCharge: totals.shippingCharge,
+          codCharge: totals.codCharge,
+          finalTotal: totals.finalTotal,
+        },
         email: orderData.shippingAddress?.email || orderData.customerEmail || null,
         fullName: orderData.shippingAddress?.fullName || orderData.customerName || null,
       },

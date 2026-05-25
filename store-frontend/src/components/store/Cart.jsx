@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, Plus, Minus, Heart, ArrowRight } from 'lucide-react';
 import { useStore } from '../../services/useStore';
 import { Link, useNavigate } from 'react-router-dom';
+import { getShippingCharge } from '../../utils/pricing';
 
 const Cart = () => {
-  const { cart, isCartOpen, setCartOpen, removeFromCart, updateCartQuantity } = useStore();
+  const { cart, isCartOpen, setCartOpen, removeFromCart, updateCartQuantity, checkoutCountry } = useStore();
   const navigate = useNavigate();
   const customer = localStorage.getItem('customer');
 
@@ -22,6 +23,8 @@ const Cart = () => {
   const displayCart = Object.values(groupedCart);
 
   const subtotal = displayCart.reduce((acc, item) => acc + (item.selectedPrice * item.quantity), 0);
+  const shippingCharge = getShippingCharge(checkoutCountry);
+  const finalTotal = Math.max(0, Math.round(subtotal) + Math.round(shippingCharge));
 
   return (
     <AnimatePresence>
@@ -183,14 +186,16 @@ const Cart = () => {
                     <span className="text-gray-900">₹{subtotal}</span>
                   </div>
                   <div className="flex justify-between text-gray-400">
-                    <span>Shipping</span>
-                    <span className="text-emerald-500 font-bold uppercase">Calculated in next step</span>
+                    <span>Shipping Charge</span>
+                    <span className={shippingCharge > 0 ? 'text-gray-900 font-black' : 'text-emerald-500 font-black'}>
+                      ₹{Math.round(shippingCharge)}
+                    </span>
                   </div>
                 </div>
                 <div className="pt-8 border-t border-gray-200">
                   <div className="flex justify-between text-2xl mb-8 italic">
                     <span>Total</span>
-                    <span>₹{subtotal}</span>
+                    <span>₹{finalTotal}</span>
                   </div>
                   <button 
                     onClick={() => {

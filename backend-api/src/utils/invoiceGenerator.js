@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import prisma from './prisma.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getShippingCharge, getCodCharge } from './orderPricing.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -283,7 +284,25 @@ export const generateInvoice = async (orderOrId) => {
 
       // Amounts (Right)
       const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-      const shipping = order.paymentMethod === 'cod' ? 70 : 0;
+
+      const pricing = order.shippingAddress?.pricing || {};
+      const parsedShippingCharge = Number(pricing.shippingCharge);
+      const parsedCodCharge = Number(pricing.codCharge);
+
+      const countryGuess =
+        order.shippingAddress?.country ||
+        (order.shippingAddress?.pinCode && /^[1-9][0-9]{5}$/.test(String(order.shippingAddress.pinCode)) ? 'India' : null) ||
+        'India';
+
+      const shippingCharge = Number.isFinite(parsedShippingCharge)
+        ? parsedShippingCharge
+        : getShippingCharge(countryGuess);
+
+      const codCharge = Number.isFinite(parsedCodCharge)
+        ? parsedCodCharge
+        : getCodCharge(order.paymentMethod);
+
+      const shipping = Math.max(0, Math.round(shippingCharge + codCharge));
 
       const rightMargin = 30; // Add space from right edge
       const labelX = pageWidth - margin - 180 - rightMargin;
