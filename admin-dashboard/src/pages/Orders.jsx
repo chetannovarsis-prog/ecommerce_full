@@ -128,12 +128,22 @@ const Orders = () => {
       case 'delivered': return 'text-emerald-600 bg-emerald-500/10';
       case 'pending':
       case 'cod_pending':
+      case 'payment_pending':
       case 'processing': return 'text-amber-500 bg-amber-500/10';
       case 'cancelled':
       case 'canceled':
       case 'failed': return 'text-red-500 bg-red-500/10';
       default: return 'text-gray-500 bg-gray-500/10';
     }
+  };
+
+  const getStatusLabel = (order) => {
+    const raw = String(order?.rawStatus || '').trim();
+    if (raw) {
+      if (raw.toUpperCase() === 'PAYMENT_PENDING') return 'PAYMENT PENDING';
+      return raw;
+    }
+    return order?.status || 'Pending';
   };
 
 
@@ -202,7 +212,10 @@ const Orders = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                     {orders.map((order) => {
-                      const normalizedStatus = String(order.status || '').toLowerCase();
+                      const normalizedLifecycleStatus = String(order.status || '').toLowerCase();
+                      const normalizedRawStatus = String(order.rawStatus || '').toLowerCase();
+                      const isPaymentPending = normalizedRawStatus === 'payment_pending';
+                      const statusForColor = order.rawStatus || order.status;
                       return (
                       <tr 
                         key={order.id} 
@@ -214,8 +227,8 @@ const Orders = () => {
                         <td className="px-6 py-4 text-gray-500 dark:text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
                         <td className="px-6 py-4 text-gray-900 dark:text-white font-black">₹{order.total}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-md text-[0.6rem] font-black uppercase tracking-widest ${getStatusColor(order.status)}`}>
-                            {order.status || 'Pending'}
+                          <span className={`px-2 py-1 rounded-md text-[0.6rem] font-black uppercase tracking-widest ${getStatusColor(statusForColor)}`}>
+                            {getStatusLabel(order)}
                           </span>
                           {order.returnRequest && order.returnRequest.status === 'PENDING' && (
                             <span className={`ml-2 px-2 py-1 rounded-md text-[0.6rem] font-black uppercase tracking-widest ${order.returnRequest.type === 'EXCHANGE' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>
@@ -224,7 +237,7 @@ const Orders = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          {normalizedStatus !== 'delivered' && !['cancelled', 'canceled', 'failed'].includes(normalizedStatus) && (
+                          {normalizedLifecycleStatus !== 'delivered' && !['cancelled', 'canceled', 'failed'].includes(normalizedLifecycleStatus) && !isPaymentPending && (
                             <button
                               onClick={(e) => handleMarkDelivered(e, order.id)}
                               disabled={statusUpdatingOrderId === order.id}

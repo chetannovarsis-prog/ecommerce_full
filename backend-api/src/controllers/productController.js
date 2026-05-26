@@ -26,6 +26,12 @@ const parseOptionalFloat = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const parsePatchNumber = (value) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
 const buildProductSaveError = (error, action = 'save') => {
   const response = {
     message: `Failed to ${action} product.`,
@@ -143,9 +149,9 @@ export const createProduct = async (req, res) => {
       }
     }
 
-    const sanitizedPrice = isNaN(parseFloat(price)) ? 0 : parseFloat(price);
-    const sanitizedStock = isNaN(parseInt(stock)) ? 0 : parseInt(stock);
-    const sanitizedDiscountPrice = isDiscountable ? (isNaN(parseFloat(discountPrice)) ? 0 : parseFloat(discountPrice)) : null;
+    const sanitizedPrice = parsePatchNumber(price) ?? 0;
+    const sanitizedStock = parsePatchNumber(stock) ?? 0;
+    const sanitizedDiscountPrice = isDiscountable ? (parsePatchNumber(discountPrice) ?? 0) : null;
     const sanitizedWeight = parseOptionalFloat(weight);
     const sanitizedLength = parseOptionalFloat(length);
     const sanitizedBreadth = parseOptionalFloat(breadth);
@@ -216,9 +222,9 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    const sanitizedPrice = isNaN(parseFloat(price)) ? undefined : parseFloat(price);
-    const sanitizedStock = isNaN(parseInt(stock)) ? undefined : parseInt(stock);
-    const sanitizedDiscountPrice = isDiscountable ? (isNaN(parseFloat(discountPrice)) ? 0 : parseFloat(discountPrice)) : null;
+    const sanitizedPrice = parsePatchNumber(price);
+    const sanitizedStock = parsePatchNumber(stock);
+    const sanitizedDiscountPrice = isDiscountable ? (parsePatchNumber(discountPrice) ?? 0) : null;
     const sanitizedWeight = weight === undefined ? undefined : parseOptionalFloat(weight);
     const sanitizedLength = length === undefined ? undefined : parseOptionalFloat(length);
     const sanitizedBreadth = breadth === undefined ? undefined : parseOptionalFloat(breadth);
@@ -300,13 +306,37 @@ export const patchProduct = async (req, res) => {
     delete data.categories;
     delete data.collections;
 
-    // Convert numeric fields if present, handling 0 correctly
-    if (data.price !== undefined) data.price = parseFloat(data.price);
-    if (data.stock !== undefined) data.stock = parseInt(data.stock);
-    if (data.weight !== undefined) data.weight = parseOptionalFloat(data.weight);
-    if (data.length !== undefined) data.length = parseOptionalFloat(data.length);
-    if (data.breadth !== undefined) data.breadth = parseOptionalFloat(data.breadth);
-    if (data.height !== undefined) data.height = parseOptionalFloat(data.height);
+    // Convert numeric fields if present, handling blank inputs safely
+    if (data.price !== undefined) {
+      const parsedPrice = parsePatchNumber(data.price);
+      if (parsedPrice !== undefined) data.price = parsedPrice;
+      else delete data.price;
+    }
+    if (data.stock !== undefined) {
+      const parsedStock = parsePatchNumber(data.stock);
+      if (parsedStock !== undefined) data.stock = parsedStock;
+      else delete data.stock;
+    }
+    if (data.weight !== undefined) {
+      const parsedWeight = parseOptionalFloat(data.weight);
+      if (parsedWeight !== null) data.weight = parsedWeight;
+      else delete data.weight;
+    }
+    if (data.length !== undefined) {
+      const parsedLength = parseOptionalFloat(data.length);
+      if (parsedLength !== null) data.length = parsedLength;
+      else delete data.length;
+    }
+    if (data.breadth !== undefined) {
+      const parsedBreadth = parseOptionalFloat(data.breadth);
+      if (parsedBreadth !== null) data.breadth = parsedBreadth;
+      else delete data.breadth;
+    }
+    if (data.height !== undefined) {
+      const parsedHeight = parseOptionalFloat(data.height);
+      if (parsedHeight !== null) data.height = parsedHeight;
+      else delete data.height;
+    }
     if (data.name && !data.handle) {
       data.handle = data.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     }

@@ -212,7 +212,97 @@ const normalizeAddressForSave = (shippingAddress = {}, customerName = '', custom
     null
 });
 
+const validateCheckoutPayload = ({ items, shippingAddress, customerEmail, customerName }) => {
+  const missing = [];
+
+  const resolvedEmail = String(shippingAddress?.email || customerEmail || '').trim();
+  const resolvedName = String(
+    shippingAddress?.fullName ||
+    [shippingAddress?.firstName, shippingAddress?.lastName].filter(Boolean).join(' ') ||
+    customerName ||
+    ''
+  ).trim();
+
+  const requiredShippingFields = [
+    ['firstName', String(shippingAddress?.firstName || '').trim()],
+    ['lastName', String(shippingAddress?.lastName || '').trim()],
+    ['email', resolvedEmail],
+    ['phone', String(shippingAddress?.phone || '').trim()],
+    ['address', String(shippingAddress?.address || '').trim()],
+    ['city', String(shippingAddress?.city || '').trim()],
+    ['state', String(shippingAddress?.state || '').trim()],
+    ['pinCode', String(shippingAddress?.pinCode || '').trim()],
+  ];
+
+  for (const [key, value] of requiredShippingFields) {
+    if (!value) missing.push(key);
+  }
+
+  if (resolvedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail)) missing.push('email_format');
+  if (shippingAddress?.pinCode && !/^[1-9][0-9]{5}$/.test(String(shippingAddress.pinCode).trim())) missing.push('pinCode_format');
+  if (!resolvedName) missing.push('fullName');
+
+  const itemErrors = [];
+  if (!Array.isArray(items) || items.length === 0) {
+    itemErrors.push('items_required');
+  } else {
+    for (const [index, item] of items.entries()) {
+      const productId = String(item?.productId || '').trim();
+      const quantity = Number(item?.quantity);
+      const price = Number(item?.price);
+
+      if (!productId) itemErrors.push(`items[${index}].productId`);
+      if (!Number.isFinite(quantity) || quantity <= 0) itemErrors.push(`items[${index}].quantity`);
+      if (!Number.isFinite(price) || price < 0) itemErrors.push(`items[${index}].price`);
+    }
+  }
+
+  return {
+    ok: missing.length === 0 && itemErrors.length === 0,
+    missing,
+    itemErrors,
+    resolvedEmail,
+    resolvedName,
+  };
+};
+
+const setInvoiceNumberWithRetry = async (orderId, maxRetries = 4) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+    const currentYear = new Date().getFullYear();
+    const invoiceNumber =
+      attempt < maxRetries
+        ? await generateNextInvoiceNumber()
+        : `GOE-${currentYear}-${Date.now().toString().slice(-4)}-${Math.floor(Math.random() * 100)}`;
+
+    try {
+      const updated = await prisma.order.update({
+        where: { id: orderId },
+        data: { invoiceNumber },
+      });
+      return updated.invoiceNumber || invoiceNumber;
+    } catch (error) {
+      const isInvoiceConflict = error?.code === 'P2002' &&
+        String(error?.meta?.target || '').includes('invoiceNumber');
+      if (!isInvoiceConflict || attempt === maxRetries) {
+        throw error;
+      }
+
+      logger.warn('invoice.set.conflict_retry', {
+        order_id: orderId,
+        attempt,
+        reason: 'invoiceNumber unique conflict',
+      });
+    }
+  }
+
+  throw new Error('Unable to set unique invoice number');
+};
+
 export const createRazorpayOrder = async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ message: 'Unauthorized: Login required' });
+  }
+
   const {
     amount: requestedAmount,
     currency = 'INR',
@@ -226,6 +316,15 @@ export const createRazorpayOrder = async (req, res) => {
   } = req.body;
 
   try {
+    const validation = validateCheckoutPayload({ items, shippingAddress, customerEmail, customerName });
+    if (!validation.ok) {
+      return res.status(400).json({
+        message: 'Invalid checkout details: Shipping address and items are required',
+        missing: validation.missing,
+        itemErrors: validation.itemErrors,
+      });
+    }
+
     const resolvedCountry =
       shippingAddress?.country ||
       (shippingAddress?.pinCode && /^[1-9][0-9]{5}$/.test(String(shippingAddress.pinCode)) ? 'India' : null) ||
@@ -350,7 +449,7 @@ export const createRazorpayOrder = async (req, res) => {
       return res.json({ orderId: order.id, paymentMethod });
     }
 
-    // 3. Handle Razorpay (No DB order created yet)
+    // 3. Handle Razorpay (Create a pending DB order before payment verification)
     const options = {
       amount: Math.round(amount * 100),
       currency,
@@ -378,9 +477,49 @@ export const createRazorpayOrder = async (req, res) => {
       razorpayOrder = await razorpay.orders.create(options);
     }
 
+    const pendingOrder = await prisma.order.create({
+      data: {
+        totalAmount: amount,
+        status: 'PAYMENT_PENDING',
+        customerId: resolvedCustomerId,
+        razorpayOrderId: razorpayOrder.id,
+        paymentMethod: 'razorpay',
+        shippingAddress: {
+          ...normalizeAddressForSave(shippingAddress || {}, validation.resolvedName, validation.resolvedEmail),
+          country: resolvedCountry,
+          pricing: {
+            subtotal: totals.subtotal,
+            couponDiscount: totals.couponDiscount,
+            shippingCharge: totals.shippingCharge,
+            codCharge: totals.codCharge,
+            finalTotal: totals.finalTotal,
+          },
+          couponCode: normalizedCouponCode,
+        },
+        items: {
+          create: items.map((item) => ({
+            productId: item.productId,
+            productName: item.productName || item.name || null,
+            quantity: item.quantity,
+            price: item.price,
+            variantTitle: item.variantTitle,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+
+    logger.info('payments.create.pending_order_created', {
+      user_id: resolvedCustomerId,
+      order_id: pendingOrder.id,
+      razorpay_order_id: razorpayOrder.id,
+      status: pendingOrder.status,
+    });
+
     res.json({
+      orderId: pendingOrder.id,
       ...razorpayOrder,
-      paymentMethod: 'razorpay'
+      paymentMethod: 'razorpay',
     });
 
   } catch (error) {
@@ -417,6 +556,10 @@ export const createRazorpayOrder = async (req, res) => {
 };
 
 export const verifyPayment = async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ message: 'Unauthorized: Login required' });
+  }
+
   const { 
     razorpay_order_id, 
     razorpay_payment_id, 
@@ -530,6 +673,7 @@ export const verifyPayment = async (req, res) => {
       razorpay_amount: rpOrder.amount
     });
 
+    let order = null;
     const requestedCustomerId = req.user?.id || orderData?.customerId || null;
     let resolvedCustomerId = null;
 
@@ -556,7 +700,84 @@ export const verifyPayment = async (req, res) => {
       itemCount: orderData.items?.length
     });
 
-    const order = await createOrderWithInvoiceRetry({
+    if (!order) {
+      const existingPendingOrder = await prisma.order.findUnique({
+        where: { razorpayOrderId: razorpay_order_id },
+        include: { items: true },
+      });
+
+      if (existingPendingOrder?.customerId && resolvedCustomerId && existingPendingOrder.customerId !== resolvedCustomerId) {
+        return res.status(403).json({ message: 'Forbidden: You do not have access to this order' });
+      }
+
+      if (existingPendingOrder?.status === 'PAID' || existingPendingOrder?.razorpayPaymentId) {
+        logger.warn('payments.verify.idempotent_hit', {
+          user_id: resolvedCustomerId || null,
+          payment_id: razorpay_payment_id || null,
+          order_id: existingPendingOrder.id,
+          status: existingPendingOrder.status,
+        });
+        return res.json({ message: 'Payment already verified', order: existingPendingOrder });
+      }
+
+      if (existingPendingOrder) {
+        logger.info('payments.verify.before_db_update', {
+          customerId: resolvedCustomerId,
+          totalAmount: paidAmount,
+          itemCount: orderData?.items?.length || 0,
+          pending_order_id: existingPendingOrder.id,
+        });
+
+        order = await prisma.order.update({
+          where: { id: existingPendingOrder.id },
+          data: {
+            totalAmount: paidAmount,
+            status: 'PAID',
+            customerId: resolvedCustomerId,
+            razorpayPaymentId: razorpay_payment_id,
+            razorpaySignature: razorpay_signature,
+            paymentMethod: 'razorpay',
+            shippingAddress: {
+              ...(existingPendingOrder.shippingAddress || {}),
+              ...(orderData?.shippingAddress || {}),
+              country: resolvedCountry,
+              pricing: {
+                subtotal: totals.subtotal,
+                couponDiscount: totals.couponDiscount,
+                shippingCharge: totals.shippingCharge,
+                codCharge: totals.codCharge,
+                finalTotal: totals.finalTotal,
+              },
+              email: orderData?.shippingAddress?.email || orderData?.customerEmail || existingPendingOrder?.shippingAddress?.email || null,
+              fullName: orderData?.shippingAddress?.fullName || orderData?.customerName || existingPendingOrder?.shippingAddress?.fullName || null,
+            },
+          },
+          include: { items: true },
+        });
+
+        if (!order.invoiceNumber) {
+          try {
+            order.invoiceNumber = await setInvoiceNumberWithRetry(order.id);
+          } catch (invoiceErr) {
+            logger.error('invoice.set.error', {
+              order_id: order.id,
+              error: invoiceErr?.message || String(invoiceErr),
+            });
+          }
+        }
+
+        logger.info('payments.verify.order_marked_paid', {
+          user_id: resolvedCustomerId || null,
+          order_id: order.id,
+          payment_id: razorpay_payment_id,
+          razorpay_order_id,
+          status: order.status,
+        });
+      }
+    }
+
+    if (!order) {
+      order = await createOrderWithInvoiceRetry({
       totalAmount: paidAmount,
       status: 'PAID',
       customerId: resolvedCustomerId,
@@ -587,6 +808,7 @@ export const verifyPayment = async (req, res) => {
         })),
       },
     }, 4, { items: true });
+    }
 
     // 🔥 NEW: Confirm insert success
     logger.info('✅ ORDER_CREATED_SUCCESS', {
@@ -674,6 +896,10 @@ export const verifyPayment = async (req, res) => {
 
 
 export const cancelPayment = async (req, res) => {
+  if (!req.user?.id) {
+    return res.status(401).json({ message: 'Unauthorized: Login required' });
+  }
+
   const { orderId, razorpay_order_id } = req.body || {};
 
   if (!orderId && !razorpay_order_id) {
