@@ -35,6 +35,28 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
     };
     const paymentStatus = paymentStatusMap[order.status] || order.status;
 
+    const isIndia = countryGuess === 'India';
+
+    // Per-item GST logic: if item price > 2500 => 9% CGST + 9% SGST; else 2.5% each
+    let cgstTotal = 0;
+    let sgstTotal = 0;
+    const ratesSeen = new Set();
+    for (const item of order?.items || []) {
+      const price = Number(item.price || 0);
+      const qty = Number(item.quantity || 0) || 1;
+      if (price > 2500) {
+        cgstTotal += price * qty * 0.09;
+        sgstTotal += price * qty * 0.09;
+        ratesSeen.add('high');
+      } else {
+        cgstTotal += price * qty * 0.025;
+        sgstTotal += price * qty * 0.025;
+        ratesSeen.add('low');
+      }
+    }
+    const cgstLabel = ratesSeen.size === 1 && ratesSeen.has('high') ? 'CGST (9%)' : ratesSeen.size === 1 && ratesSeen.has('low') ? 'CGST (2.5%)' : 'CGST (mixed)';
+    const sgstLabel = ratesSeen.size === 1 && ratesSeen.has('high') ? 'SGST (9%)' : ratesSeen.size === 1 && ratesSeen.has('low') ? 'SGST (2.5%)' : 'SGST (mixed)';
+
     return `
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
         <style>
@@ -338,6 +360,16 @@ const InvoiceGenerator = ({ order, customer, responsive = false }) => {
                   <div class="total-row">
                     <span class="total-label">COD</span>
                     <span class="total-value">Rs.${codCharge.toFixed(2)}</span>
+                  </div>
+                  ` : ''}
+                  ${isIndia ? `
+                  <div class="total-row">
+                    <span class="total-label">${cgstLabel}</span>
+                    <span class="total-value">Rs.${cgstTotal.toFixed(2)}</span>
+                  </div>
+                  <div class="total-row">
+                    <span class="total-label">${sgstLabel}</span>
+                    <span class="total-value">Rs.${sgstTotal.toFixed(2)}</span>
                   </div>
                   ` : ''}
                   <div class="total-row grand-total">
