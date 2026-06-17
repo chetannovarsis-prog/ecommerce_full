@@ -33,7 +33,7 @@ const Products = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/products');
+      const response = await api.get('/products?limit=100');
       const productList = Array.isArray(response.data)
         ? response.data
         : Array.isArray(response.data?.data)
