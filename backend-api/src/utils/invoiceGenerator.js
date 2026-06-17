@@ -2,7 +2,7 @@ import PDFDocument from 'pdfkit';
 import prisma from './prisma.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getShippingCharge, getCodCharge } from './orderPricing.js';
+import { getShippingCharge, getCodCharge, isIndia } from './orderPricing.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -310,12 +310,56 @@ export const generateInvoice = async (orderOrId) => {
       doc.fontSize(10).fillColor(colors.headerText);
       doc.text('Subtotal', labelX, totalY, { width: 100, align: 'right' });
       doc.text('Shipping', labelX, totalY + 20, { width: 100, align: 'right' });
-      doc.text('Total', labelX, totalY + 40, { width: 100, align: 'right' });
 
       doc.fillColor(colors.darkText);
       doc.text(`Rs.${subtotal.toFixed(2)}`, valueX, totalY, { width: 80, align: 'right' });
       doc.text(shipping ? `Rs.${shipping.toFixed(2)}` : 'Free', valueX, totalY + 20, { width: 80, align: 'right' });
-      doc.text(`Rs.${order.totalAmount.toFixed(2)}`, valueX, totalY + 40, { width: 80, align: 'right' });
+
+      // GST (India) - compute CGST & SGST per item based on item price
+      let finalTotalY = totalY + 40;
+      try {
+        if (isIndia(countryGuess)) {
+          let cgstTotal = 0;
+          let sgstTotal = 0;
+          const ratesSeen = new Set();
+
+          for (const item of order.items) {
+            const price = Number(item.price) || 0;
+            const qty = Number(item.quantity) || 1;
+            // rule: if item price > 2500 => use 9% each (18% combined), else 2.5% each (5% combined)
+            if (price > 2500) {
+              cgstTotal += price * qty * 0.09;
+              sgstTotal += price * qty * 0.09;
+              ratesSeen.add('high');
+            } else {
+              cgstTotal += price * qty * 0.025;
+              sgstTotal += price * qty * 0.025;
+              ratesSeen.add('low');
+            }
+          }
+
+          const cgstLabel = ratesSeen.size === 1 && ratesSeen.has('high') ? 'CGST (9%)' : ratesSeen.size === 1 && ratesSeen.has('low') ? 'CGST (2.5%)' : 'CGST (mixed)';
+          const sgstLabel = ratesSeen.size === 1 && ratesSeen.has('high') ? 'SGST (9%)' : ratesSeen.size === 1 && ratesSeen.has('low') ? 'SGST (2.5%)' : 'SGST (mixed)';
+
+          doc.fontSize(10).fillColor(colors.headerText);
+          doc.text(cgstLabel, labelX, totalY + 40, { width: 100, align: 'right' });
+          doc.text(sgstLabel, labelX, totalY + 60, { width: 100, align: 'right' });
+
+          doc.fillColor(colors.darkText);
+          doc.text(`Rs.${cgstTotal.toFixed(2)}`, valueX, totalY + 40, { width: 80, align: 'right' });
+          doc.text(`Rs.${sgstTotal.toFixed(2)}`, valueX, totalY + 60, { width: 80, align: 'right' });
+
+          finalTotalY = totalY + 80;
+        }
+      } catch (err) {
+        finalTotalY = totalY + 40;
+      }
+
+      doc.fontSize(10).fillColor(colors.headerText);
+      doc.text('Total', labelX, finalTotalY, { width: 100, align: 'right' });
+
+      doc.fillColor(colors.darkText);
+      doc.text(`Rs.${order.totalAmount.toFixed(2)}`, valueX, finalTotalY, { width: 80, align: 'right' });
 
       // --- FOOTER ---
       // Thank You Graphic (Bottom Left)

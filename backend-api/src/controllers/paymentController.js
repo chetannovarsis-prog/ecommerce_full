@@ -223,24 +223,46 @@ const validateCheckoutPayload = ({ items, shippingAddress, customerEmail, custom
     ''
   ).trim();
 
-  const requiredShippingFields = [
+  // Determine country context to validate appropriately
+  const resolvedCountry =
+    shippingAddress?.country ||
+    (shippingAddress?.pinCode && /^[1-9][0-9]{5}$/.test(String(shippingAddress.pinCode)) ? 'India' : null) ||
+    'India';
+
+  // Basic required fields (common)
+  const requiredCommon = [
     ['firstName', String(shippingAddress?.firstName || '').trim()],
     ['lastName', String(shippingAddress?.lastName || '').trim()],
     ['email', resolvedEmail],
     ['phone', String(shippingAddress?.phone || '').trim()],
     ['address', String(shippingAddress?.address || '').trim()],
     ['city', String(shippingAddress?.city || '').trim()],
-    ['state', String(shippingAddress?.state || '').trim()],
-    ['pinCode', String(shippingAddress?.pinCode || '').trim()],
   ];
+
+  // Add country-specific required fields
+  const requiredShippingFields = [...requiredCommon];
+  if (resolvedCountry === 'India') {
+    requiredShippingFields.push(['state', String(shippingAddress?.state || '').trim()]);
+    requiredShippingFields.push(['pinCode', String(shippingAddress?.pinCode || '').trim()]);
+  } else {
+    // For international addresses, require a postal code but allow flexible formats
+    requiredShippingFields.push(['pinCode', String(shippingAddress?.pinCode || '').trim()]);
+  }
 
   for (const [key, value] of requiredShippingFields) {
     if (!value) missing.push(key);
   }
 
   if (resolvedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail)) missing.push('email_format');
-  if (shippingAddress?.pinCode && !/^[1-9][0-9]{5}$/.test(String(shippingAddress.pinCode).trim())) missing.push('pinCode_format');
   if (!resolvedName) missing.push('fullName');
+
+  // Validate pin/postal code format depending on country
+  if (resolvedCountry === 'India') {
+    if (shippingAddress?.pinCode && !/^[1-9][0-9]{5}$/.test(String(shippingAddress.pinCode).trim())) missing.push('pinCode_format');
+  } else {
+    // International postal code: accept 3-12 alphanumeric with dashes/spaces
+    if (shippingAddress?.pinCode && !/^[A-Za-z0-9\-\s]{3,12}$/.test(String(shippingAddress.pinCode).trim())) missing.push('pinCode_format');
+  }
 
   const itemErrors = [];
   if (!Array.isArray(items) || items.length === 0) {
